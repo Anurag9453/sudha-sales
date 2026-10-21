@@ -5,6 +5,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { publicEnv } from '@/lib/env';
+import { SudhaSpinnerBadge } from '@/components/ui/LuxurySpinner';
 
 export function StoreFooter() {
   return (
@@ -15,9 +16,12 @@ export function StoreFooter() {
           <div className="md:col-span-2 space-y-4">
             <Link
               href="/"
-              className="font-serif text-2xl tracking-[0.14em] font-semibold text-white inline-block"
+              className="inline-flex items-center gap-3 whitespace-nowrap"
             >
-              {publicEnv.storeName}
+              <SudhaSpinnerBadge size="sm" theme="dark" />
+              <span className="font-serif text-2xl tracking-[0.14em] font-semibold text-white whitespace-nowrap inline-block">
+                {publicEnv.storeName}
+              </span>
             </Link>
             <p className="text-sm text-stone-400 max-w-md leading-relaxed">
               Curated contemporary Indian ethnic and resort wear. Sourced directly from

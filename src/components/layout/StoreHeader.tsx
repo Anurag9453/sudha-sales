@@ -22,6 +22,7 @@ import {
 import { useCart } from '@/store/cart-context';
 import { useCustomerAuth } from '@/store/customer-auth-context';
 import { publicEnv } from '@/lib/env';
+import { SudhaSpinnerBadge } from '@/components/ui/LuxurySpinner';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
@@ -71,28 +72,31 @@ export function StoreHeader() {
 
       {/* Main Sticky Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          {/* Left: Mobile Menu Button + Animated Moving Brand Logo */}
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+          {/* Left: Mobile Menu Button + Single-Line Animated Brand Logo with Spinner Emblem */}
+          <div className="flex items-center gap-2.5 shrink-0">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Open navigation menu"
-              className="lg:hidden p-2 -ml-2 rounded-lg text-stone-800 hover:bg-stone-100 active:bg-stone-200 transition-colors"
+              className="lg:hidden p-2 -ml-2 rounded-lg text-stone-800 hover:bg-stone-100 active:bg-stone-200 transition-colors shrink-0"
             >
               <Menu className="w-6 h-6" />
             </button>
 
             <Link
               href="/"
-              className="font-serif text-xl sm:text-2xl tracking-[0.16em] font-bold animate-sudha-brand inline-block"
+              className="inline-flex items-center gap-2.5 shrink-0 whitespace-nowrap group"
             >
-              {publicEnv.storeName}
+              <SudhaSpinnerBadge size="sm" theme="light" />
+              <span className="font-serif text-lg sm:text-xl xl:text-2xl tracking-[0.14em] font-bold animate-sudha-brand whitespace-nowrap inline-block">
+                {publicEnv.storeName}
+              </span>
             </Link>
           </div>
 
           {/* Center: Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-stone-700">
+          <nav className="hidden lg:flex items-center gap-4 xl:gap-6 text-sm font-medium text-stone-700 shrink-0">
             {NAV_LINKS.map((link) => {
               const isActive =
                 link.href === '/'
@@ -104,13 +108,13 @@ export function StoreHeader() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`relative py-1 transition-colors hover:text-stone-950 flex items-center gap-1.5 ${
+                  className={`relative py-1 transition-colors hover:text-stone-950 flex items-center gap-1.5 whitespace-nowrap ${
                     isActive ? 'text-stone-950 font-semibold' : ''
                   }`}
                 >
                   <span>{link.label}</span>
                   {link.badge && (
-                    <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-semibold">
+                    <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-semibold whitespace-nowrap">
                       {link.badge}
                     </span>
                   )}
@@ -120,7 +124,7 @@ export function StoreHeader() {
           </nav>
 
           {/* Right: Search, Customer Greeting / Login, Admin Link, Cart */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Link
               href="/shop"
               aria-label="Browse and search catalog"
@@ -182,10 +186,13 @@ export function StoreHeader() {
 
           <div className="relative w-[84%] max-w-xs bg-white h-full shadow-2xl flex flex-col justify-between z-10 overflow-y-auto">
             <div>
-              <div className="p-4 border-b border-stone-200 flex items-center justify-between">
-                <span className="font-serif text-lg tracking-[0.16em] font-bold animate-sudha-brand">
-                  {publicEnv.storeName}
-                </span>
+              <div className="p-4 border-b border-stone-200 flex items-center justify-between gap-2">
+                <div className="inline-flex items-center gap-2 whitespace-nowrap shrink-0">
+                  <SudhaSpinnerBadge size="sm" theme="light" />
+                  <span className="font-serif text-lg tracking-[0.14em] font-bold animate-sudha-brand whitespace-nowrap">
+                    {publicEnv.storeName}
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
