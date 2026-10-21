@@ -27,6 +27,7 @@ import {
   FileText,
   CreditCard,
   AlertCircle,
+  Banknote,
 } from 'lucide-react';
 import { useCart } from '@/store/cart-context';
 import { useCustomerAuth } from '@/store/customer-auth-context';
@@ -105,6 +106,7 @@ export default function CartPage() {
   } = useCustomerAuth();
 
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'address' | 'confirmed'>('cart');
+  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [orderRef, setOrderRef] = useState<string>('');
@@ -146,11 +148,23 @@ export default function CartPage() {
           Order Confirmed!
         </h1>
         <p className="text-sm text-stone-600 leading-relaxed">
-          Thank you, <strong>{customer?.name}</strong>! Your Razorpay payment (
-          <span className="font-mono text-xs text-stone-800">{paymentIdRef}</span>
-          ) succeeded and order{' '}
+          Thank you, <strong>{customer?.name}</strong>! Your{' '}
+          {paymentMethod === 'cod' ? (
+            <>
+              <strong>Cash on Delivery (COD)</strong> order (Ref:{' '}
+              <span className="font-mono text-xs text-stone-800">{paymentIdRef}</span>
+              )
+            </>
+          ) : (
+            <>
+              Razorpay payment (
+              <span className="font-mono text-xs text-stone-800">{paymentIdRef}</span>
+              )
+            </>
+          )}{' '}
+          is confirmed and order{' '}
           <span className="font-mono font-semibold text-stone-900">{orderRef}</span>{' '}
-          has been saved to Supabase &amp; added to your account order history.
+          has been saved to your account order history.
         </p>
         <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
           <Link
@@ -228,7 +242,63 @@ export default function CartPage() {
     setIsProcessingPayment(true);
 
     try {
-      // 1. Create Razorpay Order on Server
+      // Branch A: Cash on Delivery (COD) Checkout
+      if (paymentMethod === 'cod') {
+        const codRes = await fetch('/api/orders/cod', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerName: defaultAddr.full_name,
+            customerEmail: customer?.email || '',
+            customerPhone: defaultAddr.phone,
+            shippingAddress: {
+              full_name: defaultAddr.full_name,
+              phone: defaultAddr.phone,
+              email: customer?.email,
+              address_line1: defaultAddr.address_line1,
+              address_line2: defaultAddr.address_line2,
+              city: defaultAddr.city,
+              state: defaultAddr.state,
+              postal_code: defaultAddr.postal_code,
+              country: 'IN',
+            },
+            items,
+            subtotalAmount,
+            discountAmount: totalSavingsAmount,
+            shippingAmount,
+            totalAmount: finalTotal,
+          }),
+        });
+
+        const codData = (await codRes.json()) as {
+          ok: boolean;
+          error?: string;
+          order?: Order;
+          codReference?: string;
+        };
+
+        if (!codData.ok || !codData.order) {
+          throw new Error(codData.error || 'Failed to place Cash on Delivery order');
+        }
+
+        createOrderFromCart({
+          cartItems: items,
+          address: defaultAddr,
+          subtotalAmount,
+          discountAmount: totalSavingsAmount,
+          shippingAmount,
+          totalAmount: finalTotal,
+        });
+
+        setOrderRef(codData.order.order_number);
+        setPaymentIdRef(codData.codReference || 'COD');
+        clearCart();
+        setIsProcessingPayment(false);
+        setCheckoutStep('confirmed');
+        return;
+      }
+
+      // Branch B: Create Razorpay Order on Server
       const createRes = await fetch('/api/payments/razorpay/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -744,16 +814,96 @@ export default function CartPage() {
                 <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
-              <button
-                type="button"
-                disabled={isProcessingPayment}
-                onClick={handlePlaceOrderWithSavedAddress}
-                className="w-full h-13 rounded-xl bg-stone-900 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-stone-800 disabled:opacity-50 transition-colors cursor-pointer"
-              >
-                <CreditCard className="w-4 h-4 text-amber-300" />
-                <span>Pay Online via Razorpay ({formatPrice(finalTotal)})</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="space-y-4">
+                {/* Payment Method Selector: Online Razorpay vs Cash on Delivery (COD) */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                    Choose Payment Method
+                  </p>
+
+                  <label
+                    onClick={() => setPaymentMethod('razorpay')}
+                    className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                      paymentMethod === 'razorpay'
+                        ? 'bg-amber-50/60 border-stone-900 ring-1 ring-stone-900/10'
+                        : 'bg-white border-stone-200 hover:border-stone-400'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={paymentMethod === 'razorpay'}
+                      onChange={() => setPaymentMethod('razorpay')}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs sm:text-sm font-bold text-stone-950 flex items-center gap-1.5">
+                          <CreditCard className="w-4 h-4 text-amber-800" />
+                          Pay Online (UPI / Card / NetBanking)
+                        </span>
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                          Fastest Dispatch
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-500 mt-0.5">
+                        Secured by Razorpay • Instant order &amp; GST invoice
+                      </p>
+                    </div>
+                  </label>
+
+                  <label
+                    onClick={() => setPaymentMethod('cod')}
+                    className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                      paymentMethod === 'cod'
+                        ? 'bg-amber-50/60 border-stone-900 ring-1 ring-stone-900/10'
+                        : 'bg-white border-stone-200 hover:border-stone-400'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={paymentMethod === 'cod'}
+                      onChange={() => setPaymentMethod('cod')}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs sm:text-sm font-bold text-stone-950 flex items-center gap-1.5">
+                          <Banknote className="w-4 h-4 text-emerald-700" />
+                          Cash on Delivery (COD)
+                        </span>
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-stone-100 text-stone-700">
+                          Pay at Doorstep
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-500 mt-0.5">
+                        Pay in cash or UPI to the courier partner upon delivery
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={isProcessingPayment}
+                  onClick={handlePlaceOrderWithSavedAddress}
+                  className="w-full h-13 rounded-xl bg-stone-900 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-stone-800 disabled:opacity-50 transition-colors cursor-pointer"
+                >
+                  {paymentMethod === 'cod' ? (
+                    <>
+                      <Banknote className="w-4 h-4 text-emerald-300" />
+                      <span>Place COD Order ({formatPrice(finalTotal)})</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4 text-amber-300" />
+                      <span>Pay Online via Razorpay ({formatPrice(finalTotal)})</span>
+                    </>
+                  )}
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             )}
 
             <div className="pt-2 flex items-center justify-center gap-2 text-xs text-stone-500">

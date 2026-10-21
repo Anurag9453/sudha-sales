@@ -47,7 +47,7 @@ export function getServerEnv() {
       .split(',')
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
-    adminPasscode: process.env.ADMIN_PASSCODE || 'vastra2026',
+    adminPasscode: process.env.ADMIN_PASSCODE || 'SudhaAdmin@2026',
     awsRegion: process.env.AWS_REGION ?? 'ap-south-1',
     awsS3BucketName: process.env.AWS_S3_BUCKET_NAME ?? '',
     razorpayKeyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? '',

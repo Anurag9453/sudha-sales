@@ -13,7 +13,7 @@ import { publicEnv } from '@/lib/env';
 
 export function AdminLoginGate() {
   const router = useRouter();
-  const [passcode, setPasscode] = useState('vastra2026');
+  const [passcode, setPasscode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -66,7 +66,7 @@ export function AdminLoginGate() {
               />
             </div>
             <p className="text-[11px] text-stone-400 mt-1.5">
-              Default local passcode: <code className="font-mono text-stone-700">vastra2026</code> (configurable via <code className="font-mono">ADMIN_PASSCODE</code>)
+              Authorized store personnel only. Protected by <code className="font-mono">ADMIN_PASSCODE</code>.
             </p>
           </div>
 
