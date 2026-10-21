@@ -14,8 +14,6 @@ import {
   getProducts,
 } from '@/services/catalog.service';
 import { ProductCard } from '@/components/product/ProductCard';
-import { SudhaSpinnerBadge } from '@/components/ui/LuxurySpinner';
-import { publicEnv } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,18 +32,9 @@ export default async function HomePage() {
       <section className="relative overflow-hidden bg-stone-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 lg:py-24 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           <div className="lg:col-span-6 space-y-6 z-10">
-            {/* Signature SUDHA SALES Spinning Emblem Badge on Home Page */}
-            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 shadow-lg">
-              <SudhaSpinnerBadge size="sm" theme="dark" />
-              <div className="flex items-center gap-2 whitespace-nowrap">
-                <span className="font-serif text-xs sm:text-sm font-bold tracking-[0.18em] text-amber-300 whitespace-nowrap">
-                  {publicEnv.storeName}
-                </span>
-                <span className="text-white/30">•</span>
-                <span className="text-amber-100 text-xs font-medium tracking-wide">
-                  Ready to Ship Today
-                </span>
-              </div>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-xs border border-white/15 text-amber-200 text-xs font-medium tracking-wide">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Fresh Warehouse Drop • Ready to Ship Today</span>
             </div>
 
             <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.08]">
@@ -103,17 +92,13 @@ export default async function HomePage() {
       {/* New Collection Section (Daily Arrivals) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3.5">
-            <SudhaSpinnerBadge size="md" theme="light" />
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-widest text-amber-800 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                Just Arrived at {publicEnv.storeName}
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-stone-950 mt-0.5">
-                New Collection — Daily Drop
-              </h2>
-            </div>
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-widest text-amber-800">
+              Just Arrived
+            </span>
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-stone-950 mt-1">
+              New Collection — Daily Drop
+            </h2>
           </div>
           <Link
             href="/shop?collection=new-collection"

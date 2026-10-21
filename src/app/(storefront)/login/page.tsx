@@ -28,7 +28,7 @@ import { LuxurySpinner } from '@/components/ui/LuxurySpinner';
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextUrl = searchParams.get('next') || '/account';
+  const nextUrl = searchParams.get('next') || '/';
   const reason = searchParams.get('reason');
 
   const { isAuthenticated, isHydrated, signInWithGoogle } =

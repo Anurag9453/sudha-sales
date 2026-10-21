@@ -5,7 +5,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { publicEnv } from '@/lib/env';
-import { SudhaSpinnerBadge } from '@/components/ui/LuxurySpinner';
 
 export function StoreFooter() {
   return (
@@ -14,15 +13,9 @@ export function StoreFooter() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand Column */}
           <div className="md:col-span-2 space-y-4">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-3 whitespace-nowrap"
-            >
-              <SudhaSpinnerBadge size="sm" theme="dark" />
-              <span className="font-serif text-2xl tracking-[0.14em] font-semibold text-white whitespace-nowrap inline-block">
-                {publicEnv.storeName}
-              </span>
-            </Link>
+            <p className="font-serif text-xl tracking-[0.14em] font-semibold text-white whitespace-nowrap">
+              {publicEnv.storeName}
+            </p>
             <p className="text-sm text-stone-400 max-w-md leading-relaxed">
               Curated contemporary Indian ethnic and resort wear. Sourced directly from
               artisan looms and partner warehouses with fresh collections dropping daily.
@@ -70,7 +63,7 @@ export function StoreFooter() {
           {/* Quick Links */}
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-widest text-white mb-4">
-              Customer Care &amp; Admin
+              Customer Care
             </h3>
             <ul className="space-y-2.5 text-sm text-stone-400">
               <li>
@@ -79,13 +72,13 @@ export function StoreFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/shop" className="hover:text-white transition-colors">
-                  Browse Full Catalog
+                <Link href="/account" className="hover:text-white transition-colors">
+                  My Orders &amp; Invoices
                 </Link>
               </li>
               <li>
-                <Link href="/admin" className="hover:text-white transition-colors">
-                  Retailer Admin Portal
+                <Link href="/shop" className="hover:text-white transition-colors">
+                  Browse Full Catalog
                 </Link>
               </li>
             </ul>

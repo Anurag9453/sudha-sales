@@ -10,10 +10,10 @@
 
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Package,
   FileText,
@@ -38,8 +38,9 @@ import { publicEnv } from '@/lib/env';
 import { LuxurySpinner } from '@/components/ui/LuxurySpinner';
 import type { CustomerStoredAddress, Order } from '@/types/domain';
 
-export default function CustomerAccountPage() {
+function CustomerAccountContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     customer,
     isAuthenticated,
@@ -56,6 +57,17 @@ export default function CustomerAccountPage() {
 
   const [activeTab, setActiveTab] = useState<'orders' | 'bag' | 'addresses'>('orders');
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
+
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (
+      requestedTab === 'orders' ||
+      requestedTab === 'bag' ||
+      requestedTab === 'addresses'
+    ) {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
 
   // Address Modal / Form State
   const [editingAddress, setEditingAddress] = useState<CustomerStoredAddress | null>(null);
@@ -905,5 +917,20 @@ export default function CustomerAccountPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CustomerAccountPage() {
+  return (
+    <Suspense
+      fallback={
+        <LuxurySpinner
+          title="Loading Your Account..."
+          subtitle="Fetching your orders, invoices, shopping bag & saved addresses"
+        />
+      }
+    >
+      <CustomerAccountContent />
+    </Suspense>
   );
 }

@@ -1,27 +1,34 @@
 // ============================================================================
 // Header & Mobile Navigation: src/components/layout/StoreHeader.tsx
-// Features a continuously moving "SUDHA SALES" announcement ticker bar plus
-// an animated shimmering/floating "SUDHA SALES" brand mark in the sticky header.
+// - Top-left: Single-line animated "SUDHA SALES" logo with spinning emblem.
+// - Top-right: "Namaste <FirstName>" + Circular Profile Avatar button that
+//   opens a Right-Side Account Drawer with Orders, Shopping Bag, Saved
+//   Addresses, and Logout.
+// - No Admin button in the customer header (Admins access `/admin` directly).
 // ============================================================================
 
 'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Menu,
   X,
   ShoppingBag,
   Sparkles,
-  ShieldCheck,
   Search,
   ChevronRight,
   User,
+  Package,
+  MapPin,
+  LogOut,
+  FileText,
 } from 'lucide-react';
 import { useCart } from '@/store/cart-context';
 import { useCustomerAuth } from '@/store/customer-auth-context';
 import { publicEnv } from '@/lib/env';
+import { formatPrice } from '@/lib/format';
 import { SudhaSpinnerBadge } from '@/components/ui/LuxurySpinner';
 
 const NAV_LINKS = [
@@ -43,15 +50,27 @@ const MARQUEE_ITEMS = [
 
 export function StoreHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [accountDrawerOpen, setAccountDrawerOpen] = useState(false);
   const pathname = usePathname();
-  const { totalQuantity, isHydrated } = useCart();
+  const router = useRouter();
+  const { totalQuantity, subtotalAmount, isHydrated } = useCart();
   const {
     customer,
     isAuthenticated,
     isHydrated: isAuthHydrated,
+    orders,
+    addresses,
+    signOutCustomer,
   } = useCustomerAuth();
 
   const firstName = customer?.name.split(' ')[0] || customer?.name || '';
+  const initialLetter = firstName ? firstName.charAt(0).toUpperCase() : 'U';
+
+  const handleLogoutFromDrawer = async () => {
+    await signOutCustomer();
+    setAccountDrawerOpen(false);
+    router.push('/');
+  };
 
   return (
     <>
@@ -73,7 +92,7 @@ export function StoreHeader() {
       {/* Main Sticky Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
-          {/* Left: Mobile Menu Button + Single-Line Animated Brand Logo with Spinner Emblem */}
+          {/* Top-Left: Mobile Menu Button + Single-Line SUDHA SALES Logo with Spinner Emblem */}
           <div className="flex items-center gap-2.5 shrink-0">
             <button
               type="button"
@@ -123,8 +142,8 @@ export function StoreHeader() {
             })}
           </nav>
 
-          {/* Right: Search, Customer Greeting / Login, Admin Link, Cart */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Top-Right: Search, Shopping Bag, Greeting + Circular Drawer Trigger */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             <Link
               href="/shop"
               aria-label="Browse and search catalog"
@@ -133,50 +152,65 @@ export function StoreHeader() {
               <Search className="w-5 h-5" />
             </Link>
 
-            {isAuthHydrated && isAuthenticated && customer ? (
-              <Link
-                href="/account"
-                title="View previous orders, invoices, shopping bag & saved addresses"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-300/80 text-stone-950 text-xs font-semibold transition-all"
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
-                <span className="truncate max-w-[130px] sm:max-w-[180px]">
-                  Namaste &apos;{firstName}&apos;
-                </span>
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-900 text-xs font-semibold transition-colors"
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>Sign In</span>
-              </Link>
-            )}
-
-            <Link
-              href="/admin"
-              className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-stone-600 hover:text-stone-950 px-3 py-1.5 rounded-full border border-stone-200 hover:border-stone-300 transition-colors"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Admin</span>
-            </Link>
-
             <Link
               href="/cart"
               aria-label="Shopping bag"
-              className="relative inline-flex items-center gap-2 px-3 py-2 rounded-full bg-stone-900 text-white hover:bg-stone-800 active:scale-[0.98] transition-all"
+              className="relative inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-stone-100 text-stone-900 hover:bg-stone-200 border border-stone-200 transition-all"
             >
               <ShoppingBag className="w-4 h-4" />
-              <span className="text-xs font-semibold tabular-nums">
+              <span className="text-xs font-bold tabular-nums">
                 {isHydrated ? totalQuantity : 0}
               </span>
             </Link>
+
+            {isAuthHydrated && isAuthenticated && customer ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAccountDrawerOpen(true)}
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-300/80 text-stone-950 text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
+                  <span>Namaste {firstName}</span>
+                </button>
+
+                {/* Top-Right Circular Profile Button that opens the Right-Side Drawer */}
+                <button
+                  type="button"
+                  onClick={() => setAccountDrawerOpen(true)}
+                  aria-label="Open customer account menu drawer"
+                  title={`Namaste ${firstName} — Click to open Orders, Bag & Account Drawer`}
+                  className="relative w-10 h-10 rounded-full bg-stone-900 hover:bg-stone-800 text-amber-300 font-serif font-bold text-sm flex items-center justify-center shadow-md ring-2 ring-amber-400/50 transition-transform active:scale-95 cursor-pointer shrink-0"
+                >
+                  <span>{initialLetter}</span>
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/login"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-900 text-xs font-semibold transition-colors whitespace-nowrap"
+                >
+                  <span>Sign In</span>
+                </Link>
+
+                {/* Top-Right Circular Menu Trigger even when signed out */}
+                <button
+                  type="button"
+                  onClick={() => setAccountDrawerOpen(true)}
+                  aria-label="Open customer menu drawer"
+                  className="w-10 h-10 rounded-full bg-stone-900 hover:bg-stone-800 text-white flex items-center justify-center shadow-md ring-2 ring-stone-200 transition-transform active:scale-95 cursor-pointer shrink-0"
+                >
+                  <User className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Mobile Slide-Over Navigation Drawer */}
+      {/* Left Mobile Slide-Over Navigation Drawer */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div
@@ -187,12 +221,9 @@ export function StoreHeader() {
           <div className="relative w-[84%] max-w-xs bg-white h-full shadow-2xl flex flex-col justify-between z-10 overflow-y-auto">
             <div>
               <div className="p-4 border-b border-stone-200 flex items-center justify-between gap-2">
-                <div className="inline-flex items-center gap-2 whitespace-nowrap shrink-0">
-                  <SudhaSpinnerBadge size="sm" theme="light" />
-                  <span className="font-serif text-lg tracking-[0.14em] font-bold animate-sudha-brand whitespace-nowrap">
-                    {publicEnv.storeName}
-                  </span>
-                </div>
+                <span className="font-serif text-lg tracking-[0.14em] font-bold animate-sudha-brand whitespace-nowrap">
+                  {publicEnv.storeName}
+                </span>
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
@@ -227,14 +258,17 @@ export function StoreHeader() {
 
             <div className="p-4 border-t border-stone-200 bg-stone-50 space-y-2.5">
               {isAuthHydrated && isAuthenticated && customer ? (
-                <Link
-                  href="/account"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50 text-stone-950 text-xs font-bold"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setAccountDrawerOpen(true);
+                  }}
+                  className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50 text-stone-950 text-xs font-bold cursor-pointer"
                 >
-                  <span>Namaste &apos;{firstName}&apos; (My Account)</span>
+                  <span>Namaste {firstName}</span>
                   <ChevronRight className="w-4 h-4 text-stone-600" />
-                </Link>
+                </button>
               ) : (
                 <Link
                   href="/login"
@@ -248,21 +282,196 @@ export function StoreHeader() {
                   <ChevronRight className="w-4 h-4 text-stone-300" />
                 </Link>
               )}
-
-              <Link
-                href="/admin"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl border border-stone-300 bg-white text-stone-800 text-xs font-semibold"
-              >
-                <span className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-stone-700" />
-                  Store Admin Portal
-                </span>
-                <ChevronRight className="w-4 h-4 text-stone-400" />
-              </Link>
               <p className="text-[11px] text-stone-500 text-center">
                 Fresh styles curated daily • Pan-India Delivery
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Right-Side Customer Account Drawer (Opened by clicking the Top-Right Circle) */}
+      {accountDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-stone-950/55 backdrop-blur-xs"
+            onClick={() => setAccountDrawerOpen(false)}
+          />
+
+          {/* Slide-Over Panel on the Right */}
+          <div className="relative w-[88%] max-w-sm bg-white h-full shadow-2xl flex flex-col justify-between z-10 overflow-y-auto">
+            <div>
+              {/* Drawer Header */}
+              <div className="p-5 bg-stone-900 text-white flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 rounded-full bg-amber-400/20 border border-amber-300/50 text-amber-300 font-serif font-bold text-base flex items-center justify-center shrink-0">
+                    {isAuthHydrated && isAuthenticated && customer ? (
+                      <span>{initialLetter}</span>
+                    ) : (
+                      <User className="w-5 h-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    {isAuthHydrated && isAuthenticated && customer ? (
+                      <>
+                        <p className="font-serif text-lg font-semibold text-white truncate">
+                          Namaste {firstName}
+                        </p>
+                        <p className="text-xs text-stone-300 truncate">
+                          {customer.email}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-serif text-lg font-semibold text-white">
+                          Welcome Guest
+                        </p>
+                        <p className="text-xs text-stone-300">
+                          Sign in to shop &amp; track orders
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setAccountDrawerOpen(false)}
+                  aria-label="Close customer drawer"
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Drawer Menu Options */}
+              <div className="p-4 space-y-2">
+                <p className="px-2 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-widest text-stone-400">
+                  Your Account &amp; Shopping
+                </p>
+
+                {/* Option 1: Orders & Invoices */}
+                <Link
+                  href={isAuthenticated ? '/account?tab=orders' : '/login?next=/account'}
+                  onClick={() => setAccountDrawerOpen(false)}
+                  className="flex items-center justify-between p-3.5 rounded-2xl border border-stone-200 hover:border-stone-900 hover:bg-stone-50 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-stone-100 group-hover:bg-stone-900 group-hover:text-white text-stone-800 flex items-center justify-center transition-colors">
+                      <Package className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-stone-950">
+                        My Orders &amp; Delivery Status
+                      </p>
+                      <p className="text-xs text-stone-500">
+                        {isAuthenticated
+                          ? `${orders.length} past ${orders.length === 1 ? 'order' : 'orders'} & tracking`
+                          : 'Track dispatches & delivered dates'}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-stone-900" />
+                </Link>
+
+                {/* Option 2: Tax Invoices */}
+                <Link
+                  href={isAuthenticated ? '/account?tab=orders' : '/login?next=/account'}
+                  onClick={() => setAccountDrawerOpen(false)}
+                  className="flex items-center justify-between p-3.5 rounded-2xl border border-stone-200 hover:border-stone-900 hover:bg-stone-50 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-stone-100 group-hover:bg-stone-900 group-hover:text-white text-stone-800 flex items-center justify-center transition-colors">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-stone-950">
+                        GST / Tax Invoices
+                      </p>
+                      <p className="text-xs text-stone-500">
+                        View &amp; print order bills
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-stone-900" />
+                </Link>
+
+                {/* Option 3: Shopping Bag */}
+                <Link
+                  href="/cart"
+                  onClick={() => setAccountDrawerOpen(false)}
+                  className="flex items-center justify-between p-3.5 rounded-2xl border border-stone-200 hover:border-stone-900 hover:bg-stone-50 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100/80 group-hover:bg-stone-900 group-hover:text-white text-amber-950 flex items-center justify-center transition-colors">
+                      <ShoppingBag className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-stone-950">
+                        Shopping Bag ({isHydrated ? totalQuantity : 0})
+                      </p>
+                      <p className="text-xs text-stone-500">
+                        {isHydrated && totalQuantity > 0
+                          ? `Subtotal: ${formatPrice(subtotalAmount)} — Proceed to buy`
+                          : 'View items in your bag'}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-stone-900" />
+                </Link>
+
+                {/* Option 4: Stored Addresses */}
+                <Link
+                  href={
+                    isAuthenticated
+                      ? '/account?tab=addresses'
+                      : '/login?next=/account?tab=addresses'
+                  }
+                  onClick={() => setAccountDrawerOpen(false)}
+                  className="flex items-center justify-between p-3.5 rounded-2xl border border-stone-200 hover:border-stone-900 hover:bg-stone-50 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-stone-100 group-hover:bg-stone-900 group-hover:text-white text-stone-800 flex items-center justify-center transition-colors">
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-stone-950">
+                        Saved Addresses
+                      </p>
+                      <p className="text-xs text-stone-500">
+                        {isAuthenticated
+                          ? `${addresses.length} saved delivery ${addresses.length === 1 ? 'address' : 'addresses'}`
+                          : 'Add or edit delivery addresses'}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-stone-900" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Drawer Footer: Logout or Sign In */}
+            <div className="p-4 border-t border-stone-200 bg-stone-50 space-y-2.5">
+              {isAuthHydrated && isAuthenticated && customer ? (
+                <button
+                  type="button"
+                  onClick={handleLogoutFromDrawer}
+                  className="w-full h-11 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Logout ({firstName})</span>
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setAccountDrawerOpen(false)}
+                  className="w-full h-11 px-4 rounded-2xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Sign In with Google</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>
