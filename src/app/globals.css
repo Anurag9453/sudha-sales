@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #faf9f6;
+    color: #1c1917;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@keyframes sudha-marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes sudha-brand-shimmer {
+  0% {
+    background-position: 0% 50%;
+    transform: translateY(0px);
+  }
+  50% {
+    background-position: 100% 50%;
+    transform: translateY(-1.5px);
+  }
+  100% {
+    background-position: 0% 50%;
+    transform: translateY(0px);
+  }
+}
+
+.animate-sudha-marquee {
+  display: flex;
+  width: max-content;
+  animation: sudha-marquee 24s linear infinite;
+}
+
+.animate-sudha-marquee:hover {
+  animation-play-state: paused;
+}
+
+.animate-sudha-brand {
+  background: linear-gradient(
+    90deg,
+    #1c1917 0%,
+    #92400e 35%,
+    #b45309 50%,
+    #92400e 65%,
+    #1c1917 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: sudha-brand-shimmer 4.5s ease-in-out infinite;
+}

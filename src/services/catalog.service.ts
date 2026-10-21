@@ -1,0 +1,228 @@
+// ============================================================================
+// Catalog Service: src/services/catalog.service.ts
+// Handles all storefront & admin read queries for products, categories, and
+// collections. Uses Supabase PostgreSQL when configured, with automatic
+// fallback to the local seed catalog.
+// ============================================================================
+
+import { getSupabaseServerAnonClient, getSupabaseServerAdminClient } from '@/database/supabase-server';
+import { readLocalCatalog } from '@/database/local-store';
+import { resolveProductImageUrl } from './storage.service';
+import { getEffectivePrice } from '@/lib/format';
+import type {
+  CatalogFilterParams,
+  Category,
+  Collection,
+  Product,
+  ProductImage,
+} from '@/types/domain';
+
+function normalizeProductImages(images: ProductImage[] | undefined): ProductImage[] {
+  if (!images || images.length === 0) return [];
+  return [...images]
+    .sort((a, b) => a.display_order - b.display_order)
+    .map((img) => ({
+      ...img,
+      image_url: resolveProductImageUrl(img),
+    }));
+}
+
+function normalizeSupabaseProduct(row: Record<string, unknown>): Product {
+  const rawImages = (row.product_images ?? row.images ?? []) as ProductImage[];
+  return {
+    id: String(row.id),
+    sku: String(row.sku),
+    name: String(row.name),
+    slug: String(row.slug),
+    description: String(row.description ?? ''),
+    category_id: row.category_id ? String(row.category_id) : null,
+    collection_id: row.collection_id ? String(row.collection_id) : null,
+    price: Number(row.price),
+    sale_price: row.sale_price !== null && row.sale_price !== undefined ? Number(row.sale_price) : null,
+    stock: Number(row.stock ?? 0),
+    sizes: Array.isArray(row.sizes) ? row.sizes.map(String) : [],
+    size_stock: (row.size_stock as Record<string, number>) ?? {},
+    color: String(row.color ?? ''),
+    vendor_code: row.vendor_code ? String(row.vendor_code) : null,
+    status: (row.status as Product['status']) ?? 'ACTIVE',
+    gdrive_folder_id: row.gdrive_folder_id ? String(row.gdrive_folder_id) : null,
+    last_synced_at: row.last_synced_at ? String(row.last_synced_at) : null,
+    created_at: String(row.created_at),
+    updated_at: String(row.updated_at),
+    category: (row.categories as Category | null) ?? (row.category as Category | null) ?? null,
+    collection: (row.collections as Collection | null) ?? (row.collection as Collection | null) ?? null,
+    images: normalizeProductImages(rawImages),
+  };
+}
+
+export async function getCategories(): Promise<Category[]> {
+  const supabase = getSupabaseServerAnonClient();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true });
+
+    if (!error && data) {
+      return data as Category[];
+    }
+  }
+
+  const local = await readLocalCatalog();
+  return local.categories
+    .filter((c) => c.is_active)
+    .sort((a, b) => a.display_order - b.display_order);
+}
+
+export async function getCollections(): Promise<Collection[]> {
+  const supabase = getSupabaseServerAnonClient();
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('collections')
+      .select('*')
+      .eq('is_active', true)
+      .order('is_featured', { ascending: false });
+
+    if (!error && data) {
+      return data as Collection[];
+    }
+  }
+
+  const local = await readLocalCatalog();
+  return local.collections.filter((c) => c.is_active);
+}
+
+export async function getProducts(filters: CatalogFilterParams = {}): Promise<Product[]> {
+  const {
+    categorySlug,
+    collectionSlug,
+    search,
+    size,
+    sort = 'newest',
+    includeInactive = false,
+  } = filters;
+
+  const supabase = includeInactive
+    ? getSupabaseServerAdminClient()
+    : getSupabaseServerAnonClient();
+
+  if (supabase) {
+    let query = supabase
+      .from('products')
+      .select('*, categories(*), collections(*), product_images(*)');
+
+    if (!includeInactive) {
+      query = query.eq('status', 'ACTIVE');
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (!error && data) {
+      const hydrated = data.map((r) => normalizeSupabaseProduct(r as Record<string, unknown>));
+      return applyInMemoryCatalogFilters(hydrated, {
+        categorySlug,
+        collectionSlug,
+        search,
+        size,
+        sort,
+        includeInactive,
+      });
+    }
+  }
+
+  const local = await readLocalCatalog();
+  const normalized = local.products.map((p) => ({
+    ...p,
+    images: normalizeProductImages(p.images),
+  }));
+
+  return applyInMemoryCatalogFilters(normalized, {
+    categorySlug,
+    collectionSlug,
+    search,
+    size,
+    sort,
+    includeInactive,
+  });
+}
+
+export function applyInMemoryCatalogFilters(
+  products: Product[],
+  filters: CatalogFilterParams
+): Product[] {
+  const {
+    categorySlug,
+    collectionSlug,
+    search,
+    size,
+    sort = 'newest',
+    includeInactive = false,
+  } = filters;
+
+  let result = products.filter((p) => (includeInactive ? true : p.status === 'ACTIVE'));
+
+  if (categorySlug && categorySlug !== 'all') {
+    result = result.filter((p) => p.category?.slug === categorySlug);
+  }
+
+  if (collectionSlug && collectionSlug !== 'all') {
+    result = result.filter((p) => p.collection?.slug === collectionSlug);
+  }
+
+  if (size && size !== 'all') {
+    const targetSize = size.toUpperCase();
+    result = result.filter((p) => p.sizes.includes(targetSize));
+  }
+
+  if (search && search.trim()) {
+    const q = search.trim().toLowerCase();
+    result = result.filter(
+      (p) =>
+        p.sku.toLowerCase().includes(q) ||
+        p.name.toLowerCase().includes(q) ||
+        p.color.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q)
+    );
+  }
+
+  result = [...result].sort((a, b) => {
+    if (sort === 'price-asc') {
+      return getEffectivePrice(a.price, a.sale_price) - getEffectivePrice(b.price, b.sale_price);
+    }
+    if (sort === 'price-desc') {
+      return getEffectivePrice(b.price, b.sale_price) - getEffectivePrice(a.price, a.sale_price);
+    }
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  return result;
+}
+
+export async function getProductBySku(
+  sku: string,
+  options: { includeInactive?: boolean } = {}
+): Promise<Product | null> {
+  const cleanSku = sku.trim().toUpperCase();
+  const all = await getProducts({ includeInactive: options.includeInactive });
+  return all.find((p) => p.sku.toUpperCase() === cleanSku) ?? null;
+}
+
+export async function getNewCollectionProducts(limit = 4): Promise<Product[]> {
+  const products = await getProducts({ collectionSlug: 'new-collection' });
+  return products.slice(0, limit);
+}
+
+export async function getRelatedProducts(
+  currentProduct: Product,
+  limit = 4
+): Promise<Product[]> {
+  const all = await getProducts();
+  return all
+    .filter(
+      (p) =>
+        p.sku !== currentProduct.sku &&
+        (p.category_id === currentProduct.category_id ||
+          p.collection_id === currentProduct.collection_id)
+    )
+    .slice(0, limit);
+}
