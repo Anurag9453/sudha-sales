@@ -95,6 +95,8 @@ async function resolveOrCreateCategoryByName(name: string): Promise<Category> {
           name: cleanName,
           slug: targetSlug,
           description: `${cleanName} collection`,
+          image_url:
+            'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=80',
           is_active: true,
         })
         .select('*')
