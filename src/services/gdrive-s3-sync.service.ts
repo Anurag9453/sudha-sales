@@ -77,32 +77,34 @@ async function resolveOrCreateCategoryByName(name: string): Promise<Category> {
 
   const supabase = getSupabaseServerAdminClient();
   if (supabase) {
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupError } = await supabase
       .from('categories')
       .select('*')
       .or(`slug.eq.${targetSlug},name.ilike.${cleanName}`)
       .limit(1)
       .maybeSingle();
 
-    if (existing) {
-      return existing as Category;
-    }
+    if (!lookupError || lookupError.code !== 'PGRST205') {
+      if (existing) {
+        return existing as Category;
+      }
 
-    const { data: created, error } = await supabase
-      .from('categories')
-      .insert({
-        name: cleanName,
-        slug: targetSlug,
-        description: `${cleanName} collection`,
-        is_active: true,
-      })
-      .select('*')
-      .single();
+      const { data: created, error } = await supabase
+        .from('categories')
+        .insert({
+          name: cleanName,
+          slug: targetSlug,
+          description: `${cleanName} collection`,
+          is_active: true,
+        })
+        .select('*')
+        .single();
 
-    if (error || !created) {
-      throw new Error(`Failed to auto-create category "${cleanName}": ${error?.message}`);
+      if (error || !created) {
+        throw new Error(`Failed to auto-create category "${cleanName}": ${error?.message}`);
+      }
+      return created as Category;
     }
-    return created as Category;
   }
 
   const snapshot = await readLocalCatalog();
@@ -145,35 +147,37 @@ async function resolveOrCreateCollectionByName(
 
   const supabase = getSupabaseServerAdminClient();
   if (supabase) {
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupError } = await supabase
       .from('collections')
       .select('*')
       .or(`slug.eq.${targetSlug},name.ilike.${cleanName}`)
       .limit(1)
       .maybeSingle();
 
-    if (existing) {
-      return existing as Collection;
-    }
+    if (!lookupError || lookupError.code !== 'PGRST205') {
+      if (existing) {
+        return existing as Collection;
+      }
 
-    const { data: created, error } = await supabase
-      .from('collections')
-      .insert({
-        name: cleanName,
-        slug: targetSlug,
-        description: `${cleanName} drop`,
-        is_featured: true,
-        is_active: true,
-      })
-      .select('*')
-      .single();
+      const { data: created, error } = await supabase
+        .from('collections')
+        .insert({
+          name: cleanName,
+          slug: targetSlug,
+          description: `${cleanName} drop`,
+          is_featured: true,
+          is_active: true,
+        })
+        .select('*')
+        .single();
 
-    if (error || !created) {
-      throw new Error(
-        `Failed to auto-create collection "${cleanName}": ${error?.message}`
-      );
+      if (error || !created) {
+        throw new Error(
+          `Failed to auto-create collection "${cleanName}": ${error?.message}`
+        );
+      }
+      return created as Collection;
     }
-    return created as Collection;
   }
 
   const snapshot = await readLocalCatalog();

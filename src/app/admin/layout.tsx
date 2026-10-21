@@ -5,7 +5,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Package, ExternalLink, LogOut, ShieldCheck, FolderSync } from 'lucide-react';
+import { Package, ExternalLink, LogOut, ShieldCheck, FolderSync, ShoppingBag } from 'lucide-react';
 import { isAdminAuthenticated } from '@/services/admin-auth.service';
 import { AdminLoginGate } from '@/components/admin/AdminLoginGate';
 import { logoutAdminAction } from './actions';
@@ -51,6 +51,13 @@ export default async function AdminLayout({
               >
                 <Package className="w-3.5 h-3.5" />
                 Products &amp; Inventory
+              </Link>
+              <Link
+                href="/admin/orders"
+                className="px-3 py-2 rounded-lg text-stone-200 hover:bg-stone-800 inline-flex items-center gap-1.5"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                Orders &amp; Payments
               </Link>
               <Link
                 href="/admin/sync"

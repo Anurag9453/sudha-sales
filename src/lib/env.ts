@@ -9,6 +9,7 @@ export const publicEnv = {
   cdnBaseUrl: process.env.NEXT_PUBLIC_CDN_BASE_URL ?? '',
   storeName: process.env.NEXT_PUBLIC_STORE_NAME || 'SUDHA SALES',
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '919876543210',
+  razorpayKeyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? '',
 };
 
 export function isSupabaseConfigured(): boolean {
@@ -17,6 +18,17 @@ export function isSupabaseConfigured(): boolean {
       publicEnv.supabaseAnonKey &&
       !publicEnv.supabaseUrl.includes('your-project-id') &&
       !publicEnv.supabaseAnonKey.includes('your-supabase-anon-key')
+  );
+}
+
+export function isRazorpayConfigured(): boolean {
+  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? '';
+  const keySecret = process.env.RAZORPAY_KEY_SECRET ?? '';
+  return Boolean(
+    keyId &&
+      keySecret &&
+      !keyId.includes('your_key_id') &&
+      !keySecret.includes('your_key_secret')
   );
 }
 
@@ -38,5 +50,7 @@ export function getServerEnv() {
     adminPasscode: process.env.ADMIN_PASSCODE || 'vastra2026',
     awsRegion: process.env.AWS_REGION ?? 'ap-south-1',
     awsS3BucketName: process.env.AWS_S3_BUCKET_NAME ?? '',
+    razorpayKeyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ?? '',
+    razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET ?? '',
   };
 }

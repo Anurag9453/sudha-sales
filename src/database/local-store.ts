@@ -9,12 +9,13 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { SEED_CATEGORIES, SEED_COLLECTIONS, SEED_PRODUCTS } from './seed-data';
-import type { Category, Collection, Product } from '@/types/domain';
+import type { Category, Collection, Order, Product } from '@/types/domain';
 
 interface LocalCatalogSnapshot {
   categories: Category[];
   collections: Collection[];
   products: Product[];
+  orders?: Order[];
 }
 
 const SNAPSHOT_FILE = path.join(process.cwd(), '.local-catalog-state.json');
@@ -39,6 +40,7 @@ export async function readLocalCatalog(): Promise<LocalCatalogSnapshot> {
       categories: memoryCache.categories,
       collections: memoryCache.collections,
       products: hydrateRelations(memoryCache),
+      orders: memoryCache.orders ?? [],
     };
   }
 
@@ -49,6 +51,7 @@ export async function readLocalCatalog(): Promise<LocalCatalogSnapshot> {
       categories: parsed.categories ?? SEED_CATEGORIES,
       collections: parsed.collections ?? SEED_COLLECTIONS,
       products: hydrateRelations(parsed),
+      orders: parsed.orders ?? [],
     };
     memoryCache = loaded;
     return loaded;
@@ -61,6 +64,7 @@ export async function readLocalCatalog(): Promise<LocalCatalogSnapshot> {
         collections: SEED_COLLECTIONS,
         products: SEED_PRODUCTS,
       }),
+      orders: [],
     };
     memoryCache = initial;
     return initial;
@@ -72,9 +76,10 @@ export async function writeLocalCatalog(snapshot: LocalCatalogSnapshot): Promise
     categories: snapshot.categories,
     collections: snapshot.collections,
     products: hydrateRelations(snapshot),
+    orders: snapshot.orders ?? memoryCache?.orders ?? [],
   };
   try {
-    await fs.writeFile(SNAPSHOT_FILE, JSON.stringify(snapshot, null, 2), 'utf-8');
+    await fs.writeFile(SNAPSHOT_FILE, JSON.stringify(memoryCache, null, 2), 'utf-8');
   } catch {
     // Ignore write errors in read-only serverless environments
   }

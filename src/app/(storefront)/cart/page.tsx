@@ -25,11 +25,62 @@ import {
   MapPin,
   Lock,
   FileText,
+  CreditCard,
+  AlertCircle,
 } from 'lucide-react';
 import { useCart } from '@/store/cart-context';
 import { useCustomerAuth } from '@/store/customer-auth-context';
 import { formatPrice } from '@/lib/format';
+import { publicEnv } from '@/lib/env';
 import { LuxurySpinner } from '@/components/ui/LuxurySpinner';
+import type { Order } from '@/types/domain';
+
+interface RazorpaySuccessResponse {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+  theme?: {
+    color?: string;
+  };
+  handler: (response: RazorpaySuccessResponse) => void;
+  modal?: {
+    ondismiss?: () => void;
+  };
+}
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: RazorpayOptions) => { open: () => void };
+  }
+}
+
+function loadRazorpayCheckoutScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') return resolve(false);
+    if (window.Razorpay) return resolve(true);
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
 
 export default function CartPage() {
   const router = useRouter();
@@ -57,6 +108,9 @@ export default function CartPage() {
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [orderRef, setOrderRef] = useState<string>('');
+  const [paymentIdRef, setPaymentIdRef] = useState<string>('');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [addressForm, setAddressForm] = useState({
     label: 'Home' as 'Home' | 'Work' | 'Other',
     fullName: '',
@@ -92,9 +146,11 @@ export default function CartPage() {
           Order Confirmed!
         </h1>
         <p className="text-sm text-stone-600 leading-relaxed">
-          Thank you, <strong>{customer?.name}</strong>! Your order{' '}
+          Thank you, <strong>{customer?.name}</strong>! Your Razorpay payment (
+          <span className="font-mono text-xs text-stone-800">{paymentIdRef}</span>
+          ) succeeded and order{' '}
           <span className="font-mono font-semibold text-stone-900">{orderRef}</span>{' '}
-          has been placed and added to your account order history &amp; invoices.
+          has been saved to Supabase &amp; added to your account order history.
         </p>
         <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
           <Link
@@ -158,7 +214,7 @@ export default function CartPage() {
     setCheckoutStep('address');
   };
 
-  const handlePlaceOrderWithSavedAddress = () => {
+  const handlePlaceOrderWithSavedAddress = async () => {
     if (!isAuthenticated) {
       router.push('/login?next=/cart&reason=purchase');
       return;
@@ -168,18 +224,152 @@ export default function CartPage() {
       return;
     }
 
-    const created = createOrderFromCart({
-      cartItems: items,
-      address: defaultAddr,
-      subtotalAmount,
-      discountAmount: totalSavingsAmount,
-      shippingAmount,
-      totalAmount: finalTotal,
-    });
+    setPaymentError(null);
+    setIsProcessingPayment(true);
 
-    setOrderRef(created.order_number);
-    clearCart();
-    setCheckoutStep('confirmed');
+    try {
+      // 1. Create Razorpay Order on Server
+      const createRes = await fetch('/api/payments/razorpay/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amountInRupees: finalTotal,
+          customerName: defaultAddr.full_name,
+          customerEmail: customer?.email,
+          customerPhone: defaultAddr.phone,
+        }),
+      });
+
+      const createData = (await createRes.json()) as {
+        ok: boolean;
+        error?: string;
+        session?: {
+          mode: 'live-razorpay' | 'simulated-razorpay';
+          razorpayOrderId: string;
+          amountInPaise: number;
+          currency: 'INR';
+          keyId: string;
+        };
+      };
+
+      if (!createData.ok || !createData.session) {
+        throw new Error(createData.error || 'Could not initialize Razorpay checkout');
+      }
+
+      const { session } = createData;
+
+      const verifyAndFinalizeOrder = async (
+        paymentPayload: RazorpaySuccessResponse
+      ) => {
+        setIsProcessingPayment(true);
+        const verifyRes = await fetch('/api/payments/razorpay/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...paymentPayload,
+            customerName: defaultAddr.full_name,
+            customerEmail: customer?.email || '',
+            customerPhone: defaultAddr.phone,
+            shippingAddress: {
+              full_name: defaultAddr.full_name,
+              phone: defaultAddr.phone,
+              email: customer?.email,
+              address_line1: defaultAddr.address_line1,
+              address_line2: defaultAddr.address_line2,
+              city: defaultAddr.city,
+              state: defaultAddr.state,
+              postal_code: defaultAddr.postal_code,
+              country: 'IN',
+            },
+            items,
+            subtotalAmount,
+            discountAmount: totalSavingsAmount,
+            shippingAmount,
+            totalAmount: finalTotal,
+          }),
+        });
+
+        const verifyData = (await verifyRes.json()) as {
+          ok: boolean;
+          error?: string;
+          order?: Order;
+        };
+
+        if (!verifyData.ok || !verifyData.order) {
+          throw new Error(verifyData.error || 'Payment verification failed');
+        }
+
+        // Also record in CustomerAuthContext so `/account` shows it immediately
+        createOrderFromCart({
+          cartItems: items,
+          address: defaultAddr,
+          subtotalAmount,
+          discountAmount: totalSavingsAmount,
+          shippingAmount,
+          totalAmount: finalTotal,
+        });
+
+        setOrderRef(verifyData.order.order_number);
+        setPaymentIdRef(paymentPayload.razorpay_payment_id);
+        clearCart();
+        setIsProcessingPayment(false);
+        setCheckoutStep('confirmed');
+      };
+
+      // 2A. Live Razorpay Checkout Modal (when NEXT_PUBLIC_RAZORPAY_KEY_ID is configured)
+      if (session.mode === 'live-razorpay') {
+        const loaded = await loadRazorpayCheckoutScript();
+        if (!loaded || !window.Razorpay) {
+          throw new Error('Failed to load Razorpay Checkout SDK');
+        }
+
+        const rzp = new window.Razorpay({
+          key: session.keyId,
+          amount: session.amountInPaise,
+          currency: session.currency,
+          name: publicEnv.storeName,
+          description: `Order Payment (${totalQuantity} items)`,
+          order_id: session.razorpayOrderId,
+          prefill: {
+            name: defaultAddr.full_name,
+            email: customer?.email,
+            contact: defaultAddr.phone,
+          },
+          theme: {
+            color: '#1c1917',
+          },
+          handler: (response) => {
+            verifyAndFinalizeOrder(response).catch((err) => {
+              setIsProcessingPayment(false);
+              setPaymentError(
+                err instanceof Error ? err.message : 'Verification failed'
+              );
+            });
+          },
+          modal: {
+            ondismiss: () => {
+              setIsProcessingPayment(false);
+            },
+          },
+        });
+
+        rzp.open();
+        return;
+      }
+
+      // 2B. Simulated Razorpay Mode (when keys are not yet added to .env.local)
+      await new Promise((r) => setTimeout(r, 600));
+      await verifyAndFinalizeOrder({
+        razorpay_order_id: session.razorpayOrderId,
+        razorpay_payment_id: `pay_sim_${Date.now()}`,
+        razorpay_signature: `sim_sig_${session.razorpayOrderId}`,
+      });
+    } catch (err) {
+      setIsProcessingPayment(false);
+      setPaymentError(
+        err instanceof Error ? err.message : 'Payment initialization failed'
+      );
+    }
   };
 
   const handleSaveNewAddressInline = (e: React.FormEvent) => {
@@ -201,6 +391,14 @@ export default function CartPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      {isProcessingPayment && (
+        <LuxurySpinner
+          fullScreenOverlay
+          title="Processing Razorpay Payment..."
+          subtitle="Verifying payment signature, deducting warehouse stock & saving order"
+        />
+      )}
+
       <div className="flex items-center justify-between border-b border-stone-200 pb-5 mb-8">
         <div>
           <h1 className="font-serif text-2xl sm:text-4xl font-semibold text-stone-950">
@@ -525,6 +723,13 @@ export default function CartPage() {
               </span>
             </div>
 
+            {paymentError && (
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{paymentError}</span>
+              </div>
+            )}
+
             {checkoutStep === 'cart' ? (
               <button
                 type="button"
@@ -541,10 +746,12 @@ export default function CartPage() {
             ) : (
               <button
                 type="button"
+                disabled={isProcessingPayment}
                 onClick={handlePlaceOrderWithSavedAddress}
-                className="w-full h-13 rounded-xl bg-stone-900 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-stone-800 transition-colors cursor-pointer"
+                className="w-full h-13 rounded-xl bg-stone-900 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-stone-800 disabled:opacity-50 transition-colors cursor-pointer"
               >
-                <span>Pay &amp; Place Order ({formatPrice(finalTotal)})</span>
+                <CreditCard className="w-4 h-4 text-amber-300" />
+                <span>Pay Online via Razorpay ({formatPrice(finalTotal)})</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             )}

@@ -21,7 +21,8 @@ import {
   runGoogleDriveToS3Sync,
   type DriveSyncExecutionReport,
 } from '@/services/gdrive-s3-sync.service';
-import type { ProductStatus } from '@/types/domain';
+import { updateOrderStatusForAdmin } from '@/services/order.service';
+import type { OrderStatus, ProductStatus } from '@/types/domain';
 import type { UpsertProductInput } from '@/validation/product.schema';
 
 export interface ActionResponse {
@@ -145,4 +146,25 @@ export async function triggerGoogleDriveSyncAction(
     return { ok: false, message };
   }
 }
+
+export async function updateAdminOrderStatusAction(
+  orderNumber: string,
+  status: OrderStatus
+): Promise<ActionResponse> {
+  try {
+    await assertAdminAuth();
+    await updateOrderStatusForAdmin({ orderNumber, status });
+    revalidatePath('/admin/orders');
+    revalidatePath('/account');
+    return {
+      ok: true,
+      message: `Order ${orderNumber} updated to ${status}.`,
+    };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : 'Failed to update order status';
+    return { ok: false, message };
+  }
+}
+
 

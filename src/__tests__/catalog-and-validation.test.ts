@@ -23,6 +23,12 @@ import { SEED_PRODUCTS } from '../database/seed-data';
 import { parseProductsCsv } from '../lib/csv-parser';
 import { sortDriveImagesByConvention } from '../services/google-drive.service';
 import { runGoogleDriveToS3Sync } from '../services/gdrive-s3-sync.service';
+import {
+  computeRazorpaySignature,
+  createRazorpayOrderSession,
+  verifyRazorpayPaymentSignature,
+} from '../services/razorpay.service';
+import { createPersistedOrder } from '../services/order.service';
 
 describe('Domain Formatting & Google Drive CSV Helpers', () => {
   it('parses pipe-separated sizes from CSV format (M|L|XL)', () => {
@@ -160,5 +166,70 @@ describe('Catalog Filtering Service', () => {
     });
     assert.equal(result.length, 1);
     assert.equal(result[0].sku, 'SKU001');
+  });
+});
+
+describe('Razorpay Payment Signature & Order Persistence', () => {
+  it('computes HMAC-SHA256 Razorpay signature and creates order session', async () => {
+    const sig = computeRazorpaySignature('order_123', 'pay_456', 'secret_key');
+    assert.equal(sig.length, 64);
+
+    const session = await createRazorpayOrderSession({
+      amountInRupees: 1199,
+      receipt: 'rcpt_test_1',
+    });
+    assert.equal(session.amountInPaise, 119900);
+    assert.equal(session.currency, 'INR');
+
+    const verified = verifyRazorpayPaymentSignature({
+      razorpayOrderId: session.razorpayOrderId,
+      razorpayPaymentId: 'pay_sim_1',
+      razorpaySignature: `sim_sig_${session.razorpayOrderId}`,
+    });
+    assert.equal(verified, true);
+  });
+
+  it('persists verified order and deducts product stock by SKU', async () => {
+    const order = await createPersistedOrder({
+      customerName: 'Ananya Sharma',
+      customerEmail: 'ananya@example.com',
+      customerPhone: '+91 9876543210',
+      shippingAddress: {
+        full_name: 'Ananya Sharma',
+        phone: '+91 9876543210',
+        address_line1: 'Flat 402, Lotus Enclave',
+        city: 'Jaipur',
+        state: 'Rajasthan',
+        postal_code: '302001',
+        country: 'IN',
+      },
+      items: [
+        {
+          sku: 'SKU001',
+          productId: '33333333-3333-4333-8333-333333333301',
+          name: 'Floral Handblock Mulmul Cotton Kurti',
+          slug: 'floral-handblock-mulmul-cotton-kurti-sku001',
+          imageUrl: 'https://images.unsplash.com/photo-1',
+          color: 'Indigo Blue',
+          size: 'M',
+          unitPrice: 1199,
+          originalPrice: 1299,
+          quantity: 1,
+          maxStock: 14,
+        },
+      ],
+      subtotalAmount: 1199,
+      discountAmount: 100,
+      shippingAmount: 99,
+      totalAmount: 1298,
+      paymentProvider: 'Razorpay',
+      paymentReference: 'pay_test_999',
+      paymentStatus: 'PAID',
+    });
+
+    assert.ok(order.order_number.startsWith('ORD-'));
+    assert.equal(order.payment_status, 'PAID');
+    assert.equal(order.total_amount, 1298);
+    assert.equal(order.items?.length, 1);
   });
 });

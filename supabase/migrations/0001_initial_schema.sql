@@ -195,6 +195,7 @@ CREATE TABLE IF NOT EXISTS orders (
   tracking_number VARCHAR(100),
   shipping_carrier VARCHAR(100),
   notes TEXT,
+  delivered_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

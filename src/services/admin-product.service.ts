@@ -51,38 +51,40 @@ export async function upsertProductBySku(rawInput: UpsertProductInput): Promise<
       .select('*')
       .single();
 
-    if (prodError || !upserted) {
-      throw new Error(prodError?.message || 'Failed to upsert product in Supabase');
+    if (!prodError && upserted) {
+      const productId = String(upserted.id);
+
+      // Replace product images cleanly
+      await supabase.from('product_images').delete().eq('product_id', productId);
+
+      const imageRows = input.images.map((img, idx) => ({
+        product_id: productId,
+        sku: input.sku,
+        s3_key:
+          img.s3_key ||
+          buildStandardS3Key(input.sku, idx === 0 ? 'front.jpg' : `view-${idx + 1}.jpg`),
+        image_url: img.image_url,
+        alt_text: img.alt_text || `${input.name} - View ${idx + 1}`,
+        display_order: idx,
+        is_primary: idx === 0,
+      }));
+
+      const { data: insertedImages } = await supabase
+        .from('product_images')
+        .insert(imageRows)
+        .select('*');
+
+      return {
+        ...(upserted as unknown as Product),
+        price: Number(upserted.price),
+        sale_price: upserted.sale_price !== null ? Number(upserted.sale_price) : null,
+        images: (insertedImages as ProductImage[]) ?? [],
+      };
     }
 
-    const productId = String(upserted.id);
-
-    // Replace product images cleanly
-    await supabase.from('product_images').delete().eq('product_id', productId);
-
-    const imageRows = input.images.map((img, idx) => ({
-      product_id: productId,
-      sku: input.sku,
-      s3_key:
-        img.s3_key ||
-        buildStandardS3Key(input.sku, idx === 0 ? 'front.jpg' : `view-${idx + 1}.jpg`),
-      image_url: img.image_url,
-      alt_text: img.alt_text || `${input.name} - View ${idx + 1}`,
-      display_order: idx,
-      is_primary: idx === 0,
-    }));
-
-    const { data: insertedImages } = await supabase
-      .from('product_images')
-      .insert(imageRows)
-      .select('*');
-
-    return {
-      ...(upserted as unknown as Product),
-      price: Number(upserted.price),
-      sale_price: upserted.sale_price !== null ? Number(upserted.sale_price) : null,
-      images: (insertedImages as ProductImage[]) ?? [],
-    };
+    if (prodError && prodError.code !== 'PGRST205') {
+      throw new Error(prodError.message || 'Failed to upsert product in Supabase');
+    }
   }
 
   // Fallback: Local persistent catalog
@@ -162,10 +164,12 @@ export async function updateProductStockBySku(rawInput: UpdateStockInput): Promi
       .select('*, categories(*), collections(*), product_images(*)')
       .single();
 
-    if (error || !data) {
-      throw new Error(error?.message || `Failed to update stock for ${sku}`);
+    if (!error && data) {
+      return data as unknown as Product;
     }
-    return data as unknown as Product;
+    if (error && error.code !== 'PGRST205') {
+      throw new Error(error.message || `Failed to update stock for ${sku}`);
+    }
   }
 
   const snapshot = await readLocalCatalog();
@@ -192,10 +196,12 @@ export async function updateProductStatusBySku(rawInput: ToggleStatusInput): Pro
       .select('*, categories(*), collections(*), product_images(*)')
       .single();
 
-    if (error || !data) {
-      throw new Error(error?.message || `Failed to update status for ${sku}`);
+    if (!error && data) {
+      return data as unknown as Product;
     }
-    return data as unknown as Product;
+    if (error && error.code !== 'PGRST205') {
+      throw new Error(error.message || `Failed to update status for ${sku}`);
+    }
   }
 
   const snapshot = await readLocalCatalog();
