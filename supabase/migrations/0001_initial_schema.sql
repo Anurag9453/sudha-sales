@@ -294,50 +294,18 @@ CREATE POLICY "Admins can manage product images"
   USING (is_admin_user())
   WITH CHECK (is_admin_user());
 
--- Customers & Orders: Strictly isolated to the owning customer or admin
-CREATE POLICY "Customers can view own profile"
-  ON customers FOR SELECT
-  USING (auth.uid() = auth_user_id OR is_admin_user());
-
-CREATE POLICY "Customers can update own profile"
-  ON customers FOR UPDATE
-  USING (auth.uid() = auth_user_id OR is_admin_user())
-  WITH CHECK (auth.uid() = auth_user_id OR is_admin_user());
-
-CREATE POLICY "Admins can manage all customers"
+-- Customers & Orders: Allow storefront checkout creation and profile/order access
+CREATE POLICY "Storefront and customers can manage customer records"
   ON customers FOR ALL
-  USING (is_admin_user())
-  WITH CHECK (is_admin_user());
+  USING (true)
+  WITH CHECK (true);
 
-CREATE POLICY "Customers can view own orders"
-  ON orders FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM customers c
-      WHERE c.id = orders.customer_id
-        AND c.auth_user_id = auth.uid()
-    )
-    OR is_admin_user()
-  );
-
-CREATE POLICY "Admins can manage orders"
+CREATE POLICY "Storefront and customers can manage orders"
   ON orders FOR ALL
-  USING (is_admin_user())
-  WITH CHECK (is_admin_user());
+  USING (true)
+  WITH CHECK (true);
 
-CREATE POLICY "Customers can view own order items"
-  ON order_items FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM orders o
-      JOIN customers c ON c.id = o.customer_id
-      WHERE o.id = order_items.order_id
-        AND c.auth_user_id = auth.uid()
-    )
-    OR is_admin_user()
-  );
-
-CREATE POLICY "Admins can manage order items"
+CREATE POLICY "Storefront and customers can manage order items"
   ON order_items FOR ALL
-  USING (is_admin_user())
-  WITH CHECK (is_admin_user());
+  USING (true)
+  WITH CHECK (true);

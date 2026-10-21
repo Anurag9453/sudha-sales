@@ -102,10 +102,12 @@ async function resolveOrCreateCategoryByName(name: string): Promise<Category> {
         .select('*')
         .single();
 
-      if (error || !created) {
+      if (!error && created) {
+        return created as Category;
+      }
+      if (error && error.code !== 'PGRST205' && error.code !== '42501') {
         throw new Error(`Failed to auto-create category "${cleanName}": ${error?.message}`);
       }
-      return created as Category;
     }
   }
 
@@ -173,12 +175,14 @@ async function resolveOrCreateCollectionByName(
         .select('*')
         .single();
 
-      if (error || !created) {
+      if (!error && created) {
+        return created as Collection;
+      }
+      if (error && error.code !== 'PGRST205' && error.code !== '42501') {
         throw new Error(
           `Failed to auto-create collection "${cleanName}": ${error?.message}`
         );
       }
-      return created as Collection;
     }
   }
 

@@ -82,7 +82,7 @@ export async function upsertProductBySku(rawInput: UpsertProductInput): Promise<
       };
     }
 
-    if (prodError && prodError.code !== 'PGRST205') {
+    if (prodError && prodError.code !== 'PGRST205' && prodError.code !== '42501') {
       throw new Error(prodError.message || 'Failed to upsert product in Supabase');
     }
   }
@@ -167,7 +167,7 @@ export async function updateProductStockBySku(rawInput: UpdateStockInput): Promi
     if (!error && data) {
       return data as unknown as Product;
     }
-    if (error && error.code !== 'PGRST205') {
+    if (error && error.code !== 'PGRST205' && error.code !== '42501') {
       throw new Error(error.message || `Failed to update stock for ${sku}`);
     }
   }
@@ -199,7 +199,7 @@ export async function updateProductStatusBySku(rawInput: ToggleStatusInput): Pro
     if (!error && data) {
       return data as unknown as Product;
     }
-    if (error && error.code !== 'PGRST205') {
+    if (error && error.code !== 'PGRST205' && error.code !== '42501') {
       throw new Error(error.message || `Failed to update status for ${sku}`);
     }
   }

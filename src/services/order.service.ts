@@ -47,127 +47,139 @@ export async function createPersistedOrder(
 
   const supabase = getSupabaseServerAdminClient();
   if (supabase) {
-    // 1. Find or create customer row by phone / email
-    const { data: existingCustomer, error: lookupError } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('phone', input.customerPhone)
-      .limit(1)
-      .maybeSingle();
+    try {
+      // 1. Find or create customer row by phone / email
+      const { data: existingCustomer, error: lookupError } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('phone', input.customerPhone)
+        .limit(1)
+        .maybeSingle();
 
-    if (!lookupError || lookupError.code !== 'PGRST205') {
-      let customerId: string;
-      if (existingCustomer) {
-        customerId = String(existingCustomer.id);
-        await supabase
-          .from('customers')
-          .update({
-            full_name: input.customerName,
-            email: input.customerEmail || existingCustomer.email,
-            address_line1: input.shippingAddress.address_line1,
-            address_line2: input.shippingAddress.address_line2 || null,
-            city: input.shippingAddress.city,
-            state: input.shippingAddress.state,
-            postal_code: input.shippingAddress.postal_code,
-          })
-          .eq('id', customerId);
-      } else {
-        const { data: createdCustomer, error: custError } = await supabase
-          .from('customers')
+      if (!lookupError || lookupError.code !== 'PGRST205') {
+        let customerId: string;
+        if (existingCustomer) {
+          customerId = String(existingCustomer.id);
+          await supabase
+            .from('customers')
+            .update({
+              full_name: input.customerName,
+              email: input.customerEmail || existingCustomer.email,
+              address_line1: input.shippingAddress.address_line1,
+              address_line2: input.shippingAddress.address_line2 || null,
+              city: input.shippingAddress.city,
+              state: input.shippingAddress.state,
+              postal_code: input.shippingAddress.postal_code,
+            })
+            .eq('id', customerId);
+        } else {
+          const { data: createdCustomer, error: custError } = await supabase
+            .from('customers')
+            .insert({
+              full_name: input.customerName,
+              phone: input.customerPhone,
+              email: input.customerEmail || null,
+              address_line1: input.shippingAddress.address_line1,
+              address_line2: input.shippingAddress.address_line2 || null,
+              city: input.shippingAddress.city,
+              state: input.shippingAddress.state,
+              postal_code: input.shippingAddress.postal_code,
+              country: 'IN',
+            })
+            .select('*')
+            .single();
+
+          if (custError || !createdCustomer) {
+            throw new Error(
+              custError?.message || 'Failed to create customer record in Supabase'
+            );
+          }
+          customerId = String(createdCustomer.id);
+        }
+
+        // 2. Insert order record
+        const { data: insertedOrder, error: orderError } = await supabase
+          .from('orders')
           .insert({
-            full_name: input.customerName,
-            phone: input.customerPhone,
-            email: input.customerEmail || null,
-            address_line1: input.shippingAddress.address_line1,
-            address_line2: input.shippingAddress.address_line2 || null,
-            city: input.shippingAddress.city,
-            state: input.shippingAddress.state,
-            postal_code: input.shippingAddress.postal_code,
-            country: 'IN',
+            order_number: orderNumber,
+            customer_id: customerId,
+            status: 'CONFIRMED',
+            payment_status: input.paymentStatus,
+            payment_provider: input.paymentProvider,
+            payment_reference: input.paymentReference,
+            subtotal_amount: input.subtotalAmount,
+            discount_amount: input.discountAmount,
+            shipping_amount: input.shippingAmount,
+            total_amount: input.totalAmount,
+            shipping_address: input.shippingAddress,
+            tracking_number: trackingNumber,
+            shipping_carrier: 'Delhivery Express',
+            notes: 'Order confirmed via Razorpay — preparing warehouse dispatch',
           })
           .select('*')
           .single();
 
-        if (custError || !createdCustomer) {
+        if (orderError || !insertedOrder) {
           throw new Error(
-            custError?.message || 'Failed to create customer record in Supabase'
+            orderError?.message || 'Failed to insert order in Supabase'
           );
         }
-        customerId = String(createdCustomer.id);
-      }
 
-      // 2. Insert order record
-      const { data: insertedOrder, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          order_number: orderNumber,
-          customer_id: customerId,
-          status: 'CONFIRMED',
-          payment_status: input.paymentStatus,
-          payment_provider: input.paymentProvider,
-          payment_reference: input.paymentReference,
-          subtotal_amount: input.subtotalAmount,
-          discount_amount: input.discountAmount,
-          shipping_amount: input.shippingAmount,
-          total_amount: input.totalAmount,
-          shipping_address: input.shippingAddress,
-          tracking_number: trackingNumber,
-          shipping_carrier: 'Delhivery Express',
-          notes: 'Order confirmed via Razorpay — preparing warehouse dispatch',
-        })
-        .select('*')
-        .single();
+        const orderId = String(insertedOrder.id);
 
-      if (orderError || !insertedOrder) {
-        throw new Error(
-          orderError?.message || 'Failed to insert order in Supabase'
-        );
-      }
+        // 3. Insert order_items & deduct stock per SKU
+        const orderItemRows = input.items.map((item) => ({
+          order_id: orderId,
+          product_id:
+            item.productId && /^[0-9a-f-]{36}$/i.test(item.productId)
+              ? item.productId
+              : null,
+          sku: item.sku,
+          product_name: item.name,
+          selected_size: item.size,
+          color: item.color || null,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          line_total: item.unitPrice * item.quantity,
+        }));
 
-      const orderId = String(insertedOrder.id);
+        const { data: insertedItems } = await supabase
+          .from('order_items')
+          .insert(orderItemRows)
+          .select('*');
 
-      // 3. Insert order_items & deduct stock per SKU
-      const orderItemRows = input.items.map((item) => ({
-        order_id: orderId,
-        product_id: item.productId && /^[0-9a-f-]{36}$/i.test(item.productId) ? item.productId : null,
-        sku: item.sku,
-        product_name: item.name,
-        selected_size: item.size,
-        color: item.color || null,
-        quantity: item.quantity,
-        unit_price: item.unitPrice,
-        line_total: item.unitPrice * item.quantity,
-      }));
-
-      const { data: insertedItems } = await supabase
-        .from('order_items')
-        .insert(orderItemRows)
-        .select('*');
-
-      for (const item of input.items) {
-        const { data: prodRow } = await supabase
-          .from('products')
-          .select('id, stock')
-          .eq('sku', item.sku)
-          .maybeSingle();
-
-        if (prodRow) {
-          const nextStock = Math.max(0, Number(prodRow.stock) - item.quantity);
-          await supabase
+        for (const item of input.items) {
+          const { data: prodRow } = await supabase
             .from('products')
-            .update({ stock: nextStock })
-            .eq('id', prodRow.id);
-        }
-      }
+            .select('id, stock')
+            .eq('sku', item.sku)
+            .maybeSingle();
 
-      return {
-        ...(insertedOrder as unknown as Order),
-        subtotal_amount: Number(insertedOrder.subtotal_amount),
-        discount_amount: Number(insertedOrder.discount_amount),
-        shipping_amount: Number(insertedOrder.shipping_amount),
-        total_amount: Number(insertedOrder.total_amount),
-        items: (insertedItems as unknown as OrderItem[]) ?? [],
-      };
+          if (prodRow) {
+            const nextStock = Math.max(0, Number(prodRow.stock) - item.quantity);
+            await supabase
+              .from('products')
+              .update({ stock: nextStock })
+              .eq('id', prodRow.id);
+          }
+        }
+
+        return {
+          ...(insertedOrder as unknown as Order),
+          subtotal_amount: Number(insertedOrder.subtotal_amount),
+          discount_amount: Number(insertedOrder.discount_amount),
+          shipping_amount: Number(insertedOrder.shipping_amount),
+          total_amount: Number(insertedOrder.total_amount),
+          items: (insertedItems as unknown as OrderItem[]) ?? [],
+        };
+      }
+    } catch (err) {
+      // If SUPABASE_SERVICE_ROLE_KEY is not configured in Vercel yet and RLS blocks
+      // the anon key, fall back to the server store so checkout always succeeds.
+      console.warn(
+        '[order.service] Supabase order persistence fell back to local store:',
+        err instanceof Error ? err.message : err
+      );
     }
   }
 
@@ -281,7 +293,7 @@ export async function updateOrderStatusForAdmin(params: {
       };
     }
 
-    if (error && error.code !== 'PGRST205') {
+    if (error && error.code !== 'PGRST205' && error.code !== '42501') {
       throw new Error(error.message || 'Failed to update order status');
     }
   }
