@@ -1,8 +1,15 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { CartProvider } from '@/store/cart-context';
 import { CustomerAuthProvider } from '@/store/customer-auth-context';
 import { publicEnv } from '@/lib/env';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#1c1917',
+};
 
 export const metadata: Metadata = {
   title: `${publicEnv.storeName} | Contemporary Ethnic & Resort Wear`,
@@ -17,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col font-sans bg-[#faf9f6] text-stone-900 selection:bg-stone-900 selection:text-white">
+      <body className="min-h-screen flex flex-col font-sans bg-[#faf9f6] text-stone-900 selection:bg-stone-900 selection:text-white overflow-x-hidden antialiased">
         <CustomerAuthProvider>
           <CartProvider>{children}</CartProvider>
         </CustomerAuthProvider>

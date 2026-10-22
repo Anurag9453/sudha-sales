@@ -36,6 +36,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [isNavigating, startTransition] = useTransition();
 
   const primaryImage = product.images[0];
@@ -271,8 +272,28 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               </button>
             </div>
 
-            {/* Landscape Photo Stage (16:10 aspect ratio, capped height so it never fills the screen) */}
-            <div className="relative aspect-[16/10] max-h-[52vh] w-full bg-stone-950 flex items-center justify-center overflow-hidden">
+            {/* Landscape Photo Stage (16:10 aspect ratio, capped height, supports touch swipe on mobile) */}
+            <div
+              onTouchStart={(e) => setTouchStartX(e.touches[0]?.clientX ?? null)}
+              onTouchEnd={(e) => {
+                if (touchStartX === null || product.images.length <= 1) return;
+                const touchEndX = e.changedTouches[0]?.clientX ?? touchStartX;
+                const deltaX = touchStartX - touchEndX;
+                if (Math.abs(deltaX) > 40) {
+                  if (deltaX > 0) {
+                    setActiveSlideIndex((prev) =>
+                      prev === product.images.length - 1 ? 0 : prev + 1
+                    );
+                  } else {
+                    setActiveSlideIndex((prev) =>
+                      prev === 0 ? product.images.length - 1 : prev - 1
+                    );
+                  }
+                }
+                setTouchStartX(null);
+              }}
+              className="relative aspect-[16/10] max-h-[52vh] w-full bg-stone-950 flex items-center justify-center overflow-hidden touch-pan-y"
+            >
               {activeModalImage && (
                 <>
                   {/* Soft blurred ambient background fill for landscape framing */}
