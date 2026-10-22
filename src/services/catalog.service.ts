@@ -8,6 +8,7 @@
 import { getSupabaseServerAnonClient, getSupabaseServerAdminClient } from '@/database/supabase-server';
 import { readLocalCatalog } from '@/database/local-store';
 import { resolveProductImageUrl } from './storage.service';
+import { extractReviewsFromProductRecord } from './review.service';
 import { getEffectivePrice } from '@/lib/format';
 import type {
   CatalogFilterParams,
@@ -15,6 +16,7 @@ import type {
   Collection,
   Product,
   ProductImage,
+  ProductReview,
 } from '@/types/domain';
 
 function normalizeProductImages(images: ProductImage[] | undefined): ProductImage[] {
@@ -29,6 +31,10 @@ function normalizeProductImages(images: ProductImage[] | undefined): ProductImag
 
 function normalizeSupabaseProduct(row: Record<string, unknown>): Product {
   const rawImages = (row.product_images ?? row.images ?? []) as ProductImage[];
+  const reviewStats = extractReviewsFromProductRecord(
+    row.size_stock,
+    row.reviews as ProductReview[] | undefined
+  );
   return {
     id: String(row.id),
     sku: String(row.sku),
@@ -52,6 +58,9 @@ function normalizeSupabaseProduct(row: Record<string, unknown>): Product {
     category: (row.categories as Category | null) ?? (row.category as Category | null) ?? null,
     collection: (row.collections as Collection | null) ?? (row.collection as Collection | null) ?? null,
     images: normalizeProductImages(rawImages),
+    reviews: reviewStats.reviews,
+    review_count: reviewStats.review_count,
+    average_rating: reviewStats.average_rating,
   };
 }
 
@@ -131,10 +140,16 @@ export async function getProducts(filters: CatalogFilterParams = {}): Promise<Pr
   }
 
   const local = await readLocalCatalog();
-  const normalized = local.products.map((p) => ({
-    ...p,
-    images: normalizeProductImages(p.images),
-  }));
+  const normalized = local.products.map((p) => {
+    const reviewStats = extractReviewsFromProductRecord(p.size_stock, p.reviews);
+    return {
+      ...p,
+      images: normalizeProductImages(p.images),
+      reviews: reviewStats.reviews,
+      review_count: reviewStats.review_count,
+      average_rating: reviewStats.average_rating,
+    };
+  });
 
   return applyInMemoryCatalogFilters(normalized, {
     categorySlug,

@@ -233,3 +233,38 @@ describe('Razorpay Payment Signature & Order Persistence', () => {
     assert.equal(order.items?.length, 1);
   });
 });
+
+describe('Customer Reviews & Average Rating Calculation', () => {
+  it('starts with 0 reviews (null average rating) and updates average rating when customers leave reviews', async () => {
+    const { computeReviewStats, addProductReviewBySku } = await import(
+      '../services/review.service'
+    );
+
+    const initialStats = computeReviewStats([]);
+    assert.equal(initialStats.review_count, 0);
+    assert.equal(initialStats.average_rating, null);
+
+    const firstResult = await addProductReviewBySku({
+      sku: 'SKU002',
+      customerName: 'Priya Verma',
+      rating: 5,
+      title: 'Beautiful Linen Fabric',
+      comment: 'Loved the fit and breathable fabric quality!',
+      selectedSize: 'M',
+    });
+
+    assert.equal(firstResult.review_count, 1);
+    assert.equal(firstResult.average_rating, 5);
+
+    const secondResult = await addProductReviewBySku({
+      sku: 'SKU002',
+      customerName: 'Meera Nair',
+      rating: 4,
+      comment: 'Very elegant shade and comfortable for all-day wear.',
+      selectedSize: 'L',
+    });
+
+    assert.equal(secondResult.review_count, 2);
+    assert.equal(secondResult.average_rating, 4.5);
+  });
+});

@@ -58,6 +58,19 @@ export interface ProductImage {
   created_at: string;
 }
 
+export interface ProductReview {
+  id: string;
+  product_id: string;
+  sku: string;
+  customer_name: string;
+  customer_email?: string;
+  rating: number; // 1 to 5
+  title?: string;
+  comment: string;
+  selected_size?: string;
+  created_at: string;
+}
+
 export interface Product {
   id: string;
   /** Unique business key connecting products.csv and Google Drive/S3 image folder */
@@ -85,6 +98,10 @@ export interface Product {
   category?: Category | null;
   collection?: Collection | null;
   images: ProductImage[];
+  /** Customer reviews & computed average rating (empty/null until a customer leaves a review) */
+  reviews?: ProductReview[];
+  average_rating?: number | null;
+  review_count?: number;
 }
 
 export interface Customer {

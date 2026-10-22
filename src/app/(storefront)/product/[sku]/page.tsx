@@ -7,10 +7,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronRight, Sparkles, Layers } from 'lucide-react';
+import { ChevronRight, Sparkles, Layers, Star } from 'lucide-react';
 import { getProductBySku, getRelatedProducts } from '@/services/catalog.service';
 import { ProductGallery } from '@/components/product/ProductGallery';
 import { ProductPurchasePanel } from '@/components/product/ProductPurchasePanel';
+import { ProductReviewsSection } from '@/components/product/ProductReviewsSection';
 import { ProductCard } from '@/components/product/ProductCard';
 import { formatPrice, getDiscountPercentage } from '@/lib/format';
 
@@ -102,6 +103,37 @@ export default async function ProductDetailPage({
             {product.name}
           </h1>
 
+          {/* Only render Average Rating summary if at least 1 real customer review exists */}
+          {product.review_count &&
+          product.review_count > 0 &&
+          product.average_rating ? (
+            <a
+              href="#customer-reviews"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-200/90 text-xs font-semibold text-stone-900 transition-colors"
+            >
+              <span className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`w-3.5 h-3.5 ${
+                      star <= Math.round(product.average_rating!)
+                        ? 'fill-amber-400 text-amber-500'
+                        : 'text-stone-300'
+                    }`}
+                  />
+                ))}
+              </span>
+              <span className="font-bold">
+                {product.average_rating.toFixed(1)} out of 5
+              </span>
+              <span className="text-stone-400">•</span>
+              <span className="underline text-stone-700">
+                {product.review_count}{' '}
+                {product.review_count === 1 ? 'Customer Review' : 'Customer Reviews'}
+              </span>
+            </a>
+          ) : null}
+
           {/* Pricing Block */}
           <div className="flex items-baseline gap-3 pt-1">
             {product.sale_price !== null && product.sale_price < product.price ? (
@@ -174,6 +206,9 @@ export default async function ProductDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Customer Reviews & Ratings Section */}
+      <ProductReviewsSection product={product} />
 
       {/* Related Styles Section */}
       {relatedProducts.length > 0 && (

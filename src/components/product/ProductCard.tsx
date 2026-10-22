@@ -22,6 +22,7 @@ import {
   ShoppingBag,
   Images,
   Loader2,
+  Star,
 } from 'lucide-react';
 import { formatPrice, getDiscountPercentage } from '@/lib/format';
 import { LuxurySpinner } from '@/components/ui/LuxurySpinner';
@@ -188,22 +189,37 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               {product.name}
             </Link>
 
-            <div className="pt-1 flex items-baseline gap-2">
-              {product.sale_price !== null &&
-              product.sale_price < product.price ? (
-                <>
+            <div className="pt-1 flex items-center justify-between gap-2">
+              <div className="flex items-baseline gap-2">
+                {product.sale_price !== null &&
+                product.sale_price < product.price ? (
+                  <>
+                    <span className="text-sm sm:text-base font-semibold text-stone-950">
+                      {formatPrice(product.sale_price)}
+                    </span>
+                    <span className="text-xs text-stone-400 line-through">
+                      {formatPrice(product.price)}
+                    </span>
+                  </>
+                ) : (
                   <span className="text-sm sm:text-base font-semibold text-stone-950">
-                    {formatPrice(product.sale_price)}
-                  </span>
-                  <span className="text-xs text-stone-400 line-through">
                     {formatPrice(product.price)}
                   </span>
-                </>
-              ) : (
-                <span className="text-sm sm:text-base font-semibold text-stone-950">
-                  {formatPrice(product.price)}
+                )}
+              </div>
+
+              {/* Only show average rating badge when at least 1 customer review exists */}
+              {product.review_count &&
+              product.review_count > 0 &&
+              product.average_rating ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200/80 text-[11px] font-bold text-stone-900 shrink-0">
+                  <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                  <span>{product.average_rating.toFixed(1)}</span>
+                  <span className="text-stone-400 font-normal">
+                    ({product.review_count})
+                  </span>
                 </span>
-              )}
+              ) : null}
             </div>
           </div>
 
