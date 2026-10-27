@@ -6,6 +6,8 @@
 // 2. Current Shopping Bag (live items, quantities, quick jump to checkout)
 // 3. Stored Addresses (with Add New Address, Edit Existing Address, Delete, Set Default)
 // 4. Prominent Logout option
+// All visual copy, CSS class names, accessibility attributes, routes, and
+// formatting rules are bound to AppConstants.Account.
 // ============================================================================
 
 'use client';
@@ -36,7 +38,13 @@ import { useCart } from '@/store/cart-context';
 import { formatPrice } from '@/lib/format';
 import { publicEnv } from '@/lib/env';
 import { LuxurySpinner } from '@/components/ui/LuxurySpinner';
+import { AppConstants } from '@/constants/app.constants';
 import type { CustomerStoredAddress, Order } from '@/types/domain';
+
+type ActiveTab =
+  (typeof AppConstants.Account.TABS)[keyof typeof AppConstants.Account.TABS];
+type AddressLabel =
+  (typeof AppConstants.Account.ADDRESS_LABELS)[keyof typeof AppConstants.Account.ADDRESS_LABELS];
 
 function CustomerAccountContent() {
   const router = useRouter();
@@ -55,26 +63,31 @@ function CustomerAccountContent() {
 
   const { items: cartItems, totalQuantity, subtotalAmount } = useCart();
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'bag' | 'addresses'>('orders');
-  const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveTab>(
+    AppConstants.Account.TABS.ORDERS
+  );
+  const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(
+    null
+  );
 
   useEffect(() => {
-    const requestedTab = searchParams.get('tab');
+    const requestedTab = searchParams.get(AppConstants.Account.QUERY.TAB_PARAM);
     if (
-      requestedTab === 'orders' ||
-      requestedTab === 'bag' ||
-      requestedTab === 'addresses'
+      requestedTab === AppConstants.Account.TABS.ORDERS ||
+      requestedTab === AppConstants.Account.TABS.BAG ||
+      requestedTab === AppConstants.Account.TABS.ADDRESSES
     ) {
       setActiveTab(requestedTab);
     }
   }, [searchParams]);
 
   // Address Modal / Form State
-  const [editingAddress, setEditingAddress] = useState<CustomerStoredAddress | null>(null);
+  const [editingAddress, setEditingAddress] =
+    useState<CustomerStoredAddress | null>(null);
   const [isAddressFormOpen, setIsAddressFormOpen] = useState(false);
   const [addrForm, setAddrForm] = useState<{
     id?: string;
-    label: 'Home' | 'Work' | 'Other';
+    label: AddressLabel;
     full_name: string;
     phone: string;
     address_line1: string;
@@ -84,45 +97,47 @@ function CustomerAccountContent() {
     postal_code: string;
     is_default: boolean;
   }>({
-    label: 'Home',
-    full_name: '',
-    phone: '',
-    address_line1: '',
-    address_line2: '',
-    city: '',
-    state: '',
-    postal_code: '',
+    label: AppConstants.Account.ADDRESS_LABELS.HOME,
+    full_name: AppConstants.Account.EMPTY_VALUE,
+    phone: AppConstants.Account.EMPTY_VALUE,
+    address_line1: AppConstants.Account.EMPTY_VALUE,
+    address_line2: AppConstants.Account.EMPTY_VALUE,
+    city: AppConstants.Account.EMPTY_VALUE,
+    state: AppConstants.Account.EMPTY_VALUE,
+    postal_code: AppConstants.Account.EMPTY_VALUE,
     is_default: false,
   });
 
   useEffect(() => {
     if (isHydrated && !isAuthenticated) {
-      router.replace('/login?next=/account');
+      router.replace(AppConstants.Account.ROUTES.LOGIN_WITH_NEXT);
     }
   }, [isHydrated, isAuthenticated, router]);
 
   if (!isHydrated || !customer) {
     return (
       <LuxurySpinner
-        title="Loading Your Account..."
-        subtitle="Fetching your orders, invoices, shopping bag & saved addresses"
+        title={AppConstants.Account.COPY.LOADING_TITLE}
+        subtitle={AppConstants.Account.COPY.LOADING_SUBTITLE}
       />
     );
   }
 
-  const firstName = customer.name.split(' ')[0] || customer.name;
+  const firstName =
+    customer.name.split(AppConstants.Account.NAME_SPLIT_SEPARATOR)[0] ||
+    customer.name;
 
   const openNewAddressForm = () => {
     setEditingAddress(null);
     setAddrForm({
-      label: 'Home',
+      label: AppConstants.Account.ADDRESS_LABELS.HOME,
       full_name: customer.name,
       phone: customer.phone,
-      address_line1: '',
-      address_line2: '',
-      city: '',
-      state: '',
-      postal_code: '',
+      address_line1: AppConstants.Account.EMPTY_VALUE,
+      address_line2: AppConstants.Account.EMPTY_VALUE,
+      city: AppConstants.Account.EMPTY_VALUE,
+      state: AppConstants.Account.EMPTY_VALUE,
+      postal_code: AppConstants.Account.EMPTY_VALUE,
       is_default: addresses.length === 0,
     });
     setIsAddressFormOpen(true);
@@ -132,11 +147,11 @@ function CustomerAccountContent() {
     setEditingAddress(addr);
     setAddrForm({
       id: addr.id,
-      label: addr.label,
+      label: addr.label as AddressLabel,
       full_name: addr.full_name,
       phone: addr.phone,
       address_line1: addr.address_line1,
-      address_line2: addr.address_line2 || '',
+      address_line2: addr.address_line2 || AppConstants.Account.EMPTY_VALUE,
       city: addr.city,
       state: addr.state,
       postal_code: addr.postal_code,
@@ -165,138 +180,142 @@ function CustomerAccountContent() {
 
   const handleLogout = async () => {
     await signOutCustomer();
-    router.push('/login');
+    router.push(AppConstants.Account.ROUTES.LOGIN);
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+    <div className={AppConstants.Account.CLASSES.PAGE}>
       {/* Greeting Banner */}
-      <div className="rounded-3xl bg-stone-900 text-white p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-lg">
-        <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-1.5 text-amber-300 text-xs font-semibold uppercase tracking-widest">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Verified Customer Profile</span>
+      <div className={AppConstants.Account.CLASSES.BANNER}>
+        <div className={AppConstants.Account.CLASSES.BANNER_TEXT}>
+          <div className={AppConstants.Account.CLASSES.BANNER_BADGE}>
+            <Sparkles className={AppConstants.Account.CLASSES.ICON_BADGE} />
+            <span>{AppConstants.Account.COPY.VERIFIED_BADGE}</span>
           </div>
-          <h1 className="font-serif text-3xl sm:text-4xl font-semibold">
-            Namaste, {firstName}!
+          <h1 className={AppConstants.Account.CLASSES.BANNER_TITLE}>
+            {AppConstants.Account.COPY.GREETING(firstName)}
           </h1>
-          <p className="text-xs sm:text-sm text-stone-300">
-            {customer.name} • {customer.email} • {customer.phone}
+          <p className={AppConstants.Account.CLASSES.BANNER_PROFILE}>
+            {AppConstants.Account.COPY.PROFILE_LINE(
+              customer.name,
+              customer.email,
+              customer.phone
+            )}
           </p>
         </div>
 
         <button
-          type="button"
+          type={AppConstants.Account.BUTTON_TYPES.BUTTON}
           onClick={handleLogout}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-rose-600/90 text-white border border-white/20 text-xs sm:text-sm font-semibold transition-colors cursor-pointer shrink-0"
+          className={AppConstants.Account.CLASSES.LOGOUT_BUTTON}
         >
-          <LogOut className="w-4 h-4" />
-          <span>Logout</span>
+          <LogOut className={AppConstants.Account.CLASSES.ICON_MD} />
+          <span>{AppConstants.Account.COPY.LOGOUT}</span>
         </button>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-stone-200 pb-4">
+      <div className={AppConstants.Account.CLASSES.TABS_BAR}>
         <button
-          type="button"
-          onClick={() => setActiveTab('orders')}
-          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-            activeTab === 'orders'
-              ? 'bg-stone-900 text-white shadow-xs'
-              : 'bg-white text-stone-700 border border-stone-300 hover:border-stone-900'
-          }`}
+          type={AppConstants.Account.BUTTON_TYPES.BUTTON}
+          onClick={() => setActiveTab(AppConstants.Account.TABS.ORDERS)}
+          className={AppConstants.Account.CLASSES.TAB(
+            activeTab === AppConstants.Account.TABS.ORDERS
+          )}
         >
-          <Package className="w-4 h-4" />
-          <span>Previous Orders &amp; Invoices ({orders.length})</span>
+          <Package className={AppConstants.Account.CLASSES.ICON_MD} />
+          <span>{AppConstants.Account.COPY.TAB_ORDERS(orders.length)}</span>
         </button>
 
         <button
-          type="button"
-          onClick={() => setActiveTab('bag')}
-          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-            activeTab === 'bag'
-              ? 'bg-stone-900 text-white shadow-xs'
-              : 'bg-white text-stone-700 border border-stone-300 hover:border-stone-900'
-          }`}
+          type={AppConstants.Account.BUTTON_TYPES.BUTTON}
+          onClick={() => setActiveTab(AppConstants.Account.TABS.BAG)}
+          className={AppConstants.Account.CLASSES.TAB(
+            activeTab === AppConstants.Account.TABS.BAG
+          )}
         >
-          <ShoppingBag className="w-4 h-4" />
-          <span>Current Shopping Bag ({totalQuantity})</span>
+          <ShoppingBag className={AppConstants.Account.CLASSES.ICON_MD} />
+          <span>{AppConstants.Account.COPY.TAB_BAG(totalQuantity)}</span>
         </button>
 
         <button
-          type="button"
-          onClick={() => setActiveTab('addresses')}
-          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-            activeTab === 'addresses'
-              ? 'bg-stone-900 text-white shadow-xs'
-              : 'bg-white text-stone-700 border border-stone-300 hover:border-stone-900'
-          }`}
+          type={AppConstants.Account.BUTTON_TYPES.BUTTON}
+          onClick={() => setActiveTab(AppConstants.Account.TABS.ADDRESSES)}
+          className={AppConstants.Account.CLASSES.TAB(
+            activeTab === AppConstants.Account.TABS.ADDRESSES
+          )}
         >
-          <MapPin className="w-4 h-4" />
-          <span>Stored Addresses ({addresses.length})</span>
+          <MapPin className={AppConstants.Account.CLASSES.ICON_MD} />
+          <span>{AppConstants.Account.COPY.TAB_ADDRESSES(addresses.length)}</span>
         </button>
       </div>
 
       {/* TAB 1: PREVIOUS ORDERS, DELIVERY STATUS & INVOICES */}
-      {activeTab === 'orders' && (
-        <div className="space-y-5">
+      {activeTab === AppConstants.Account.TABS.ORDERS && (
+        <div className={AppConstants.Account.CLASSES.ORDERS_LIST}>
           {orders.length === 0 ? (
-            <div className="p-12 rounded-3xl bg-white border border-stone-200 text-center space-y-3">
-              <Package className="w-8 h-8 text-stone-400 mx-auto" />
-              <h2 className="font-serif text-2xl font-semibold text-stone-900">
-                No Orders Yet
+            <div className={AppConstants.Account.CLASSES.EMPTY_ORDERS}>
+              <Package className={AppConstants.Account.CLASSES.EMPTY_ICON} />
+              <h2 className={AppConstants.Account.CLASSES.EMPTY_TITLE}>
+                {AppConstants.Account.COPY.NO_ORDERS_TITLE}
               </h2>
-              <p className="text-xs text-stone-500">
-                Once you place an order, its live delivery status and tax invoice
-                will appear here.
+              <p className={AppConstants.Account.CLASSES.EMPTY_BODY}>
+                {AppConstants.Account.COPY.NO_ORDERS_BODY}
               </p>
               <Link
-                href="/shop"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-stone-900 text-white text-xs font-semibold"
+                href={AppConstants.Account.ROUTES.SHOP}
+                className={AppConstants.Account.CLASSES.PRIMARY_LINK}
               >
-                Explore Collection
+                {AppConstants.Account.COPY.EXPLORE_COLLECTION}
               </Link>
             </div>
           ) : (
             orders.map((order) => {
-              const isDelivered = order.status === 'DELIVERED';
-              const isShipped = order.status === 'SHIPPED';
+              const isDelivered =
+                order.status === AppConstants.Account.ORDER_STATUS.DELIVERED;
+              const isShipped =
+                order.status === AppConstants.Account.ORDER_STATUS.SHIPPED;
 
               return (
                 <div
                   key={order.id}
-                  className="rounded-3xl bg-white border border-stone-200 overflow-hidden shadow-2xs"
+                  className={AppConstants.Account.CLASSES.ORDER_CARD}
                 >
                   {/* Order Top Summary Bar */}
-                  <div className="p-5 sm:px-6 bg-stone-50 border-b border-stone-200 flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex flex-wrap items-center gap-4 sm:gap-8 text-xs">
+                  <div className={AppConstants.Account.CLASSES.ORDER_TOP_BAR}>
+                    <div className={AppConstants.Account.CLASSES.ORDER_TOP_FIELDS}>
                       <div>
-                        <span className="text-stone-400 uppercase tracking-wider block text-[10px] font-semibold">
-                          Order Number
+                        <span className={AppConstants.Account.CLASSES.SUMMARY_LABEL}>
+                          {AppConstants.Account.COPY.ORDER_NUMBER}
                         </span>
-                        <span className="font-mono font-bold text-stone-950 text-sm">
+                        <span
+                          className={AppConstants.Account.CLASSES.ORDER_NUMBER_VALUE}
+                        >
                           {order.order_number}
                         </span>
                       </div>
 
                       <div>
-                        <span className="text-stone-400 uppercase tracking-wider block text-[10px] font-semibold">
-                          Order Placed
+                        <span className={AppConstants.Account.CLASSES.SUMMARY_LABEL}>
+                          {AppConstants.Account.COPY.ORDER_PLACED}
                         </span>
-                        <span className="font-semibold text-stone-800">
-                          {new Date(order.created_at).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
+                        <span
+                          className={AppConstants.Account.CLASSES.ORDER_DATE_VALUE}
+                        >
+                          {new Date(order.created_at).toLocaleDateString(
+                            AppConstants.Account.LOCALE,
+                            AppConstants.Account.DATE_FORMATS.ORDER_PLACED
+                          )}
                         </span>
                       </div>
 
                       <div>
-                        <span className="text-stone-400 uppercase tracking-wider block text-[10px] font-semibold">
-                          Total Amount
+                        <span className={AppConstants.Account.CLASSES.SUMMARY_LABEL}>
+                          {AppConstants.Account.COPY.TOTAL_AMOUNT}
                         </span>
-                        <span className="font-bold text-stone-950 text-sm">
+                        <span
+                          className={AppConstants.Account.CLASSES.ORDER_TOTAL_VALUE}
+                        >
                           {formatPrice(order.total_amount)}
                         </span>
                       </div>
@@ -304,96 +323,112 @@ function CustomerAccountContent() {
 
                     {/* View / Download Invoice Button */}
                     <button
-                      type="button"
+                      type={AppConstants.Account.BUTTON_TYPES.BUTTON}
                       onClick={() => setSelectedInvoiceOrder(order)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-100 text-xs font-semibold text-stone-900 transition-colors cursor-pointer"
+                      className={AppConstants.Account.CLASSES.INVOICE_BUTTON}
                     >
-                      <FileText className="w-3.5 h-3.5 text-amber-800" />
-                      <span>View / Print Tax Invoice</span>
+                      <FileText
+                        className={AppConstants.Account.CLASSES.INVOICE_BUTTON_ICON}
+                      />
+                      <span>{AppConstants.Account.COPY.VIEW_INVOICE}</span>
                     </button>
                   </div>
 
                   {/* Delivery Status & Delivered Date Banner */}
-                  <div className="px-5 sm:px-6 py-4 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
-                    <div className="flex items-center gap-3">
+                  <div className={AppConstants.Account.CLASSES.STATUS_BAR}>
+                    <div className={AppConstants.Account.CLASSES.STATUS_LEFT}>
                       {isDelivered ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          DELIVERED
+                        <span className={AppConstants.Account.CLASSES.BADGE_DELIVERED}>
+                          <CheckCircle2
+                            className={
+                              AppConstants.Account.CLASSES.BADGE_DELIVERED_ICON
+                            }
+                          />
+                          {AppConstants.Account.COPY.STATUS_DELIVERED}
                         </span>
                       ) : isShipped ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold">
-                          <Truck className="w-4 h-4 text-amber-700" />
-                          SHIPPED • IN TRANSIT
+                        <span className={AppConstants.Account.CLASSES.BADGE_SHIPPED}>
+                          <Truck
+                            className={AppConstants.Account.CLASSES.BADGE_SHIPPED_ICON}
+                          />
+                          {AppConstants.Account.COPY.STATUS_SHIPPED}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-200 text-xs font-bold">
-                          <Clock className="w-4 h-4 text-blue-700" />
+                        <span className={AppConstants.Account.CLASSES.BADGE_OTHER}>
+                          <Clock
+                            className={AppConstants.Account.CLASSES.BADGE_OTHER_ICON}
+                          />
                           {order.status}
                         </span>
                       )}
 
-                      <div className="text-xs text-stone-700">
+                      <div className={AppConstants.Account.CLASSES.STATUS_NOTE}>
                         {isDelivered && order.delivered_at ? (
                           <span>
-                            Delivered on{' '}
-                            <strong className="text-stone-950">
+                            {AppConstants.Account.COPY.DELIVERED_ON}
+                            <strong className={AppConstants.Account.CLASSES.STRONG_DARK}>
                               {new Date(order.delivered_at).toLocaleDateString(
-                                'en-IN',
-                                {
-                                  weekday: 'short',
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric',
-                                }
-                              )}{' '}
-                              at{' '}
+                                AppConstants.Account.LOCALE,
+                                AppConstants.Account.DATE_FORMATS.DELIVERED_DATE
+                              )}
+                              {AppConstants.Account.COPY.DELIVERED_AT_JOINER}
                               {new Date(order.delivered_at).toLocaleTimeString(
-                                'en-IN',
-                                {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                }
+                                AppConstants.Account.LOCALE,
+                                AppConstants.Account.DATE_FORMATS.DELIVERED_TIME
                               )}
                             </strong>
                           </span>
                         ) : (
-                          <span>{order.notes || 'Preparing warehouse dispatch'}</span>
+                          <span>
+                            {order.notes || AppConstants.Account.COPY.DEFAULT_NOTE}
+                          </span>
                         )}
                       </div>
                     </div>
 
                     {order.tracking_number && (
-                      <div className="text-xs text-stone-500">
-                        Courier: <strong className="text-stone-800">{order.shipping_carrier}</strong> •
-                        AWB: <code className="font-mono text-stone-900">{order.tracking_number}</code>
+                      <div className={AppConstants.Account.CLASSES.TRACKING}>
+                        {AppConstants.Account.COPY.COURIER_PREFIX}
+                        <strong
+                          className={AppConstants.Account.CLASSES.TRACKING_CARRIER}
+                        >
+                          {order.shipping_carrier}
+                        </strong>
+                        {AppConstants.Account.COPY.AWB_JOINER}
+                        <code className={AppConstants.Account.CLASSES.TRACKING_AWB}>
+                          {order.tracking_number}
+                        </code>
                       </div>
                     )}
                   </div>
 
                   {/* Line Items */}
-                  <div className="p-5 sm:px-6 divide-y divide-stone-100">
+                  <div className={AppConstants.Account.CLASSES.LINE_ITEMS}>
                     {order.items?.map((item) => (
                       <div
                         key={item.id}
-                        className="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4 text-xs sm:text-sm"
+                        className={AppConstants.Account.CLASSES.LINE_ITEM}
                       >
                         <div>
-                          <span className="font-mono text-[11px] text-stone-400 mr-2">
+                          <span className={AppConstants.Account.CLASSES.LINE_ITEM_SKU}>
                             {item.sku}
                           </span>
                           <Link
-                            href={`/product/${item.sku}`}
-                            className="font-semibold text-stone-900 hover:underline"
+                            href={AppConstants.Account.ROUTES.PRODUCT(item.sku)}
+                            className={AppConstants.Account.CLASSES.LINE_ITEM_LINK}
                           >
                             {item.product_name}
                           </Link>
-                          <p className="text-xs text-stone-500 mt-0.5">
-                            Size: <strong>{item.selected_size}</strong> • Qty:{' '}
-                            <strong>{item.quantity}</strong> • Color: {item.color}
+                          <p className={AppConstants.Account.CLASSES.LINE_ITEM_META}>
+                            {AppConstants.Account.COPY.SIZE_LABEL}
+                            <strong>{item.selected_size}</strong>
+                            {AppConstants.Account.COPY.QTY_JOINER}
+                            <strong>{item.quantity}</strong>
+                            {AppConstants.Account.COPY.COLOR_JOINER}
+                            {item.color}
                           </p>
                         </div>
-                        <div className="font-bold text-stone-950">
+                        <div className={AppConstants.Account.CLASSES.LINE_ITEM_TOTAL}>
                           {formatPrice(item.line_total)}
                         </div>
                       </div>
@@ -407,76 +442,81 @@ function CustomerAccountContent() {
       )}
 
       {/* TAB 2: CURRENT SHOPPING BAG */}
-      {activeTab === 'bag' && (
-        <div className="rounded-3xl bg-white border border-stone-200 p-6 sm:p-8 space-y-6">
-          <div className="flex items-center justify-between border-b border-stone-200 pb-4">
+      {activeTab === AppConstants.Account.TABS.BAG && (
+        <div className={AppConstants.Account.CLASSES.BAG_CARD}>
+          <div className={AppConstants.Account.CLASSES.BAG_HEADER}>
             <div>
-              <h2 className="font-serif text-2xl font-semibold text-stone-950">
-                Your Active Shopping Bag
+              <h2 className={AppConstants.Account.CLASSES.H2}>
+                {AppConstants.Account.COPY.BAG_TITLE}
               </h2>
-              <p className="text-xs text-stone-500">
-                {totalQuantity} {totalQuantity === 1 ? 'item' : 'items'} currently in
-                your bag
+              <p className={AppConstants.Account.CLASSES.MUTED_XS}>
+                {AppConstants.Account.COPY.BAG_COUNT(totalQuantity)}
               </p>
             </div>
             {cartItems.length > 0 && (
               <Link
-                href="/cart"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800"
+                href={AppConstants.Account.ROUTES.CART}
+                className={AppConstants.Account.CLASSES.CHECKOUT_LINK}
               >
-                <span>Go to Checkout ({formatPrice(subtotalAmount)})</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>
+                  {AppConstants.Account.COPY.GO_TO_CHECKOUT(
+                    formatPrice(subtotalAmount)
+                  )}
+                </span>
+                <ArrowRight className={AppConstants.Account.CLASSES.ICON_MD} />
               </Link>
             )}
           </div>
 
           {cartItems.length === 0 ? (
-            <div className="py-8 text-center space-y-3">
-              <p className="text-sm text-stone-500">
-                Your shopping bag is currently empty.
+            <div className={AppConstants.Account.CLASSES.BAG_EMPTY}>
+              <p className={AppConstants.Account.CLASSES.BAG_EMPTY_TEXT}>
+                {AppConstants.Account.COPY.BAG_EMPTY}
               </p>
               <Link
-                href="/shop"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-stone-900 text-white text-xs font-semibold"
+                href={AppConstants.Account.ROUTES.SHOP}
+                className={AppConstants.Account.CLASSES.PRIMARY_LINK}
               >
-                Browse Latest Styles
+                {AppConstants.Account.COPY.BROWSE_STYLES}
               </Link>
             </div>
           ) : (
-            <div className="divide-y divide-stone-200">
+            <div className={AppConstants.Account.CLASSES.BAG_LIST}>
               {cartItems.map((item) => (
                 <div
                   key={`${item.sku}-${item.size}`}
-                  className="py-4 flex items-center justify-between gap-4"
+                  className={AppConstants.Account.CLASSES.BAG_ITEM}
                 >
-                  <div className="flex items-center gap-3.5">
-                    <div className="relative w-14 aspect-[3/4] rounded-xl overflow-hidden bg-stone-100 shrink-0">
+                  <div className={AppConstants.Account.CLASSES.BAG_ITEM_LEFT}>
+                    <div className={AppConstants.Account.CLASSES.BAG_IMAGE_WRAP}>
                       <Image
                         src={item.imageUrl}
                         alt={item.name}
                         fill
-                        sizes="56px"
-                        className="object-cover"
+                        sizes={AppConstants.Account.IMAGE_SIZES}
+                        className={AppConstants.Account.CLASSES.BAG_IMAGE}
                       />
                     </div>
                     <div>
-                      <span className="font-mono text-[10px] text-stone-400">
+                      <span className={AppConstants.Account.CLASSES.BAG_ITEM_SKU}>
                         {item.sku}
                       </span>
                       <Link
-                        href={`/product/${item.sku}`}
-                        className="block text-sm font-semibold text-stone-900 hover:underline"
+                        href={AppConstants.Account.ROUTES.PRODUCT(item.sku)}
+                        className={AppConstants.Account.CLASSES.BAG_ITEM_LINK}
                       >
                         {item.name}
                       </Link>
-                      <span className="text-xs text-stone-500">
-                        Size: <strong>{item.size}</strong> • Qty:{' '}
+                      <span className={AppConstants.Account.CLASSES.BAG_ITEM_META}>
+                        {AppConstants.Account.COPY.SIZE_LABEL}
+                        <strong>{item.size}</strong>
+                        {AppConstants.Account.COPY.QTY_JOINER}
                         <strong>{item.quantity}</strong>
                       </span>
                     </div>
                   </div>
 
-                  <span className="text-sm font-bold text-stone-950">
+                  <span className={AppConstants.Account.CLASSES.BAG_ITEM_PRICE}>
                     {formatPrice(item.unitPrice * item.quantity)}
                   </span>
                 </div>
@@ -487,273 +527,296 @@ function CustomerAccountContent() {
       )}
 
       {/* TAB 3: STORED ADDRESSES (WITH EDIT / ADD / SET DEFAULT) */}
-      {activeTab === 'addresses' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+      {activeTab === AppConstants.Account.TABS.ADDRESSES && (
+        <div className={AppConstants.Account.CLASSES.ADDRESSES_WRAP}>
+          <div className={AppConstants.Account.CLASSES.ADDRESSES_HEADER}>
             <div>
-              <h2 className="font-serif text-2xl font-semibold text-stone-950">
-                Saved Delivery Addresses
+              <h2 className={AppConstants.Account.CLASSES.H2}>
+                {AppConstants.Account.COPY.ADDRESSES_TITLE}
               </h2>
-              <p className="text-xs text-stone-500">
-                Add or edit your delivery addresses for faster 1-click checkout.
+              <p className={AppConstants.Account.CLASSES.MUTED_XS}>
+                {AppConstants.Account.COPY.ADDRESSES_SUBTITLE}
               </p>
             </div>
 
             <button
-              type="button"
+              type={AppConstants.Account.BUTTON_TYPES.BUTTON}
               onClick={openNewAddressForm}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800 cursor-pointer"
+              className={AppConstants.Account.CLASSES.ADD_BUTTON}
             >
-              <Plus className="w-4 h-4" />
-              <span>Add New Address</span>
+              <Plus className={AppConstants.Account.CLASSES.ICON_MD} />
+              <span>{AppConstants.Account.COPY.ADD_ADDRESS}</span>
             </button>
           </div>
 
           {isAddressFormOpen && (
             <form
               onSubmit={handleSaveAddressSubmit}
-              className="p-6 rounded-3xl bg-white border-2 border-stone-900 shadow-lg space-y-4"
+              className={AppConstants.Account.CLASSES.FORM}
             >
-              <div className="flex items-center justify-between border-b border-stone-200 pb-3">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-stone-900">
+              <div className={AppConstants.Account.CLASSES.FORM_HEADER}>
+                <h3 className={AppConstants.Account.CLASSES.FORM_TITLE}>
                   {editingAddress
-                    ? `Edit ${editingAddress.label} Address`
-                    : 'Add New Delivery Address'}
+                    ? AppConstants.Account.COPY.FORM_TITLE_EDIT(editingAddress.label)
+                    : AppConstants.Account.COPY.FORM_TITLE_NEW}
                 </h3>
                 <button
-                  type="button"
+                  type={AppConstants.Account.BUTTON_TYPES.BUTTON}
                   onClick={() => setIsAddressFormOpen(false)}
-                  className="p-1 text-stone-400 hover:text-stone-800"
+                  className={AppConstants.Account.CLASSES.FORM_CLOSE}
                 >
-                  <X className="w-4 h-4" />
+                  <X className={AppConstants.Account.CLASSES.ICON_MD} />
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className={AppConstants.Account.CLASSES.GRID_3}>
                 <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">
-                    Address Label
+                  <label className={AppConstants.Account.CLASSES.LABEL}>
+                    {AppConstants.Account.COPY.LABEL_ADDRESS_LABEL}
                   </label>
                   <select
                     value={addrForm.label}
                     onChange={(e) =>
                       setAddrForm({
                         ...addrForm,
-                        label: e.target.value as 'Home' | 'Work' | 'Other',
+                        label: e.target.value as AddressLabel,
                       })
                     }
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm bg-white"
+                    className={AppConstants.Account.CLASSES.SELECT}
                   >
-                    <option value="Home">Home</option>
-                    <option value="Work">Work / Office</option>
-                    <option value="Other">Other</option>
+                    <option value={AppConstants.Account.ADDRESS_LABELS.HOME}>
+                      {AppConstants.Account.COPY.OPTION_HOME}
+                    </option>
+                    <option value={AppConstants.Account.ADDRESS_LABELS.WORK}>
+                      {AppConstants.Account.COPY.OPTION_WORK}
+                    </option>
+                    <option value={AppConstants.Account.ADDRESS_LABELS.OTHER}>
+                      {AppConstants.Account.COPY.OPTION_OTHER}
+                    </option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">
-                    Recipient Full Name *
+                  <label className={AppConstants.Account.CLASSES.LABEL}>
+                    {AppConstants.Account.COPY.LABEL_FULL_NAME}
                   </label>
                   <input
                     required
-                    type="text"
+                    type={AppConstants.Account.INPUT_TYPES.TEXT}
                     value={addrForm.full_name}
                     onChange={(e) =>
                       setAddrForm({ ...addrForm, full_name: e.target.value })
                     }
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+                    className={AppConstants.Account.CLASSES.INPUT}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">
-                    WhatsApp / Phone Number *
+                  <label className={AppConstants.Account.CLASSES.LABEL}>
+                    {AppConstants.Account.COPY.LABEL_PHONE}
                   </label>
                   <input
                     required
-                    type="tel"
+                    type={AppConstants.Account.INPUT_TYPES.TEL}
                     value={addrForm.phone}
                     onChange={(e) =>
                       setAddrForm({ ...addrForm, phone: e.target.value })
                     }
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+                    className={AppConstants.Account.CLASSES.INPUT}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className={AppConstants.Account.CLASSES.GRID_2}>
                 <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">
-                    House / Flat / Building &amp; Street *
+                  <label className={AppConstants.Account.CLASSES.LABEL}>
+                    {AppConstants.Account.COPY.LABEL_LINE1}
                   </label>
                   <input
                     required
-                    type="text"
+                    type={AppConstants.Account.INPUT_TYPES.TEXT}
                     value={addrForm.address_line1}
                     onChange={(e) =>
                       setAddrForm({ ...addrForm, address_line1: e.target.value })
                     }
-                    placeholder="Flat 402, Lotus Enclave"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+                    placeholder={AppConstants.Account.COPY.PLACEHOLDER_LINE1}
+                    className={AppConstants.Account.CLASSES.INPUT}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">
-                    Area / Landmark (Optional)
+                  <label className={AppConstants.Account.CLASSES.LABEL}>
+                    {AppConstants.Account.COPY.LABEL_LINE2}
                   </label>
                   <input
-                    type="text"
+                    type={AppConstants.Account.INPUT_TYPES.TEXT}
                     value={addrForm.address_line2}
                     onChange={(e) =>
                       setAddrForm({ ...addrForm, address_line2: e.target.value })
                     }
-                    placeholder="Near Central Park"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+                    placeholder={AppConstants.Account.COPY.PLACEHOLDER_LINE2}
+                    className={AppConstants.Account.CLASSES.INPUT}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className={AppConstants.Account.CLASSES.GRID_3}>
                 <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">
-                    City *
+                  <label className={AppConstants.Account.CLASSES.LABEL}>
+                    {AppConstants.Account.COPY.LABEL_CITY}
                   </label>
                   <input
                     required
-                    type="text"
+                    type={AppConstants.Account.INPUT_TYPES.TEXT}
                     value={addrForm.city}
                     onChange={(e) =>
                       setAddrForm({ ...addrForm, city: e.target.value })
                     }
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+                    className={AppConstants.Account.CLASSES.INPUT}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">
-                    State *
+                  <label className={AppConstants.Account.CLASSES.LABEL}>
+                    {AppConstants.Account.COPY.LABEL_STATE}
                   </label>
                   <input
                     required
-                    type="text"
+                    type={AppConstants.Account.INPUT_TYPES.TEXT}
                     value={addrForm.state}
                     onChange={(e) =>
                       setAddrForm({ ...addrForm, state: e.target.value })
                     }
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+                    className={AppConstants.Account.CLASSES.INPUT}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">
-                    6-Digit PIN Code *
+                  <label className={AppConstants.Account.CLASSES.LABEL}>
+                    {AppConstants.Account.COPY.LABEL_PIN}
                   </label>
                   <input
                     required
-                    type="text"
-                    pattern="[0-9]{6}"
+                    type={AppConstants.Account.INPUT_TYPES.TEXT}
+                    pattern={AppConstants.Account.PIN_CODE_PATTERN}
                     value={addrForm.postal_code}
                     onChange={(e) =>
                       setAddrForm({ ...addrForm, postal_code: e.target.value })
                     }
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+                    className={AppConstants.Account.CLASSES.INPUT}
                   />
                 </div>
               </div>
 
-              <label className="inline-flex items-center gap-2 text-xs font-medium text-stone-700 cursor-pointer">
+              <label className={AppConstants.Account.CLASSES.CHECKBOX_LABEL}>
                 <input
-                  type="checkbox"
+                  type={AppConstants.Account.INPUT_TYPES.CHECKBOX}
                   checked={addrForm.is_default}
                   onChange={(e) =>
                     setAddrForm({ ...addrForm, is_default: e.target.checked })
                   }
-                  className="rounded border-stone-300"
+                  className={AppConstants.Account.CLASSES.CHECKBOX}
                 />
-                <span>Set as my default delivery address</span>
+                <span>{AppConstants.Account.COPY.LABEL_DEFAULT}</span>
               </label>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className={AppConstants.Account.CLASSES.FORM_ACTIONS}>
                 <button
-                  type="button"
+                  type={AppConstants.Account.BUTTON_TYPES.BUTTON}
                   onClick={() => setIsAddressFormOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-stone-300 text-xs font-semibold text-stone-700"
+                  className={AppConstants.Account.CLASSES.CANCEL_BUTTON}
                 >
-                  Cancel
+                  {AppConstants.Account.COPY.CANCEL}
                 </button>
                 <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800"
+                  type={AppConstants.Account.BUTTON_TYPES.SUBMIT}
+                  className={AppConstants.Account.CLASSES.SAVE_BUTTON}
                 >
-                  Save Address
+                  {AppConstants.Account.COPY.SAVE_ADDRESS}
                 </button>
               </div>
             </form>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className={AppConstants.Account.CLASSES.ADDRESS_GRID}>
             {addresses.map((addr) => (
               <div
                 key={addr.id}
-                className={`p-5 rounded-3xl bg-white border transition-all flex flex-col justify-between space-y-4 ${
+                className={AppConstants.Account.CLASSES.ADDRESS_CARD(
                   addr.is_default
-                    ? 'border-stone-900 ring-1 ring-stone-900/10'
-                    : 'border-stone-200'
-                }`}
+                )}
               >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-800 text-xs font-bold">
+                <div className={AppConstants.Account.CLASSES.ADDRESS_BODY}>
+                  <div className={AppConstants.Account.CLASSES.ADDRESS_TOP}>
+                    <span
+                      className={
+                        AppConstants.Account.CLASSES.ADDRESS_LABEL_BADGE
+                      }
+                    >
                       {addr.label}
                     </span>
                     {addr.is_default ? (
-                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
-                        Default Address
+                      <span className={AppConstants.Account.CLASSES.DEFAULT_BADGE}>
+                        {AppConstants.Account.COPY.DEFAULT_BADGE}
                       </span>
                     ) : (
                       <button
-                        type="button"
+                        type={AppConstants.Account.BUTTON_TYPES.BUTTON}
                         onClick={() => setDefaultAddress(addr.id)}
-                        className="text-xs font-semibold text-stone-500 hover:text-stone-900 cursor-pointer"
+                        className={
+                          AppConstants.Account.CLASSES.SET_DEFAULT_BUTTON
+                        }
                       >
-                        Set as Default
+                        {AppConstants.Account.COPY.SET_DEFAULT}
                       </button>
                     )}
                   </div>
 
-                  <p className="text-sm font-bold text-stone-950 pt-1">
+                  <p className={AppConstants.Account.CLASSES.ADDRESS_NAME}>
                     {addr.full_name}
                   </p>
-                  <p className="text-xs text-stone-600 leading-relaxed">
+                  <p className={AppConstants.Account.CLASSES.ADDRESS_LINES}>
                     {addr.address_line1}
-                    {addr.address_line2 ? `, ${addr.address_line2}` : ''}
+                    {addr.address_line2
+                      ? `${AppConstants.Account.COPY.LINE2_PREFIX}${addr.address_line2}`
+                      : AppConstants.Account.EMPTY_VALUE}
                     <br />
-                    {addr.city}, {addr.state} — <strong>{addr.postal_code}</strong>
+                    {AppConstants.Account.COPY.CITY_STATE_PREFIX(
+                      addr.city,
+                      addr.state
+                    )}
+                    <strong>{addr.postal_code}</strong>
                   </p>
-                  <p className="text-xs text-stone-500 pt-1">
-                    Phone: <strong className="text-stone-800">{addr.phone}</strong>
+                  <p className={AppConstants.Account.CLASSES.ADDRESS_PHONE}>
+                    {AppConstants.Account.COPY.PHONE_PREFIX}
+                    <strong
+                      className={
+                        AppConstants.Account.CLASSES.ADDRESS_PHONE_VALUE
+                      }
+                    >
+                      {addr.phone}
+                    </strong>
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-stone-100 flex items-center justify-end gap-2">
+                <div className={AppConstants.Account.CLASSES.ADDRESS_ACTIONS}>
                   <button
-                    type="button"
+                    type={AppConstants.Account.BUTTON_TYPES.BUTTON}
                     onClick={() => openEditAddressForm(addr)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-stone-300 text-xs font-semibold text-stone-800 hover:bg-stone-100 cursor-pointer"
+                    className={AppConstants.Account.CLASSES.EDIT_BUTTON}
                   >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>Edit Address</span>
+                    <Edit3 className={AppConstants.Account.CLASSES.ICON_SM} />
+                    <span>{AppConstants.Account.COPY.EDIT_ADDRESS}</span>
                   </button>
 
                   {addresses.length > 1 && (
                     <button
-                      type="button"
+                      type={AppConstants.Account.BUTTON_TYPES.BUTTON}
                       onClick={() => deleteAddress(addr.id)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-rose-200 text-xs font-semibold text-rose-700 hover:bg-rose-50 cursor-pointer"
+                      className={AppConstants.Account.CLASSES.REMOVE_BUTTON}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Remove</span>
+                      <Trash2 className={AppConstants.Account.CLASSES.ICON_SM} />
+                      <span>{AppConstants.Account.COPY.REMOVE}</span>
                     </button>
                   )}
                 </div>
@@ -766,128 +829,158 @@ function CustomerAccountContent() {
       {/* TAX INVOICE MODAL */}
       {selectedInvoiceOrder && (
         <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 bg-stone-950/75 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+          role={AppConstants.Account.ARIA.ROLE_DIALOG}
+          aria-modal={AppConstants.Account.ARIA.MODAL}
+          className={AppConstants.Account.CLASSES.MODAL_OVERLAY}
         >
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-stone-200 space-y-6 my-8">
-            <div className="flex items-start justify-between border-b border-stone-200 pb-4">
+          <div className={AppConstants.Account.CLASSES.MODAL}>
+            <div className={AppConstants.Account.CLASSES.MODAL_HEADER}>
               <div>
-                <p className="font-serif text-2xl font-bold tracking-wider text-stone-950">
+                <p className={AppConstants.Account.CLASSES.STORE_NAME}>
                   {publicEnv.storeName}
                 </p>
-                <p className="text-xs text-stone-500">
-                  Tax Invoice / Bill of Supply • Original for Recipient
+                <p className={AppConstants.Account.CLASSES.MUTED_XS}>
+                  {AppConstants.Account.COPY.INVOICE_SUBTITLE}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className={AppConstants.Account.CLASSES.MODAL_ACTIONS}>
                 <button
-                  type="button"
+                  type={AppConstants.Account.BUTTON_TYPES.BUTTON}
                   onClick={() => window.print()}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800 cursor-pointer"
+                  className={AppConstants.Account.CLASSES.PRINT_BUTTON}
                 >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Print / Save PDF</span>
+                  <Printer className={AppConstants.Account.CLASSES.ICON_SM} />
+                  <span>{AppConstants.Account.COPY.PRINT_SAVE_PDF}</span>
                 </button>
                 <button
-                  type="button"
+                  type={AppConstants.Account.BUTTON_TYPES.BUTTON}
                   onClick={() => setSelectedInvoiceOrder(null)}
-                  className="p-2 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700"
+                  className={AppConstants.Account.CLASSES.MODAL_CLOSE}
                 >
-                  <X className="w-4 h-4" />
+                  <X className={AppConstants.Account.CLASSES.ICON_MD} />
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="p-4 rounded-2xl bg-stone-50 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                  Billed &amp; Shipped To
+            <div className={AppConstants.Account.CLASSES.INVOICE_GRID}>
+              <div className={AppConstants.Account.CLASSES.BILLED_BOX}>
+                <span className={AppConstants.Account.CLASSES.BILLED_LABEL}>
+                  {AppConstants.Account.COPY.BILLED_TO}
                 </span>
-                <p className="font-bold text-stone-900 text-sm">
+                <p className={AppConstants.Account.CLASSES.BILLED_NAME}>
                   {selectedInvoiceOrder.shipping_address.full_name}
                 </p>
-                <p className="text-stone-600">
+                <p className={AppConstants.Account.CLASSES.BILLED_LINE}>
                   {selectedInvoiceOrder.shipping_address.address_line1}
                   {selectedInvoiceOrder.shipping_address.address_line2
-                    ? `, ${selectedInvoiceOrder.shipping_address.address_line2}`
-                    : ''}
+                    ? `${AppConstants.Account.COPY.LINE2_PREFIX}${selectedInvoiceOrder.shipping_address.address_line2}`
+                    : AppConstants.Account.EMPTY_VALUE}
                 </p>
-                <p className="text-stone-600">
-                  {selectedInvoiceOrder.shipping_address.city},{' '}
-                  {selectedInvoiceOrder.shipping_address.state} -{' '}
-                  {selectedInvoiceOrder.shipping_address.postal_code}
+                <p className={AppConstants.Account.CLASSES.BILLED_LINE}>
+                  {AppConstants.Account.COPY.INVOICE_CITY_LINE(
+                    selectedInvoiceOrder.shipping_address.city,
+                    selectedInvoiceOrder.shipping_address.state,
+                    selectedInvoiceOrder.shipping_address.postal_code
+                  )}
                 </p>
-                <p className="text-stone-600">
-                  Phone: {selectedInvoiceOrder.shipping_address.phone}
+                <p className={AppConstants.Account.CLASSES.BILLED_LINE}>
+                  {AppConstants.Account.COPY.INVOICE_PHONE(
+                    selectedInvoiceOrder.shipping_address.phone
+                  )}
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-stone-50 space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-stone-500">Invoice / Order No:</span>
-                  <strong className="font-mono text-stone-900">
+              <div className={AppConstants.Account.CLASSES.META_BOX}>
+                <div className={AppConstants.Account.CLASSES.SPLIT_ROW}>
+                  <span className={AppConstants.Account.CLASSES.MUTED_LABEL}>
+                    {AppConstants.Account.COPY.INVOICE_NO}
+                  </span>
+                  <strong className={AppConstants.Account.CLASSES.META_MONO_STRONG}>
                     {selectedInvoiceOrder.order_number}
                   </strong>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-stone-500">Order Date:</span>
-                  <strong className="text-stone-900">
+                <div className={AppConstants.Account.CLASSES.SPLIT_ROW}>
+                  <span className={AppConstants.Account.CLASSES.MUTED_LABEL}>
+                    {AppConstants.Account.COPY.ORDER_DATE}
+                  </span>
+                  <strong className={AppConstants.Account.CLASSES.META_STRONG}>
                     {new Date(selectedInvoiceOrder.created_at).toLocaleDateString(
-                      'en-IN'
+                      AppConstants.Account.LOCALE
                     )}
                   </strong>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-stone-500">Delivery Status:</span>
-                  <strong className="text-emerald-800">
+                <div className={AppConstants.Account.CLASSES.SPLIT_ROW}>
+                  <span className={AppConstants.Account.CLASSES.MUTED_LABEL}>
+                    {AppConstants.Account.COPY.DELIVERY_STATUS}
+                  </span>
+                  <strong className={AppConstants.Account.CLASSES.META_STATUS}>
                     {selectedInvoiceOrder.status}
                   </strong>
                 </div>
                 {selectedInvoiceOrder.delivered_at && (
-                  <div className="flex justify-between">
-                    <span className="text-stone-500">Delivered On:</span>
-                    <strong className="text-stone-900">
+                  <div className={AppConstants.Account.CLASSES.SPLIT_ROW}>
+                    <span className={AppConstants.Account.CLASSES.MUTED_LABEL}>
+                      {AppConstants.Account.COPY.DELIVERED_ON_LABEL}
+                    </span>
+                    <strong className={AppConstants.Account.CLASSES.META_STRONG}>
                       {new Date(
                         selectedInvoiceOrder.delivered_at
-                      ).toLocaleDateString('en-IN')}
+                      ).toLocaleDateString(AppConstants.Account.LOCALE)}
                     </strong>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-stone-500">Payment Reference:</span>
-                  <span className="font-mono text-stone-800">
+                <div className={AppConstants.Account.CLASSES.SPLIT_ROW}>
+                  <span className={AppConstants.Account.CLASSES.MUTED_LABEL}>
+                    {AppConstants.Account.COPY.PAYMENT_REFERENCE}
+                  </span>
+                  <span className={AppConstants.Account.CLASSES.META_MONO}>
                     {selectedInvoiceOrder.payment_reference}
                   </span>
                 </div>
               </div>
             </div>
 
-            <table className="w-full text-left border-collapse text-xs">
+            <table className={AppConstants.Account.CLASSES.TABLE}>
               <thead>
-                <tr className="border-b border-stone-200 text-stone-500 uppercase text-[10px]">
-                  <th className="py-2">SKU &amp; Item</th>
-                  <th className="py-2">Size</th>
-                  <th className="py-2">Qty</th>
-                  <th className="py-2 text-right">Unit Price</th>
-                  <th className="py-2 text-right">Line Total</th>
+                <tr className={AppConstants.Account.CLASSES.THEAD_ROW}>
+                  <th className={AppConstants.Account.CLASSES.TH}>
+                    {AppConstants.Account.COPY.TH_ITEM}
+                  </th>
+                  <th className={AppConstants.Account.CLASSES.TH}>
+                    {AppConstants.Account.COPY.TH_SIZE}
+                  </th>
+                  <th className={AppConstants.Account.CLASSES.TH}>
+                    {AppConstants.Account.COPY.TH_QTY}
+                  </th>
+                  <th className={AppConstants.Account.CLASSES.TH_RIGHT}>
+                    {AppConstants.Account.COPY.TH_UNIT_PRICE}
+                  </th>
+                  <th className={AppConstants.Account.CLASSES.TH_RIGHT}>
+                    {AppConstants.Account.COPY.TH_LINE_TOTAL}
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-200">
+              <tbody className={AppConstants.Account.CLASSES.TBODY}>
                 {selectedInvoiceOrder.items?.map((item) => (
                   <tr key={item.id}>
-                    <td className="py-2.5">
-                      <span className="font-mono text-[10px] text-stone-500 block">
+                    <td className={AppConstants.Account.CLASSES.TD_ITEM}>
+                      <span className={AppConstants.Account.CLASSES.TD_SKU}>
                         {item.sku}
                       </span>
-                      <strong className="text-stone-900">{item.product_name}</strong>
+                      <strong className={AppConstants.Account.CLASSES.TD_NAME}>
+                        {item.product_name}
+                      </strong>
                     </td>
-                    <td className="py-2.5 font-semibold">{item.selected_size}</td>
-                    <td className="py-2.5">{item.quantity}</td>
-                    <td className="py-2.5 text-right">
+                    <td className={AppConstants.Account.CLASSES.TD_SIZE}>
+                      {item.selected_size}
+                    </td>
+                    <td className={AppConstants.Account.CLASSES.TD_ITEM}>
+                      {item.quantity}
+                    </td>
+                    <td className={AppConstants.Account.CLASSES.TD_RIGHT}>
                       {formatPrice(item.unit_price)}
                     </td>
-                    <td className="py-2.5 text-right font-bold">
+                    <td className={AppConstants.Account.CLASSES.TD_RIGHT_BOLD}>
                       {formatPrice(item.line_total)}
                     </td>
                   </tr>
@@ -895,21 +988,22 @@ function CustomerAccountContent() {
               </tbody>
             </table>
 
-            <div className="border-t border-stone-200 pt-4 space-y-1.5 text-xs max-w-xs ml-auto">
-              <div className="flex justify-between text-stone-600">
-                <span>Subtotal (Incl. GST):</span>
+            <div className={AppConstants.Account.CLASSES.TOTALS}>
+              <div className={AppConstants.Account.CLASSES.TOTAL_ROW}>
+                <span>{AppConstants.Account.COPY.SUBTOTAL}</span>
                 <span>{formatPrice(selectedInvoiceOrder.subtotal_amount)}</span>
               </div>
-              <div className="flex justify-between text-stone-600">
-                <span>Shipping Charges:</span>
+              <div className={AppConstants.Account.CLASSES.TOTAL_ROW}>
+                <span>{AppConstants.Account.COPY.SHIPPING}</span>
                 <span>
-                  {selectedInvoiceOrder.shipping_amount === 0
-                    ? 'FREE'
+                  {selectedInvoiceOrder.shipping_amount ===
+                  AppConstants.Account.FREE_SHIPPING_AMOUNT
+                    ? AppConstants.Account.COPY.FREE
                     : formatPrice(selectedInvoiceOrder.shipping_amount)}
                 </span>
               </div>
-              <div className="flex justify-between text-sm font-bold text-stone-950 pt-1 border-t border-stone-200">
-                <span>Grand Total Paid:</span>
+              <div className={AppConstants.Account.CLASSES.GRAND_ROW}>
+                <span>{AppConstants.Account.COPY.GRAND_TOTAL}</span>
                 <span>{formatPrice(selectedInvoiceOrder.total_amount)}</span>
               </div>
             </div>
@@ -925,8 +1019,8 @@ export default function CustomerAccountPage() {
     <Suspense
       fallback={
         <LuxurySpinner
-          title="Loading Your Account..."
-          subtitle="Fetching your orders, invoices, shopping bag & saved addresses"
+          title={AppConstants.Account.COPY.LOADING_TITLE}
+          subtitle={AppConstants.Account.COPY.LOADING_SUBTITLE}
         />
       }
     >

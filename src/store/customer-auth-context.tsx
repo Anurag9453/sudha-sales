@@ -6,12 +6,15 @@
 // - Persists customer's Saved Addresses (with full Add / Edit / Delete / Set Default)
 //   and Order History (with delivery status, delivered timestamp, and printable
 //   GST/Tax Invoice modal).
+// All literals, storage keys, fallback customer records, and order generators
+// are bound to AppConstants.Account.AUTH and AppConstants.Store.
 // ============================================================================
 
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { getSupabaseBrowserClient } from '@/database/supabase-browser';
+import { AppConstants } from '@/constants/app.constants';
 import type {
   CartItem,
   CustomerProfile,
@@ -41,126 +44,6 @@ interface CustomerAuthContextValue {
   }) => Order;
 }
 
-const CUSTOMER_STORAGE_KEY = 'sudha_sales_customer_v1';
-const ADDRESSES_STORAGE_KEY = 'sudha_sales_addresses_v1';
-const ORDERS_STORAGE_KEY = 'sudha_sales_orders_v1';
-
-const INITIAL_DEMO_ADDRESSES: CustomerStoredAddress[] = [
-  {
-    id: 'addr-default-1',
-    label: 'Home',
-    full_name: 'Ananya Sharma',
-    phone: '+91 98765 43210',
-    address_line1: 'Flat 402, Lotus Enclave, C-Scheme',
-    address_line2: 'Near Central Park Gate 2',
-    city: 'Jaipur',
-    state: 'Rajasthan',
-    postal_code: '302001',
-    is_default: true,
-  },
-  {
-    id: 'addr-work-2',
-    label: 'Work',
-    full_name: 'Ananya Sharma',
-    phone: '+91 98765 43210',
-    address_line1: '3rd Floor, Horizon Tower, Malviya Nagar',
-    address_line2: 'JLN Marg',
-    city: 'Jaipur',
-    state: 'Rajasthan',
-    postal_code: '302017',
-    is_default: false,
-  },
-];
-
-const INITIAL_DEMO_ORDERS: Order[] = [
-  {
-    id: 'ord-hist-101',
-    order_number: 'ORD-20261014-8821',
-    customer_id: 'cust-google-1',
-    status: 'DELIVERED',
-    payment_status: 'PAID',
-    payment_provider: 'UPI / Google Pay',
-    payment_reference: 'UTR62910482910',
-    subtotal_amount: 2999,
-    discount_amount: 500,
-    shipping_amount: 0,
-    total_amount: 2999,
-    shipping_address: {
-      full_name: 'Ananya Sharma',
-      phone: '+91 98765 43210',
-      address_line1: 'Flat 402, Lotus Enclave, C-Scheme',
-      address_line2: 'Near Central Park Gate 2',
-      city: 'Jaipur',
-      state: 'Rajasthan',
-      postal_code: '302001',
-      country: 'IN',
-    },
-    tracking_number: 'DLVRY9928174IN',
-    shipping_carrier: 'Delhivery Express',
-    notes: 'Delivered to security desk',
-    created_at: '2026-10-14T11:20:00Z',
-    updated_at: '2026-10-17T16:45:00Z',
-    delivered_at: '2026-10-17T16:45:00Z',
-    items: [
-      {
-        id: 'oi-101-1',
-        order_id: 'ord-hist-101',
-        product_id: '33333333-3333-4333-8333-333333333302',
-        sku: 'SKU002',
-        product_name: 'Ivory Chanderi Zari Embroidered Suit Set',
-        selected_size: 'M',
-        color: 'Ivory Gold',
-        quantity: 1,
-        unit_price: 2999,
-        line_total: 2999,
-      },
-    ],
-  },
-  {
-    id: 'ord-hist-102',
-    order_number: 'ORD-20261019-9410',
-    customer_id: 'cust-google-1',
-    status: 'SHIPPED',
-    payment_status: 'PAID',
-    payment_provider: 'UPI / PhonePe',
-    payment_reference: 'UTR99412049182',
-    subtotal_amount: 2398,
-    discount_amount: 200,
-    shipping_amount: 0,
-    total_amount: 2398,
-    shipping_address: {
-      full_name: 'Ananya Sharma',
-      phone: '+91 98765 43210',
-      address_line1: 'Flat 402, Lotus Enclave, C-Scheme',
-      address_line2: 'Near Central Park Gate 2',
-      city: 'Jaipur',
-      state: 'Rajasthan',
-      postal_code: '302001',
-      country: 'IN',
-    },
-    tracking_number: 'BLUEDART774120IN',
-    shipping_carrier: 'BlueDart Air',
-    notes: 'In transit — arriving tomorrow by 6 PM',
-    created_at: '2026-10-19T14:10:00Z',
-    updated_at: '2026-10-20T09:30:00Z',
-    delivered_at: null,
-    items: [
-      {
-        id: 'oi-102-1',
-        order_id: 'ord-hist-102',
-        product_id: '33333333-3333-4333-8333-333333333301',
-        sku: 'SKU001',
-        product_name: 'Floral Handblock Mulmul Cotton Kurti',
-        selected_size: 'L',
-        color: 'Indigo Blue',
-        quantity: 2,
-        unit_price: 1199,
-        line_total: 2398,
-      },
-    ],
-  },
-];
-
 const CustomerAuthContext = createContext<CustomerAuthContextValue | null>(null);
 
 export function CustomerAuthProvider({ children }: { children: React.ReactNode }) {
@@ -171,27 +54,33 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     try {
-      const savedCustomer = window.localStorage.getItem(CUSTOMER_STORAGE_KEY);
+      const savedCustomer = window.localStorage.getItem(
+        AppConstants.Account.AUTH.STORAGE_KEYS.CUSTOMER
+      );
       if (savedCustomer) {
         setCustomer(JSON.parse(savedCustomer) as CustomerProfile);
       }
 
-      const savedAddresses = window.localStorage.getItem(ADDRESSES_STORAGE_KEY);
+      const savedAddresses = window.localStorage.getItem(
+        AppConstants.Account.AUTH.STORAGE_KEYS.ADDRESSES
+      );
       if (savedAddresses) {
         setAddresses(JSON.parse(savedAddresses) as CustomerStoredAddress[]);
       } else {
-        setAddresses(INITIAL_DEMO_ADDRESSES);
+        setAddresses(AppConstants.Account.AUTH.INITIAL_ADDRESSES);
       }
 
-      const savedOrders = window.localStorage.getItem(ORDERS_STORAGE_KEY);
+      const savedOrders = window.localStorage.getItem(
+        AppConstants.Account.AUTH.STORAGE_KEYS.ORDERS
+      );
       if (savedOrders) {
         setOrders(JSON.parse(savedOrders) as Order[]);
       } else {
-        setOrders(INITIAL_DEMO_ORDERS);
+        setOrders(AppConstants.Account.AUTH.INITIAL_ORDERS);
       }
     } catch {
-      setAddresses(INITIAL_DEMO_ADDRESSES);
-      setOrders(INITIAL_DEMO_ORDERS);
+      setAddresses(AppConstants.Account.AUTH.INITIAL_ADDRESSES);
+      setOrders(AppConstants.Account.AUTH.INITIAL_ORDERS);
     } finally {
       setIsHydrated(true);
     }
@@ -207,12 +96,12 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
             name:
               user.user_metadata?.full_name ||
               user.user_metadata?.name ||
-              user.email?.split('@')[0] ||
-              'Valued Customer',
+              user.email?.split(AppConstants.Account.AUTH.EMAIL_SPLIT_CHAR)[0] ||
+              AppConstants.Account.AUTH.FALLBACK_NAME,
             email: user.email || '',
-            phone: user.phone || '+91 98765 43210',
+            phone: user.phone || AppConstants.Account.AUTH.DEMO_PHONE,
             avatar_url: user.user_metadata?.avatar_url,
-            provider: 'google',
+            provider: AppConstants.Account.AUTH.PROVIDER_GOOGLE,
             created_at: user.created_at,
           };
           setCustomer(profile);
@@ -225,9 +114,14 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     if (!isHydrated) return;
     try {
       if (customer) {
-        window.localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(customer));
+        window.localStorage.setItem(
+          AppConstants.Account.AUTH.STORAGE_KEYS.CUSTOMER,
+          JSON.stringify(customer)
+        );
       } else {
-        window.localStorage.removeItem(CUSTOMER_STORAGE_KEY);
+        window.localStorage.removeItem(
+          AppConstants.Account.AUTH.STORAGE_KEYS.CUSTOMER
+        );
       }
     } catch {
       // Ignore storage errors
@@ -237,7 +131,10 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!isHydrated) return;
     try {
-      window.localStorage.setItem(ADDRESSES_STORAGE_KEY, JSON.stringify(addresses));
+      window.localStorage.setItem(
+        AppConstants.Account.AUTH.STORAGE_KEYS.ADDRESSES,
+        JSON.stringify(addresses)
+      );
     } catch {
       // Ignore storage errors
     }
@@ -246,7 +143,10 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!isHydrated) return;
     try {
-      window.localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
+      window.localStorage.setItem(
+        AppConstants.Account.AUTH.STORAGE_KEYS.ORDERS,
+        JSON.stringify(orders)
+      );
     } catch {
       // Ignore storage errors
     }
@@ -257,18 +157,25 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     email?: string;
     phone?: string;
   }) => {
-    const cleanName = customProfile?.name?.trim() || 'Ananya Sharma';
+    const cleanName =
+      customProfile?.name?.trim() || AppConstants.Account.AUTH.DEMO_NAME;
     const cleanEmail =
       customProfile?.email?.trim() ||
-      `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '.')}@gmail.com`;
-    const cleanPhone = customProfile?.phone?.trim() || '+91 98765 43210';
+      `${cleanName
+        .toLowerCase()
+        .replace(
+          AppConstants.Account.AUTH.EMAIL_SANITIZE_PATTERN,
+          AppConstants.Account.AUTH.EMAIL_SANITIZE_REPLACEMENT
+        )}${AppConstants.Account.AUTH.EMAIL_DOMAIN}`;
+    const cleanPhone =
+      customProfile?.phone?.trim() || AppConstants.Account.AUTH.DEMO_PHONE;
 
     const nextCustomer: CustomerProfile = {
-      id: 'cust-google-1',
+      id: AppConstants.Account.AUTH.DEMO_CUSTOMER_ID,
       name: cleanName,
       email: cleanEmail,
       phone: cleanPhone,
-      provider: 'google',
+      provider: AppConstants.Account.AUTH.PROVIDER_GOOGLE,
       created_at: new Date().toISOString(),
     };
 
@@ -293,7 +200,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   const saveAddress = (
     input: Omit<CustomerStoredAddress, 'id'> & { id?: string }
   ): CustomerStoredAddress => {
-    const id = input.id || `addr-${Date.now()}`;
+    const id = input.id || `${AppConstants.Account.AUTH.ADDRESS_ID_PREFIX}${Date.now()}`;
     const record: CustomerStoredAddress = {
       ...input,
       id,
@@ -343,13 +250,16 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       totalAmount: number;
     }): Order => {
       const now = new Date().toISOString();
-      const orderId = `ord-${Date.now()}`;
-      const orderNumber = `ORD-${now.slice(0, 10).replace(/-/g, '')}-${Math.floor(
-        1000 + Math.random() * 9000
+      const orderId = `${AppConstants.Account.AUTH.ORDER_ID_PREFIX}${Date.now()}`;
+      const orderNumber = `${AppConstants.Account.AUTH.ORDER_NUMBER_PREFIX}${now
+        .slice(0, AppConstants.Account.AUTH.ISO_DATE_LENGTH)
+        .replace(AppConstants.Account.AUTH.ISO_DATE_DASH_PATTERN, '')}${AppConstants.Account.AUTH.ORDER_NUMBER_SEPARATOR}${Math.floor(
+        AppConstants.Account.AUTH.ORDER_NUMBER_RANDOM.MIN +
+          Math.random() * AppConstants.Account.AUTH.ORDER_NUMBER_RANDOM.SPAN
       )}`;
 
       const items: OrderItem[] = params.cartItems.map((item, idx) => ({
-        id: `${orderId}-item-${idx + 1}`,
+        id: `${orderId}${AppConstants.Account.AUTH.ORDER_ITEM_ID_SEGMENT}${idx + 1}`,
         order_id: orderId,
         product_id: item.productId,
         sku: item.sku,
@@ -364,11 +274,14 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       const newOrder: Order = {
         id: orderId,
         order_number: orderNumber,
-        customer_id: customer?.id ?? 'cust-google-1',
-        status: 'CONFIRMED',
-        payment_status: 'PAID',
-        payment_provider: 'UPI / Online Payment',
-        payment_reference: `UTR${Math.floor(10000000000 + Math.random() * 89999999999)}`,
+        customer_id: customer?.id ?? AppConstants.Account.AUTH.DEMO_CUSTOMER_ID,
+        status: AppConstants.Account.AUTH.NEW_ORDER.STATUS,
+        payment_status: AppConstants.Account.AUTH.NEW_ORDER.PAYMENT_STATUS,
+        payment_provider: AppConstants.Account.AUTH.NEW_ORDER.PAYMENT_PROVIDER,
+        payment_reference: `${AppConstants.Account.AUTH.PAYMENT_REF_PREFIX}${Math.floor(
+          AppConstants.Account.AUTH.PAYMENT_REF_RANDOM.MIN +
+            Math.random() * AppConstants.Account.AUTH.PAYMENT_REF_RANDOM.SPAN
+        )}`,
         subtotal_amount: params.subtotalAmount,
         discount_amount: params.discountAmount,
         shipping_amount: params.shippingAmount,
@@ -382,11 +295,14 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
           city: params.address.city,
           state: params.address.state,
           postal_code: params.address.postal_code,
-          country: 'IN',
+          country: AppConstants.Store.DEFAULT_COUNTRY,
         },
-        tracking_number: `SUDHA${Math.floor(1000000 + Math.random() * 9000000)}IN`,
-        shipping_carrier: 'Delhivery Express',
-        notes: 'Order confirmed — preparing warehouse dispatch within 24 hours',
+        tracking_number: `${AppConstants.Account.AUTH.TRACKING_PREFIX}${Math.floor(
+          AppConstants.Account.AUTH.TRACKING_RANDOM.MIN +
+            Math.random() * AppConstants.Account.AUTH.TRACKING_RANDOM.SPAN
+        )}${AppConstants.Account.AUTH.TRACKING_SUFFIX}`,
+        shipping_carrier: AppConstants.Account.AUTH.NEW_ORDER.CARRIER,
+        notes: AppConstants.Account.AUTH.NEW_ORDER.NOTES,
         created_at: now,
         updated_at: now,
         delivered_at: null,
@@ -426,7 +342,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
 export function useCustomerAuth(): CustomerAuthContextValue {
   const ctx = useContext(CustomerAuthContext);
   if (!ctx) {
-    throw new Error('useCustomerAuth must be used within a CustomerAuthProvider');
+    throw new Error(AppConstants.Account.AUTH.ERRORS.PROVIDER_REQUIRED);
   }
   return ctx;
 }
