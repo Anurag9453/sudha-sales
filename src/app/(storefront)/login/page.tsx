@@ -5,6 +5,8 @@
 // - Customers must log in here before buying any item or completing checkout.
 // - Redirects back to `next` URL parameter (e.g. `/product/SKU005` or `/cart`)
 //   or `/account` once signed in.
+// All visual copy, SVG attributes, CSS class names, and authentication defaults
+// are bound to AppConstants.Login and AppConstants.Store.
 // ============================================================================
 
 'use client';
@@ -24,19 +26,27 @@ import { useCustomerAuth } from '@/store/customer-auth-context';
 import { getSupabaseBrowserClient } from '@/database/supabase-browser';
 import { publicEnv } from '@/lib/env';
 import { LuxurySpinner } from '@/components/ui/LuxurySpinner';
+import { AppConstants } from '@/constants/app.constants';
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextUrl = searchParams.get('next') || '/';
-  const reason = searchParams.get('reason');
+  const nextUrl =
+    searchParams.get(AppConstants.Login.QUERY.NEXT) ||
+    AppConstants.Login.ROUTES.HOME;
+  const reason = searchParams.get(AppConstants.Login.QUERY.REASON);
 
-  const { isAuthenticated, isHydrated, signInWithGoogle } =
-    useCustomerAuth();
+  const { isAuthenticated, isHydrated, signInWithGoogle } = useCustomerAuth();
 
-  const [googleName, setGoogleName] = useState('Ananya Sharma');
-  const [googleEmail, setGoogleEmail] = useState('ananya.sharma@gmail.com');
-  const [googlePhone, setGooglePhone] = useState('+91 98765 43210');
+  const [googleName, setGoogleName] = useState<string>(
+    AppConstants.Login.AUTH.DEFAULT_NAME
+  );
+  const [googleEmail, setGoogleEmail] = useState<string>(
+    AppConstants.Login.AUTH.DEFAULT_EMAIL
+  );
+  const [googlePhone, setGooglePhone] = useState<string>(
+    AppConstants.Login.AUTH.DEFAULT_PHONE
+  );
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
@@ -52,9 +62,13 @@ function LoginContent() {
     // If Supabase OAuth is configured and user wants live OAuth redirect, support it;
     // otherwise complete instant Google profile sign-in so checkout works immediately.
     const supabase = getSupabaseBrowserClient();
-    if (supabase && process.env.NEXT_PUBLIC_ENABLE_LIVE_GOOGLE_OAUTH === 'true') {
+    if (
+      supabase &&
+      process.env.NEXT_PUBLIC_ENABLE_LIVE_GOOGLE_OAUTH ===
+        AppConstants.Login.AUTH.ENABLE_LIVE_GOOGLE_OAUTH_FLAG
+    ) {
       await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: AppConstants.Login.AUTH.PROVIDER_GOOGLE,
         options: {
           redirectTo: `${window.location.origin}${nextUrl}`,
         },
@@ -62,7 +76,9 @@ function LoginContent() {
       return;
     }
 
-    await new Promise((r) => setTimeout(r, 550));
+    await new Promise((r) =>
+      setTimeout(r, AppConstants.Login.AUTH.SIGN_IN_DELAY_MS)
+    );
     await signInWithGoogle({
       name: googleName,
       email: googleEmail,
@@ -77,181 +93,192 @@ function LoginContent() {
         fullScreenOverlay={isSigningIn}
         title={
           isSigningIn
-            ? `Namaste ${googleName.split(' ')[0]}! Signing you in...`
-            : 'Loading Sign In...'
+            ? AppConstants.Login.COPY.SIGNING_IN_TITLE(
+                googleName.split(AppConstants.Account.NAME_SPLIT_SEPARATOR)[0]
+              )
+            : AppConstants.Login.COPY.LOADING_TITLE
         }
-        subtitle="Connecting your Google account, saved addresses & order history"
+        subtitle={AppConstants.Login.COPY.LOADING_SUBTITLE}
       />
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
-      <div className="grid grid-cols-1 lg:grid-cols-12 rounded-3xl overflow-hidden bg-white border border-stone-200 shadow-xl">
+    <div className={AppConstants.Login.CLASSES.PAGE_WRAPPER}>
+      <div className={AppConstants.Login.CLASSES.CARD_GRID}>
         {/* Left Brand Story Column */}
-        <div className="lg:col-span-5 bg-stone-900 text-white p-8 sm:p-10 flex flex-col justify-between space-y-8">
-          <div className="space-y-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-300/30 text-amber-300 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              Member Access Required to Shop
+        <div className={AppConstants.Login.CLASSES.LEFT_COL}>
+          <div className={AppConstants.Login.CLASSES.LEFT_HEADER}>
+            <span className={AppConstants.Login.CLASSES.BADGE}>
+              <Sparkles className={AppConstants.Login.CLASSES.BADGE_ICON} />
+              {AppConstants.Login.COPY.BADGE_MEMBER_ACCESS}
             </span>
 
-            <h1 className="font-serif text-3xl sm:text-4xl font-semibold leading-tight">
-              Welcome to {publicEnv.storeName}
+            <h1 className={AppConstants.Login.CLASSES.HERO_TITLE}>
+              {AppConstants.Login.COPY.HERO_TITLE(publicEnv.storeName)}
             </h1>
 
-            <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
-              Sign in with your Google account to unlock purchasing, track live
-              warehouse dispatches, download GST invoices, and manage your saved
-              delivery addresses.
+            <p className={AppConstants.Login.CLASSES.HERO_DESCRIPTION}>
+              {AppConstants.Login.COPY.HERO_DESCRIPTION}
             </p>
           </div>
 
-          <div className="space-y-3 text-xs text-stone-300 border-t border-stone-800 pt-6">
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
-              <span>View all past orders, delivery status &amp; delivered dates</span>
+          <div className={AppConstants.Login.CLASSES.BENEFITS_WRAPPER}>
+            <div className={AppConstants.Login.CLASSES.BENEFIT_ROW}>
+              <CheckCircle2 className={AppConstants.Login.CLASSES.CHECK_ICON} />
+              <span>{AppConstants.Login.COPY.BENEFIT_ORDERS}</span>
             </div>
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
-              <span>Download printable tax invoices anytime</span>
+            <div className={AppConstants.Login.CLASSES.BENEFIT_ROW}>
+              <CheckCircle2 className={AppConstants.Login.CLASSES.CHECK_ICON} />
+              <span>{AppConstants.Login.COPY.BENEFIT_INVOICES}</span>
             </div>
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
-              <span>Save &amp; edit multiple delivery addresses</span>
+            <div className={AppConstants.Login.CLASSES.BENEFIT_ROW}>
+              <CheckCircle2 className={AppConstants.Login.CLASSES.CHECK_ICON} />
+              <span>{AppConstants.Login.COPY.BENEFIT_ADDRESSES}</span>
             </div>
           </div>
         </div>
 
         {/* Right Sign-In Form Column */}
-        <div className="lg:col-span-7 p-8 sm:p-10 flex flex-col justify-center space-y-6">
-          {reason === 'purchase' && (
-            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-950 flex items-center gap-2.5">
-              <Lock className="w-4 h-4 text-amber-800 shrink-0" />
+        <div className={AppConstants.Login.CLASSES.RIGHT_COL}>
+          {reason === AppConstants.Login.QUERY.REASON_PURCHASE && (
+            <div className={AppConstants.Login.CLASSES.PURCHASE_ALERT}>
+              <Lock className={AppConstants.Login.CLASSES.PURCHASE_ALERT_ICON} />
               <span>
-                Please sign in to your <strong>{publicEnv.storeName}</strong>{' '}
-                account before adding items or completing your purchase.
+                {AppConstants.Login.COPY.PURCHASE_REQUIRED_PREFIX}
+                <strong>{publicEnv.storeName}</strong>
+                {AppConstants.Login.COPY.PURCHASE_REQUIRED_SUFFIX}
               </span>
             </div>
           )}
 
           <div>
-            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-stone-950">
-              Customer Sign In
+            <h2 className={AppConstants.Login.CLASSES.HEADING}>
+              {AppConstants.Login.COPY.HEADING}
             </h2>
-            <p className="text-xs sm:text-sm text-stone-500 mt-1">
-              Sign in with Google to continue to your account &amp; shopping bag.
+            <p className={AppConstants.Login.CLASSES.SUBHEADING}>
+              {AppConstants.Login.COPY.SUBHEADING}
             </p>
           </div>
 
-          <form onSubmit={handleGoogleSignIn} className="space-y-4">
-            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/90 space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-500">
-                Google Account Details (Customize your profile name)
+          <form
+            onSubmit={handleGoogleSignIn}
+            className={AppConstants.Login.CLASSES.FORM}
+          >
+            <div className={AppConstants.Login.CLASSES.FORM_BOX}>
+              <p className={AppConstants.Login.CLASSES.BOX_TITLE}>
+                {AppConstants.Login.COPY.BOX_TITLE}
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className={AppConstants.Login.CLASSES.GRID_2}>
                 <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">
-                    Your Name (Shown as &quot;Namaste ...&quot;) *
+                  <label className={AppConstants.Login.CLASSES.LABEL}>
+                    {AppConstants.Login.COPY.LABEL_NAME}
                   </label>
                   <input
                     required
-                    type="text"
+                    type={AppConstants.Login.INPUT_TYPES.TEXT}
                     value={googleName}
                     onChange={(e) => setGoogleName(e.target.value)}
-                    placeholder="Ananya Sharma"
-                    className="w-full px-3.5 py-2 rounded-xl border border-stone-300 bg-white text-sm"
+                    placeholder={AppConstants.Login.COPY.PLACEHOLDER_NAME}
+                    className={AppConstants.Login.CLASSES.INPUT}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">
-                    WhatsApp / Mobile Number *
+                  <label className={AppConstants.Login.CLASSES.LABEL}>
+                    {AppConstants.Login.COPY.LABEL_PHONE}
                   </label>
                   <input
                     required
-                    type="tel"
+                    type={AppConstants.Login.INPUT_TYPES.TEL}
                     value={googlePhone}
                     onChange={(e) => setGooglePhone(e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className="w-full px-3.5 py-2 rounded-xl border border-stone-300 bg-white text-sm"
+                    placeholder={AppConstants.Login.COPY.PLACEHOLDER_PHONE}
+                    className={AppConstants.Login.CLASSES.INPUT}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-700 mb-1">
-                  Google Email Address *
+                <label className={AppConstants.Login.CLASSES.LABEL}>
+                  {AppConstants.Login.COPY.LABEL_EMAIL}
                 </label>
                 <input
                   required
-                  type="email"
+                  type={AppConstants.Login.INPUT_TYPES.EMAIL}
                   value={googleEmail}
                   onChange={(e) => setGoogleEmail(e.target.value)}
-                  placeholder="ananya.sharma@gmail.com"
-                  className="w-full px-3.5 py-2 rounded-xl border border-stone-300 bg-white text-sm"
+                  placeholder={AppConstants.Login.COPY.PLACEHOLDER_EMAIL}
+                  className={AppConstants.Login.CLASSES.INPUT}
                 />
               </div>
             </div>
 
             {/* Primary Continue with Google Button */}
             <button
-              type="submit"
-              className="w-full h-13 px-6 rounded-2xl bg-stone-900 hover:bg-stone-800 text-white font-semibold text-sm flex items-center justify-center gap-3 shadow-md transition-all cursor-pointer active:scale-[0.99]"
+              type={AppConstants.Login.BUTTON_TYPES.SUBMIT}
+              className={AppConstants.Login.CLASSES.GOOGLE_BUTTON}
             >
               {/* Google G SVG */}
-              <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+              <svg
+                className={AppConstants.Login.CLASSES.GOOGLE_ICON}
+                viewBox={AppConstants.Login.SVG_GOOGLE.VIEW_BOX}
+                aria-hidden="true"
+              >
                 <path
-                  fill="#EA4335"
-                  d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.8C6.2 7.2 8.9 5 12 5z"
+                  fill={AppConstants.Login.SVG_GOOGLE.COLORS.RED}
+                  d={AppConstants.Login.SVG_GOOGLE.PATHS.RED}
                 />
                 <path
-                  fill="#4285F4"
-                  d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.6l3.7 2.9c2.2-2 3.7-5 3.7-8.7z"
+                  fill={AppConstants.Login.SVG_GOOGLE.COLORS.BLUE}
+                  d={AppConstants.Login.SVG_GOOGLE.PATHS.BLUE}
                 />
                 <path
-                  fill="#FBBC05"
-                  d="M5.3 14.8c-.2-.8-.4-1.6-.4-2.5s.2-1.7.4-2.5L1.6 7C.6 9 0 11.2 0 13.5s.6 4.5 1.6 6.5l3.7-2.9z"
+                  fill={AppConstants.Login.SVG_GOOGLE.COLORS.YELLOW}
+                  d={AppConstants.Login.SVG_GOOGLE.PATHS.YELLOW}
                 />
                 <path
-                  fill="#34A853"
-                  d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.1 0-5.8-2.1-6.7-5l-3.7 2.9C3.5 21.4 7.4 24 12 24z"
+                  fill={AppConstants.Login.SVG_GOOGLE.COLORS.GREEN}
+                  d={AppConstants.Login.SVG_GOOGLE.PATHS.GREEN}
                 />
               </svg>
-              <span>Continue with Google</span>
-              <ArrowRight className="w-4 h-4" />
+              <span>{AppConstants.Login.COPY.CTA_CONTINUE_GOOGLE}</span>
+              <ArrowRight className={AppConstants.Login.CLASSES.ARROW_ICON} />
             </button>
           </form>
 
           {/* Future Phone OTP Option Preview */}
-          <div className="relative py-1">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-stone-200" />
+          <div className={AppConstants.Login.CLASSES.DIVIDER_WRAPPER}>
+            <div className={AppConstants.Login.CLASSES.DIVIDER_LINE_WRAPPER}>
+              <div className={AppConstants.Login.CLASSES.DIVIDER_LINE} />
             </div>
-            <div className="relative flex justify-center text-[11px] uppercase tracking-widest">
-              <span className="bg-white px-3 text-stone-400">
-                Upcoming Sign-In Option
+            <div className={AppConstants.Login.CLASSES.DIVIDER_TEXT_WRAPPER}>
+              <span className={AppConstants.Login.CLASSES.DIVIDER_TEXT}>
+                {AppConstants.Login.COPY.DIVIDER_UPCOMING}
               </span>
             </div>
           </div>
 
           <button
-            type="button"
+            type={AppConstants.Login.BUTTON_TYPES.BUTTON}
             disabled
-            className="w-full h-11 px-4 rounded-2xl border border-stone-200 bg-stone-50 text-stone-400 text-xs font-semibold flex items-center justify-center gap-2 cursor-not-allowed"
+            className={AppConstants.Login.CLASSES.OTP_BUTTON}
           >
-            <Smartphone className="w-4 h-4" />
-            <span>Sign in with Mobile Number OTP (Coming Soon)</span>
+            <Smartphone className={AppConstants.Login.CLASSES.PHONE_ICON} />
+            <span>{AppConstants.Login.COPY.CTA_PHONE_OTP}</span>
           </button>
 
-          <div className="pt-2 flex items-center justify-between text-xs text-stone-500">
-            <span className="inline-flex items-center gap-1">
-              <ShieldCheck className="w-4 h-4 text-emerald-700" />
-              100% Secure Customer Account
+          <div className={AppConstants.Login.CLASSES.FOOTER_ROW}>
+            <span className={AppConstants.Login.CLASSES.TRUST_BADGE}>
+              <ShieldCheck className={AppConstants.Login.CLASSES.SHIELD_ICON} />
+              {AppConstants.Login.COPY.TRUST_SECURE}
             </span>
-            <Link href="/shop" className="font-semibold text-stone-800 hover:underline">
-              Browse Catalog First →
+            <Link
+              href={AppConstants.Login.ROUTES.SHOP}
+              className={AppConstants.Login.CLASSES.CATALOG_LINK}
+            >
+              {AppConstants.Login.COPY.LINK_BROWSE_CATALOG}
             </Link>
           </div>
         </div>
@@ -265,8 +292,8 @@ export default function CustomerLoginPage() {
     <Suspense
       fallback={
         <LuxurySpinner
-          title="Loading Customer Sign In..."
-          subtitle="Preparing Google Authentication"
+          title={AppConstants.Login.COPY.FALLBACK_SPINNER_TITLE}
+          subtitle={AppConstants.Login.COPY.FALLBACK_SPINNER_SUBTITLE}
         />
       }
     >
