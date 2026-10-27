@@ -4,10 +4,29 @@
 // shipping carriers, payment providers, and default values across Sudha Sales.
 // ============================================================================
 
+import { AccountConstants } from './pages/account.constants';
+import { AdminConstants } from './pages/admin.constants';
+import { ApiConstants } from './pages/api.constants';
+import { CartConstants } from './pages/cart.constants';
+import { LoginConstants } from './pages/login.constants';
+import { ProductConstants } from './pages/product.constants';
+import { ServicesConstants } from './pages/services.constants';
+import { StorefrontConstants } from './pages/storefront.constants';
+
 const STORE_NAME = 'Sudha Sales';
 const WELCOME_TITLE_PREFIX = 'Welcome to';
 
 export class AppConstants {
+  /** Page / module scoped constant groups (see src/constants/pages) */
+  public static readonly Account = AccountConstants;
+  public static readonly Admin = AdminConstants;
+  public static readonly Api = ApiConstants;
+  public static readonly Cart = CartConstants;
+  public static readonly Login = LoginConstants;
+  public static readonly Product = ProductConstants;
+  public static readonly Services = ServicesConstants;
+  public static readonly Storefront = StorefrontConstants;
+
   /**
    * Brand & Storefront Metadata
    */
