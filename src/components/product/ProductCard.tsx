@@ -74,7 +74,18 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
     };
   }, [isModalOpen, product.images.length]);
 
+  const preloadAllProductImages = () => {
+    if (typeof window === 'undefined') return;
+    for (const img of product.images) {
+      if (img?.image_url) {
+        const preloader = new window.Image();
+        preloader.src = img.image_url;
+      }
+    }
+  };
+
   const openGalleryModal = () => {
+    preloadAllProductImages();
     setActiveSlideIndex(0);
     setIsModalOpen(true);
   };
@@ -84,7 +95,11 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
 
   return (
     <>
-      <article className="group flex flex-col">
+      <article
+        className="group flex flex-col"
+        onMouseEnter={preloadAllProductImages}
+        onTouchStart={preloadAllProductImages}
+      >
         {/* Clickable Product Image -> Opens Landscape Multi-Image Photo Modal */}
         <button
           type="button"
@@ -257,13 +272,13 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         />
       )}
 
-      {/* Top-of-Page Frosted Glass LANDSCAPE Photo Modal (Background non-clickable) */}
+      {/* Centered Frosted Glass LANDSCAPE Photo Modal (Background non-clickable) */}
       {isModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label={`${product.name} photo viewer`}
-          className="fixed inset-0 z-50 bg-stone-900/20 backdrop-blur-md flex items-start justify-center px-3 sm:px-4 pt-12 sm:pt-16"
+          className="fixed inset-0 z-50 bg-stone-900/20 backdrop-blur-md flex items-center justify-center p-3 sm:p-4"
         >
           {/* Outer Frosted Glass Frame (True Glassmorphism) */}
           <div className="relative w-full max-w-2xl rounded-[28px] bg-white/35 backdrop-blur-2xl shadow-[0_24px_70px_rgba(0,0,0,0.22)] border border-white/70 ring-1 ring-white/40 p-2 sm:p-3 overflow-hidden">
@@ -293,7 +308,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                 }
                 setTouchStartX(null);
               }}
-              className="relative aspect-[16/10] max-h-[52vh] w-full rounded-2xl bg-white/30 backdrop-blur-xl border border-white/60 flex items-center justify-center overflow-hidden touch-pan-y shadow-inner"
+              className="relative aspect-[16/10] max-h-[56vh] w-full rounded-2xl bg-white/30 backdrop-blur-xl border border-white/60 flex items-center justify-center overflow-hidden touch-pan-y shadow-inner"
             >
               {/* Glassy Top Bar Overlay */}
               <div className="absolute top-2.5 inset-x-2.5 z-20 px-3.5 py-2 rounded-2xl bg-white/55 backdrop-blur-xl border border-white/70 shadow-sm flex items-center justify-between gap-3">
@@ -317,27 +332,37 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               </div>
 
               {activeModalImage && (
-                <>
-                  {/* Soft translucent ambient color glow behind the garment */}
-                  <Image
-                    src={activeModalImage.image_url}
-                    alt=""
-                    fill
-                    sizes="672px"
-                    aria-hidden="true"
-                    className="object-cover scale-125 blur-2xl opacity-30"
-                  />
-
-                  {/* Crisp main product image floating inside the frosted glass frame */}
-                  <Image
-                    src={activeModalImage.image_url}
-                    alt={activeModalImage.alt_text || product.name}
-                    fill
-                    sizes="(max-width: 640px) 92vw, 672px"
-                    className="object-contain z-10 pt-12 pb-11 px-2 sm:px-4 drop-shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
-                  />
-                </>
+                <Image
+                  src={activeModalImage.image_url}
+                  alt=""
+                  fill
+                  sizes="672px"
+                  aria-hidden="true"
+                  priority
+                  className="object-cover scale-125 blur-2xl opacity-30 pointer-events-none"
+                />
               )}
+
+              {/* Pre-rendered Stack of All Product Photos for 0ms Instant Switching */}
+              {product.images.map((img, idx) => {
+                const isActive = idx === activeSlideIndex;
+                return (
+                  <Image
+                    key={img.id || idx}
+                    src={img.image_url}
+                    alt={img.alt_text || `${product.name} view ${idx + 1}`}
+                    fill
+                    priority
+                    loading="eager"
+                    sizes="(max-width: 640px) 92vw, 672px"
+                    className={`object-contain pt-12 pb-11 px-2 sm:px-4 drop-shadow-[0_12px_28px_rgba(0,0,0,0.22)] transition-opacity duration-150 ${
+                      isActive
+                        ? 'opacity-100 z-10'
+                        : 'opacity-0 z-0 pointer-events-none'
+                    }`}
+                  />
+                );
+              })}
 
               {product.images.length > 1 && (
                 <>

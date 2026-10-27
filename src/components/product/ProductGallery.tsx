@@ -32,8 +32,6 @@ export function ProductGallery({
     );
   }
 
-  const activeImage = images[selectedIndex] ?? images[0];
-
   const handlePrev = () => {
     setSelectedIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   };
@@ -73,16 +71,27 @@ export function ProductGallery({
         </div>
       )}
 
-      {/* Primary Hero Image */}
+      {/* Primary Hero Image (Pre-renders all slides for 0ms instant switching) */}
       <div className="relative aspect-[3/4] w-full flex-1 rounded-2xl overflow-hidden bg-stone-100">
-        <Image
-          src={activeImage.image_url}
-          alt={activeImage.alt_text || productName}
-          fill
-          priority
-          sizes="(max-width: 768px) 100vw, 55vw"
-          className="object-cover object-top"
-        />
+        {images.map((img, idx) => {
+          const isActive = idx === selectedIndex;
+          return (
+            <Image
+              key={img.id || idx}
+              src={img.image_url}
+              alt={img.alt_text || productName}
+              fill
+              priority
+              loading="eager"
+              sizes="(max-width: 768px) 100vw, 55vw"
+              className={`object-cover object-top transition-opacity duration-150 ${
+                isActive
+                  ? 'opacity-100 z-10'
+                  : 'opacity-0 z-0 pointer-events-none'
+              }`}
+            />
+          );
+        })}
 
         {discountBadge ? (
           <div className="absolute top-3.5 left-3.5 px-3 py-1 rounded-full bg-rose-700 text-white text-xs font-semibold uppercase tracking-wider shadow-sm">
