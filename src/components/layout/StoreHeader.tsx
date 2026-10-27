@@ -75,12 +75,12 @@ export function StoreHeader() {
   return (
     <>
       {/* Moving Marquee Ticker Bar */}
-      <div className="bg-stone-900 text-stone-100 text-xs tracking-wider py-2 overflow-hidden border-b border-stone-800">
+      <div className="w-full max-w-[100vw] bg-stone-900 text-stone-100 text-[11px] sm:text-xs tracking-wider py-2 overflow-hidden border-b border-stone-800">
         <div className="animate-sudha-marquee">
           {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, idx) => (
             <span
               key={idx}
-              className="inline-flex items-center gap-2 px-8 font-medium whitespace-nowrap"
+              className="inline-flex items-center gap-2 px-6 sm:px-8 font-medium whitespace-nowrap"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
               <span>{item}</span>
@@ -90,25 +90,25 @@ export function StoreHeader() {
       </div>
 
       {/* Main Sticky Header */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-40 w-full max-w-[100vw] bg-white/95 backdrop-blur-md border-b border-stone-200/80">
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-1.5 sm:gap-3">
           {/* Top-Left: Mobile Menu Button + Single-Line SUDHA SALES Logo with Spinner Emblem */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Open navigation menu"
-              className="lg:hidden p-2 -ml-2 rounded-lg text-stone-800 hover:bg-stone-100 active:bg-stone-200 transition-colors shrink-0"
+              className="lg:hidden p-1.5 -ml-1 rounded-lg text-stone-800 hover:bg-stone-100 active:bg-stone-200 transition-colors shrink-0"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
             <Link
               href="/"
-              className="inline-flex items-center gap-2.5 shrink-0 whitespace-nowrap group"
+              className="inline-flex items-center gap-1.5 sm:gap-2.5 shrink-0 whitespace-nowrap group"
             >
               <SudhaSpinnerBadge size="sm" theme="light" />
-              <span className="font-serif text-lg sm:text-xl xl:text-2xl tracking-[0.14em] font-bold animate-sudha-brand whitespace-nowrap inline-block">
+              <span className="font-serif text-[15px] sm:text-xl xl:text-2xl tracking-[0.08em] sm:tracking-[0.14em] font-bold animate-sudha-brand whitespace-nowrap inline-block">
                 {publicEnv.storeName}
               </span>
             </Link>
@@ -143,28 +143,28 @@ export function StoreHeader() {
           </nav>
 
           {/* Top-Right: Search, Shopping Bag, Greeting + Circular Drawer Trigger */}
-          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <Link
               href="/shop"
               aria-label="Browse and search catalog"
-              className="p-2 rounded-full text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-colors"
+              className="p-1.5 sm:p-2 rounded-full text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-colors"
             >
-              <Search className="w-5 h-5" />
+              <Search className="w-4 h-4 sm:w-5 sm:h-5" />
             </Link>
 
             <Link
               href="/cart"
               aria-label="Shopping bag"
-              className="relative inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-stone-100 text-stone-900 hover:bg-stone-200 border border-stone-200 transition-all"
+              className="relative inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-full bg-stone-100 text-stone-900 hover:bg-stone-200 border border-stone-200 transition-all"
             >
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="text-xs font-bold tabular-nums">
                 {isHydrated ? totalQuantity : 0}
               </span>
             </Link>
 
             {isAuthHydrated && isAuthenticated && customer ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={() => setAccountDrawerOpen(true)}
@@ -180,14 +180,14 @@ export function StoreHeader() {
                   onClick={() => setAccountDrawerOpen(true)}
                   aria-label="Open customer account menu drawer"
                   title={`Namaste ${firstName} — Click to open Orders, Bag & Account Drawer`}
-                  className="relative w-10 h-10 rounded-full bg-stone-900 hover:bg-stone-800 text-amber-300 font-serif font-bold text-sm flex items-center justify-center shadow-md ring-2 ring-amber-400/50 transition-transform active:scale-95 cursor-pointer shrink-0"
+                  className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-stone-900 hover:bg-stone-800 text-amber-300 font-serif font-bold text-xs sm:text-sm flex items-center justify-center shadow-md ring-2 ring-amber-400/50 transition-transform active:scale-95 cursor-pointer shrink-0"
                 >
                   <span>{initialLetter}</span>
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500 border-2 border-white" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Link
                   href="/login"
                   className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-900 text-xs font-semibold transition-colors whitespace-nowrap"
@@ -200,7 +200,7 @@ export function StoreHeader() {
                   type="button"
                   onClick={() => setAccountDrawerOpen(true)}
                   aria-label="Open customer menu drawer"
-                  className="w-10 h-10 rounded-full bg-stone-900 hover:bg-stone-800 text-white flex items-center justify-center shadow-md ring-2 ring-stone-200 transition-transform active:scale-95 cursor-pointer shrink-0"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-stone-900 hover:bg-stone-800 text-white flex items-center justify-center shadow-md ring-2 ring-stone-200 transition-transform active:scale-95 cursor-pointer shrink-0"
                 >
                   <User className="w-4 h-4" />
                 </button>
