@@ -90,9 +90,6 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
     setIsModalOpen(true);
   };
 
-  const activeModalImage =
-    product.images[activeSlideIndex] ?? product.images[0];
-
   return (
     <>
       <article
@@ -272,154 +269,122 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         />
       )}
 
-      {/* Centered Frosted Glass LANDSCAPE Photo Modal (Background non-clickable) */}
+      {/* Centered Pure Frosted-Glass Photo Modal (No header bar overlapping photo; purely photo + X + arrows + dots) */}
       {isModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label={`${product.name} photo viewer`}
-          className="fixed inset-0 z-50 bg-stone-900/20 backdrop-blur-md flex items-center justify-center p-3 sm:p-4"
+          className="fixed inset-0 z-50 bg-black/25 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
         >
-          {/* Outer Frosted Glass Frame (True Glassmorphism) */}
-          <div className="relative w-full max-w-2xl rounded-[28px] bg-white/35 backdrop-blur-2xl shadow-[0_24px_70px_rgba(0,0,0,0.22)] border border-white/70 ring-1 ring-white/40 p-2 sm:p-3 overflow-hidden">
-            {/* Subtle top glass reflection highlight */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/50 to-transparent"
-            />
+          {/* Pure Translucent Frosted Glass Card */}
+          <div
+            onTouchStart={(e) => setTouchStartX(e.touches[0]?.clientX ?? null)}
+            onTouchEnd={(e) => {
+              if (touchStartX === null || product.images.length <= 1) return;
+              const touchEndX = e.changedTouches[0]?.clientX ?? touchStartX;
+              const deltaX = touchStartX - touchEndX;
+              if (Math.abs(deltaX) > 40) {
+                if (deltaX > 0) {
+                  setActiveSlideIndex((prev) =>
+                    prev === product.images.length - 1 ? 0 : prev + 1
+                  );
+                } else {
+                  setActiveSlideIndex((prev) =>
+                    prev === 0 ? product.images.length - 1 : prev - 1
+                  );
+                }
+              }
+              setTouchStartX(null);
+            }}
+            className="relative w-full max-w-xl aspect-[4/4.2] sm:aspect-[16/11] max-h-[68vh] rounded-[32px] bg-white/20 backdrop-blur-2xl border border-white/60 shadow-[0_24px_80px_rgba(0,0,0,0.28)] ring-1 ring-white/30 flex items-center justify-center overflow-hidden touch-pan-y"
+          >
+            {/* Floating Glassy Close (X) Button in Top-Right Corner Only */}
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              aria-label="Close photo viewer"
+              className="absolute top-3.5 right-3.5 z-30 w-9 h-9 rounded-full bg-white/65 hover:bg-white/90 backdrop-blur-xl border border-white/80 text-stone-900 shadow-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
 
-            {/* Inner Glassy Landscape Stage */}
-            <div
-              onTouchStart={(e) => setTouchStartX(e.touches[0]?.clientX ?? null)}
-              onTouchEnd={(e) => {
-                if (touchStartX === null || product.images.length <= 1) return;
-                const touchEndX = e.changedTouches[0]?.clientX ?? touchStartX;
-                const deltaX = touchStartX - touchEndX;
-                if (Math.abs(deltaX) > 40) {
-                  if (deltaX > 0) {
-                    setActiveSlideIndex((prev) =>
-                      prev === product.images.length - 1 ? 0 : prev + 1
-                    );
-                  } else {
+            {/* Pre-rendered Stack of All Product Photos for 0ms Instant Switching */}
+            {product.images.map((img, idx) => {
+              const isActive = idx === activeSlideIndex;
+              return (
+                <Image
+                  key={img.id || idx}
+                  src={img.image_url}
+                  alt={img.alt_text || `${product.name} view ${idx + 1}`}
+                  fill
+                  priority
+                  loading="eager"
+                  sizes="(max-width: 640px) 92vw, 576px"
+                  className={`object-contain p-3 sm:p-5 pb-14 drop-shadow-[0_16px_36px_rgba(0,0,0,0.28)] transition-opacity duration-150 ${
+                    isActive
+                      ? 'opacity-100 z-10'
+                      : 'opacity-0 z-0 pointer-events-none'
+                  }`}
+                />
+              );
+            })}
+
+            {product.images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
                     setActiveSlideIndex((prev) =>
                       prev === 0 ? product.images.length - 1 : prev - 1
-                    );
+                    )
                   }
-                }
-                setTouchStartX(null);
-              }}
-              className="relative aspect-[16/10] max-h-[56vh] w-full rounded-2xl bg-white/30 backdrop-blur-xl border border-white/60 flex items-center justify-center overflow-hidden touch-pan-y shadow-inner"
-            >
-              {/* Glassy Top Bar Overlay */}
-              <div className="absolute top-2.5 inset-x-2.5 z-20 px-3.5 py-2 rounded-2xl bg-white/55 backdrop-blur-xl border border-white/70 shadow-sm flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-amber-900 font-semibold block">
-                    {product.sku} • {product.color}
-                  </span>
-                  <h3 className="text-xs sm:text-sm font-semibold text-stone-950 truncate">
-                    {product.name}
-                  </h3>
-                </div>
+                  aria-label="Previous photo"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/65 hover:bg-white/90 backdrop-blur-xl border border-white/80 text-stone-900 shadow-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
 
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  aria-label="Close photo viewer"
-                  className="w-8 h-8 rounded-full bg-white/70 hover:bg-white backdrop-blur-md border border-white/80 text-stone-900 flex items-center justify-center shrink-0 transition-all shadow-xs cursor-pointer"
+                  onClick={() =>
+                    setActiveSlideIndex((prev) =>
+                      prev === product.images.length - 1 ? 0 : prev + 1
+                    )
+                  }
+                  aria-label="Next photo"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/65 hover:bg-white/90 backdrop-blur-xl border border-white/80 text-stone-900 shadow-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <ChevronRight className="w-5 h-5" />
                 </button>
-              </div>
+              </>
+            )}
 
-              {activeModalImage && (
-                <Image
-                  src={activeModalImage.image_url}
-                  alt=""
-                  fill
-                  sizes="672px"
-                  aria-hidden="true"
-                  priority
-                  className="object-cover scale-125 blur-2xl opacity-30 pointer-events-none"
-                />
-              )}
-
-              {/* Pre-rendered Stack of All Product Photos for 0ms Instant Switching */}
-              {product.images.map((img, idx) => {
-                const isActive = idx === activeSlideIndex;
-                return (
-                  <Image
-                    key={img.id || idx}
-                    src={img.image_url}
-                    alt={img.alt_text || `${product.name} view ${idx + 1}`}
-                    fill
-                    priority
-                    loading="eager"
-                    sizes="(max-width: 640px) 92vw, 672px"
-                    className={`object-contain pt-12 pb-11 px-2 sm:px-4 drop-shadow-[0_12px_28px_rgba(0,0,0,0.22)] transition-opacity duration-150 ${
-                      isActive
-                        ? 'opacity-100 z-10'
-                        : 'opacity-0 z-0 pointer-events-none'
-                    }`}
-                  />
-                );
-              })}
-
-              {product.images.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setActiveSlideIndex((prev) =>
-                        prev === 0 ? product.images.length - 1 : prev - 1
-                      )
-                    }
-                    aria-label="Previous photo"
-                    className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/60 hover:bg-white/90 backdrop-blur-xl border border-white/80 text-stone-900 shadow-lg flex items-center justify-center transition-all cursor-pointer"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setActiveSlideIndex((prev) =>
-                        prev === product.images.length - 1 ? 0 : prev + 1
-                      )
-                    }
-                    aria-label="Next photo"
-                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/60 hover:bg-white/90 backdrop-blur-xl border border-white/80 text-stone-900 shadow-lg flex items-center justify-center transition-all cursor-pointer"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </>
-              )}
-
-              {/* Bottom Glassmorphism Pill with Glassy Dot Indicators (0 0 0 0) */}
-              <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-20">
-                <div
-                  role="tablist"
-                  aria-label="Photo navigation indicators"
-                  className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/55 backdrop-blur-xl border border-white/80 shadow-[0_8px_24px_rgba(0,0,0,0.15)]"
-                >
-                  {product.images.map((img, idx) => {
-                    const isCurrent = idx === activeSlideIndex;
-                    return (
-                      <button
-                        key={img.id || idx}
-                        type="button"
-                        role="tab"
-                        aria-selected={isCurrent}
-                        aria-label={`Photo ${idx + 1} of ${product.images.length}`}
-                        onClick={() => setActiveSlideIndex(idx)}
-                        className={`rounded-full transition-all duration-300 cursor-pointer ${
-                          isCurrent
-                            ? 'w-3.5 h-3.5 bg-stone-900 border-2 border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.7)] scale-110'
-                            : 'w-2.5 h-2.5 bg-stone-900/25 hover:bg-stone-900/50 border border-white/80 backdrop-blur-md'
-                        }`}
-                      />
-                    );
-                  })}
-                </div>
+            {/* Bottom Glassmorphism Pill with Glassy Dot Indicators (0 0 0) */}
+            <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-20">
+              <div
+                role="tablist"
+                aria-label="Photo navigation indicators"
+                className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/60 backdrop-blur-xl border border-white/80 shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+              >
+                {product.images.map((img, idx) => {
+                  const isCurrent = idx === activeSlideIndex;
+                  return (
+                    <button
+                      key={img.id || idx}
+                      type="button"
+                      role="tab"
+                      aria-selected={isCurrent}
+                      aria-label={`Photo ${idx + 1} of ${product.images.length}`}
+                      onClick={() => setActiveSlideIndex(idx)}
+                      className={`rounded-full transition-all duration-300 cursor-pointer ${
+                        isCurrent
+                          ? 'w-3.5 h-3.5 bg-stone-900 border-2 border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.7)] scale-110'
+                          : 'w-2.5 h-2.5 bg-stone-900/30 hover:bg-stone-900/60 border border-white/80 backdrop-blur-md'
+                      }`}
+                    />
+                  );
+                })}
               </div>
             </div>
           </div>
