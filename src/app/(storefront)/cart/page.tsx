@@ -5,6 +5,8 @@
 //   their Stored Addresses (or add/edit an address inline).
 // - Records completed orders directly into the customer's Order & Invoice
 //   history accessible under `/account` ("Namaste '<Username>'").
+// All visual copy, CSS class names, accessibility attributes, routes, and
+// timing values are bound to AppConstants.Cart.
 // ============================================================================
 
 'use client';
@@ -36,6 +38,11 @@ import { publicEnv } from '@/lib/env';
 import { LuxurySpinner } from '@/components/ui/LuxurySpinner';
 import { AppConstants } from '@/constants/app.constants';
 import type { Order } from '@/types/domain';
+
+type CheckoutStep =
+  (typeof AppConstants.Cart.CHECKOUT_STEPS)[keyof typeof AppConstants.Cart.CHECKOUT_STEPS];
+type PaymentMethod =
+  (typeof AppConstants.Cart.PAYMENT_METHODS)[keyof typeof AppConstants.Cart.PAYMENT_METHODS];
 
 interface RazorpaySuccessResponse {
   razorpay_order_id: string;
@@ -75,8 +82,8 @@ function loadRazorpayCheckoutScript(): Promise<boolean> {
     if (typeof window === 'undefined') return resolve(false);
     if (window.Razorpay) return resolve(true);
 
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    const script = document.createElement(AppConstants.Cart.SCRIPT_TAG);
+    script.src = AppConstants.Cart.API.RAZORPAY_CHECKOUT_SCRIPT;
     script.async = true;
     script.onload = () => resolve(true);
     script.onerror = () => resolve(false);
@@ -106,8 +113,12 @@ export default function CartPage() {
     createOrderFromCart,
   } = useCustomerAuth();
 
-  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'address' | 'confirmed'>('cart');
-  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'cod'>('razorpay');
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(
+    AppConstants.Cart.CHECKOUT_STEPS.CART
+  );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
+    AppConstants.Cart.PAYMENT_METHODS.RAZORPAY
+  );
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [orderRef, setOrderRef] = useState<string>('');
@@ -115,7 +126,7 @@ export default function CartPage() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [addressForm, setAddressForm] = useState({
-    label: 'Home' as 'Home' | 'Work' | 'Other',
+    label: AppConstants.Cart.ADDRESS_LABELS.HOME as 'Home' | 'Work' | 'Other',
     fullName: '',
     phone: '',
     addressLine1: '',
@@ -135,54 +146,57 @@ export default function CartPage() {
   if (!isHydrated || !isAuthHydrated) {
     return (
       <LuxurySpinner
-        title="Loading Your Shopping Bag..."
-        subtitle="Checking your items & account session"
+        title={AppConstants.Cart.COPY.LOADING_TITLE}
+        subtitle={AppConstants.Cart.COPY.LOADING_SUBTITLE}
       />
     );
   }
 
-  if (checkoutStep === 'confirmed') {
+  if (checkoutStep === AppConstants.Cart.CHECKOUT_STEPS.CONFIRMED) {
     return (
-      <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-5">
-        <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto">
-          <CheckCircle2 className="w-8 h-8" />
+      <div className={AppConstants.Cart.CLASSES.CONFIRMED_WRAPPER}>
+        <div className={AppConstants.Cart.CLASSES.CONFIRMED_ICON_WRAPPER}>
+          <CheckCircle2 className={AppConstants.Cart.CLASSES.CONFIRMED_ICON} />
         </div>
-        <h1 className="font-serif text-3xl font-semibold text-stone-950">
-          Order Confirmed!
+        <h1 className={AppConstants.Cart.CLASSES.CONFIRMED_TITLE}>
+          {AppConstants.Cart.COPY.CONFIRMED_TITLE}
         </h1>
-        <p className="text-sm text-stone-600 leading-relaxed">
-          Thank you, <strong>{customer?.name}</strong>! Your{' '}
-          {paymentMethod === 'cod' ? (
+        <p className={AppConstants.Cart.CLASSES.CONFIRMED_TEXT}>
+          {AppConstants.Cart.COPY.CONFIRMED_THANK_YOU_PREFIX}
+          <strong>{customer?.name}</strong>
+          {AppConstants.Cart.COPY.CONFIRMED_THANK_YOU_SUFFIX}
+          {paymentMethod === AppConstants.Cart.PAYMENT_METHODS.COD ? (
             <>
-              <strong>Cash on Delivery (COD)</strong> order (Ref:{' '}
-              <span className="font-mono text-xs text-stone-800">{paymentIdRef}</span>
-              )
+              <strong>{AppConstants.Cart.COPY.CONFIRMED_COD_LABEL}</strong>
+              {AppConstants.Cart.COPY.CONFIRMED_COD_ORDER_REF_OPEN}
+              <span className={AppConstants.Cart.CLASSES.REF_MONO}>{paymentIdRef}</span>
+              {AppConstants.Cart.COPY.CONFIRMED_REF_CLOSE}
             </>
           ) : (
             <>
-              Razorpay payment (
-              <span className="font-mono text-xs text-stone-800">{paymentIdRef}</span>
-              )
+              {AppConstants.Cart.COPY.CONFIRMED_RAZORPAY_PAYMENT_OPEN}
+              <span className={AppConstants.Cart.CLASSES.REF_MONO}>{paymentIdRef}</span>
+              {AppConstants.Cart.COPY.CONFIRMED_REF_CLOSE}
             </>
-          )}{' '}
-          is confirmed and order{' '}
-          <span className="font-mono font-semibold text-stone-900">{orderRef}</span>{' '}
-          has been saved to your account order history.
+          )}
+          {AppConstants.Cart.COPY.CONFIRMED_IS_CONFIRMED_AND_ORDER}
+          <span className={AppConstants.Cart.CLASSES.ORDER_REF_MONO}>{orderRef}</span>
+          {AppConstants.Cart.COPY.CONFIRMED_SAVED_TO_HISTORY}
         </p>
-        <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+        <div className={AppConstants.Cart.CLASSES.CONFIRMED_ACTIONS}>
           <Link
-            href="/account"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-stone-900 text-white text-sm font-semibold hover:bg-stone-800"
+            href={AppConstants.Cart.ROUTES.ACCOUNT}
+            className={AppConstants.Cart.CLASSES.CONFIRMED_PRIMARY_LINK}
           >
-            <FileText className="w-4 h-4" />
-            <span>View Order Status &amp; Invoice</span>
+            <FileText className={AppConstants.Cart.CLASSES.ICON_SM} />
+            <span>{AppConstants.Cart.COPY.VIEW_ORDER_STATUS}</span>
           </Link>
           <Link
-            href="/shop"
-            onClick={() => setCheckoutStep('cart')}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-stone-300 bg-white text-stone-800 text-sm font-semibold hover:bg-stone-100"
+            href={AppConstants.Cart.ROUTES.SHOP}
+            onClick={() => setCheckoutStep(AppConstants.Cart.CHECKOUT_STEPS.CART)}
+            className={AppConstants.Cart.CLASSES.CONFIRMED_SECONDARY_LINK}
           >
-            Continue Shopping
+            {AppConstants.Cart.COPY.CONTINUE_SHOPPING}
           </Link>
         </div>
       </div>
@@ -191,24 +205,23 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="max-w-xl mx-auto px-4 py-16 sm:py-24 text-center space-y-5">
-        <div className="w-16 h-16 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center mx-auto">
-          <ShoppingBag className="w-7 h-7" />
+      <div className={AppConstants.Cart.CLASSES.EMPTY_WRAPPER}>
+        <div className={AppConstants.Cart.CLASSES.EMPTY_ICON_WRAPPER}>
+          <ShoppingBag className={AppConstants.Cart.CLASSES.EMPTY_ICON} />
         </div>
-        <h1 className="font-serif text-3xl font-semibold text-stone-950">
-          Your Shopping Bag is Empty
+        <h1 className={AppConstants.Cart.CLASSES.EMPTY_TITLE}>
+          {AppConstants.Cart.COPY.EMPTY_TITLE}
         </h1>
-        <p className="text-sm text-stone-600 max-w-md mx-auto leading-relaxed">
-          Explore our New Collection daily drops to add Kurtis, Co-ord Sets, and
-          Festive Suit Sets to your bag.
+        <p className={AppConstants.Cart.CLASSES.EMPTY_DESCRIPTION}>
+          {AppConstants.Cart.COPY.EMPTY_DESCRIPTION}
         </p>
-        <div className="pt-2">
+        <div className={AppConstants.Cart.CLASSES.EMPTY_CTA_WRAPPER}>
           <Link
-            href="/shop?collection=new-collection"
-            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-stone-900 text-white text-sm font-semibold hover:bg-stone-800 transition-colors"
+            href={AppConstants.Cart.ROUTES.SHOP_NEW_COLLECTION}
+            className={AppConstants.Cart.CLASSES.EMPTY_CTA_LINK}
           >
-            <span>Explore New Collection</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>{AppConstants.Cart.COPY.EXPLORE_NEW_COLLECTION}</span>
+            <ArrowRight className={AppConstants.Cart.CLASSES.ICON_SM} />
           </Link>
         </div>
       </div>
@@ -226,7 +239,7 @@ export default function CartPage() {
 
   const handleProceedToAddressStep = async () => {
     if (!isAuthenticated) {
-      router.push('/login?next=/cart&reason=purchase');
+      router.push(AppConstants.Cart.ROUTES.LOGIN_FOR_PURCHASE);
       return;
     }
 
@@ -235,22 +248,25 @@ export default function CartPage() {
     );
     if (overStockItem) {
       setPaymentError(
-        `Cannot proceed: "${overStockItem.name}" in Size ${overStockItem.size} only has ${overStockItem.maxStock} available in stock. Please reduce your requested quantity to ${overStockItem.maxStock} to continue.`
+        AppConstants.Cart.ERRORS.OVER_STOCK(
+          overStockItem.name,
+          overStockItem.size,
+          overStockItem.maxStock
+        )
       );
       return;
     }
 
     try {
-      const valRes = await fetch('/api/cart/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const valRes = await fetch(AppConstants.Cart.API.CART_VALIDATE, {
+        method: AppConstants.Cart.API.METHOD_POST,
+        headers: AppConstants.Cart.API.HEADERS_JSON,
         body: JSON.stringify({ items }),
       });
       const valData = await valRes.json();
       if (!valData.valid) {
         setPaymentError(
-          valData.errors[0]?.message ||
-            'One or more items in your cart exceed available stock. Please reduce quantity to proceed.'
+          valData.errors[0]?.message || AppConstants.Cart.ERRORS.CART_EXCEEDS_STOCK
         );
         return;
       }
@@ -261,12 +277,12 @@ export default function CartPage() {
     if (defaultAddr && !selectedAddressId) {
       setSelectedAddressId(defaultAddr.id);
     }
-    setCheckoutStep('address');
+    setCheckoutStep(AppConstants.Cart.CHECKOUT_STEPS.ADDRESS);
   };
 
   const handlePlaceOrderWithSavedAddress = async () => {
     if (!isAuthenticated) {
-      router.push('/login?next=/cart&reason=purchase');
+      router.push(AppConstants.Cart.ROUTES.LOGIN_FOR_PURCHASE);
       return;
     }
     if (!defaultAddr) {
@@ -279,10 +295,10 @@ export default function CartPage() {
 
     try {
       // Branch A: Cash on Delivery (COD) Checkout
-      if (paymentMethod === 'cod') {
-        const codRes = await fetch('/api/orders/cod', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+      if (paymentMethod === AppConstants.Cart.PAYMENT_METHODS.COD) {
+        const codRes = await fetch(AppConstants.Cart.API.ORDERS_COD, {
+          method: AppConstants.Cart.API.METHOD_POST,
+          headers: AppConstants.Cart.API.HEADERS_JSON,
           body: JSON.stringify({
             customerName: defaultAddr.full_name,
             customerEmail: customer?.email || '',
@@ -314,7 +330,7 @@ export default function CartPage() {
         };
 
         if (!codData.ok || !codData.order) {
-          throw new Error(codData.error || 'Failed to place Cash on Delivery order');
+          throw new Error(codData.error || AppConstants.Cart.ERRORS.COD_FAILED);
         }
 
         createOrderFromCart({
@@ -327,17 +343,19 @@ export default function CartPage() {
         });
 
         setOrderRef(codData.order.order_number);
-        setPaymentIdRef(codData.codReference || 'COD');
+        setPaymentIdRef(
+          codData.codReference || AppConstants.Cart.RAZORPAY.DEFAULT_COD_REFERENCE
+        );
         clearCart();
         setIsProcessingPayment(false);
-        setCheckoutStep('confirmed');
+        setCheckoutStep(AppConstants.Cart.CHECKOUT_STEPS.CONFIRMED);
         return;
       }
 
       // Branch B: Create Razorpay Order on Server
-      const createRes = await fetch('/api/payments/razorpay/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const createRes = await fetch(AppConstants.Cart.API.RAZORPAY_CREATE_ORDER, {
+        method: AppConstants.Cart.API.METHOD_POST,
+        headers: AppConstants.Cart.API.HEADERS_JSON,
         body: JSON.stringify({
           amountInRupees: finalTotal,
           customerName: defaultAddr.full_name,
@@ -360,7 +378,9 @@ export default function CartPage() {
       };
 
       if (!createData.ok || !createData.session) {
-        throw new Error(createData.error || 'Could not initialize Razorpay checkout');
+        throw new Error(
+          createData.error || AppConstants.Cart.ERRORS.RAZORPAY_INIT_FAILED
+        );
       }
 
       const { session } = createData;
@@ -369,9 +389,9 @@ export default function CartPage() {
         paymentPayload: RazorpaySuccessResponse
       ) => {
         setIsProcessingPayment(true);
-        const verifyRes = await fetch('/api/payments/razorpay/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const verifyRes = await fetch(AppConstants.Cart.API.RAZORPAY_VERIFY, {
+          method: AppConstants.Cart.API.METHOD_POST,
+          headers: AppConstants.Cart.API.HEADERS_JSON,
           body: JSON.stringify({
             ...paymentPayload,
             customerName: defaultAddr.full_name,
@@ -403,7 +423,9 @@ export default function CartPage() {
         };
 
         if (!verifyData.ok || !verifyData.order) {
-          throw new Error(verifyData.error || 'Payment verification failed');
+          throw new Error(
+            verifyData.error || AppConstants.Cart.ERRORS.PAYMENT_VERIFY_FAILED
+          );
         }
 
         // Also record in CustomerAuthContext so `/account` shows it immediately
@@ -420,14 +442,14 @@ export default function CartPage() {
         setPaymentIdRef(paymentPayload.razorpay_payment_id);
         clearCart();
         setIsProcessingPayment(false);
-        setCheckoutStep('confirmed');
+        setCheckoutStep(AppConstants.Cart.CHECKOUT_STEPS.CONFIRMED);
       };
 
       // 2A. Live Razorpay Checkout Modal (when NEXT_PUBLIC_RAZORPAY_KEY_ID is configured)
-      if (session.mode === 'live-razorpay') {
+      if (session.mode === AppConstants.Cart.RAZORPAY_MODES.LIVE) {
         const loaded = await loadRazorpayCheckoutScript();
         if (!loaded || !window.Razorpay) {
-          throw new Error('Failed to load Razorpay Checkout SDK');
+          throw new Error(AppConstants.Cart.ERRORS.RAZORPAY_SDK_LOAD_FAILED);
         }
 
         const rzp = new window.Razorpay({
@@ -435,7 +457,7 @@ export default function CartPage() {
           amount: session.amountInPaise,
           currency: session.currency,
           name: publicEnv.storeName,
-          description: `Order Payment (${totalQuantity} items)`,
+          description: AppConstants.Cart.RAZORPAY.DESCRIPTION(totalQuantity),
           order_id: session.razorpayOrderId,
           prefill: {
             name: defaultAddr.full_name,
@@ -443,13 +465,15 @@ export default function CartPage() {
             contact: defaultAddr.phone,
           },
           theme: {
-            color: '#1c1917',
+            color: AppConstants.Cart.RAZORPAY.THEME_COLOR,
           },
           handler: (response) => {
             verifyAndFinalizeOrder(response).catch((err) => {
               setIsProcessingPayment(false);
               setPaymentError(
-                err instanceof Error ? err.message : 'Verification failed'
+                err instanceof Error
+                  ? err.message
+                  : AppConstants.Cart.ERRORS.VERIFICATION_FAILED
               );
             });
           },
@@ -465,16 +489,20 @@ export default function CartPage() {
       }
 
       // 2B. Simulated Razorpay Mode (when keys are not yet added to .env.local)
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise((r) =>
+        setTimeout(r, AppConstants.Cart.TIMINGS.SIMULATED_PAYMENT_DELAY_MS)
+      );
       await verifyAndFinalizeOrder({
         razorpay_order_id: session.razorpayOrderId,
-        razorpay_payment_id: `pay_sim_${Date.now()}`,
-        razorpay_signature: `sim_sig_${session.razorpayOrderId}`,
+        razorpay_payment_id: `${AppConstants.Cart.RAZORPAY.SIM_PAYMENT_ID_PREFIX}${Date.now()}`,
+        razorpay_signature: `${AppConstants.Cart.RAZORPAY.SIM_SIGNATURE_PREFIX}${session.razorpayOrderId}`,
       });
     } catch (err) {
       setIsProcessingPayment(false);
       setPaymentError(
-        err instanceof Error ? err.message : 'Payment initialization failed'
+        err instanceof Error
+          ? err.message
+          : AppConstants.Cart.ERRORS.PAYMENT_INIT_FAILED
       );
     }
   };
@@ -497,139 +525,153 @@ export default function CartPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div className={AppConstants.Cart.CLASSES.PAGE_WRAPPER}>
       {isProcessingPayment && (
         <LuxurySpinner
           fullScreenOverlay
-          title="Processing Razorpay Payment..."
-          subtitle="Verifying payment signature, deducting warehouse stock & saving order"
+          title={AppConstants.Cart.COPY.PROCESSING_TITLE}
+          subtitle={AppConstants.Cart.COPY.PROCESSING_SUBTITLE}
         />
       )}
 
-      <div className="flex items-center justify-between border-b border-stone-200 pb-5 mb-8">
+      <div className={AppConstants.Cart.CLASSES.HEADER}>
         <div>
-          <h1 className="font-serif text-2xl sm:text-4xl font-semibold text-stone-950">
-            {checkoutStep === 'cart' ? 'Shopping Bag' : 'Select Delivery Address'}
+          <h1 className={AppConstants.Cart.CLASSES.HEADER_TITLE}>
+            {checkoutStep === AppConstants.Cart.CHECKOUT_STEPS.CART
+              ? AppConstants.Cart.COPY.HEADING_CART
+              : AppConstants.Cart.COPY.HEADING_ADDRESS}
           </h1>
-          <p className="text-xs sm:text-sm text-stone-500 mt-1">
-            {totalQuantity} {totalQuantity === 1 ? 'item' : 'items'} in your bag
+          <p className={AppConstants.Cart.CLASSES.HEADER_SUBTITLE}>
+            {totalQuantity}{' '}
+            {totalQuantity === 1
+              ? AppConstants.Cart.COPY.ITEM_SINGULAR
+              : AppConstants.Cart.COPY.ITEM_PLURAL}{' '}
+            {AppConstants.Cart.COPY.IN_YOUR_BAG}
           </p>
         </div>
 
         <Link
-          href="/shop"
-          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-stone-700 hover:text-stone-950"
+          href={AppConstants.Cart.ROUTES.SHOP}
+          className={AppConstants.Cart.CLASSES.HEADER_BACK_LINK}
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Continue Shopping</span>
+          <ArrowLeft className={AppConstants.Cart.CLASSES.ICON_SM} />
+          <span>{AppConstants.Cart.COPY.CONTINUE_SHOPPING}</span>
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+      <div className={AppConstants.Cart.CLASSES.GRID}>
         {/* Left Column: Cart Items or Stored Delivery Address Selector */}
-        <div className="lg:col-span-7 space-y-4">
-          {checkoutStep === 'cart' ? (
+        <div className={AppConstants.Cart.CLASSES.LEFT_COLUMN}>
+          {checkoutStep === AppConstants.Cart.CHECKOUT_STEPS.CART ? (
             items.map((item) => (
               <div
                 key={`${item.sku}-${item.size}`}
-                className="flex gap-4 p-4 rounded-2xl bg-white border border-stone-200/90 shadow-2xs"
+                className={AppConstants.Cart.CLASSES.ITEM_CARD}
               >
                 <Link
-                  href={`/product/${item.sku}`}
-                  className="relative w-24 sm:w-28 aspect-[3/4] rounded-xl overflow-hidden bg-stone-100 shrink-0"
+                  href={AppConstants.Cart.ROUTES.PRODUCT(item.sku)}
+                  className={AppConstants.Cart.CLASSES.ITEM_IMAGE_LINK}
                 >
                   <Image
                     src={item.imageUrl}
                     alt={item.name}
                     fill
-                    sizes="112px"
-                    className="object-cover object-top"
+                    sizes={AppConstants.Cart.IMAGE.SIZES}
+                    className={AppConstants.Cart.CLASSES.ITEM_IMAGE}
                   />
                 </Link>
 
-                <div className="flex-1 flex flex-col justify-between">
+                <div className={AppConstants.Cart.CLASSES.ITEM_BODY}>
                   <div>
-                    <div className="flex items-start justify-between gap-2">
+                    <div className={AppConstants.Cart.CLASSES.ITEM_TOP_ROW}>
                       <div>
-                        <span className="font-mono text-[10px] text-stone-400">
+                        <span className={AppConstants.Cart.CLASSES.ITEM_SKU}>
                           {item.sku}
                         </span>
                         <Link
-                          href={`/product/${item.sku}`}
-                          className="block text-sm sm:text-base font-semibold text-stone-900 hover:text-stone-700 line-clamp-2"
+                          href={AppConstants.Cart.ROUTES.PRODUCT(item.sku)}
+                          className={AppConstants.Cart.CLASSES.ITEM_NAME_LINK}
                         >
                           {item.name}
                         </Link>
                       </div>
                       <button
-                        type="button"
+                        type={AppConstants.Cart.FORM.BUTTON_TYPE}
                         onClick={() => removeItem(item.sku, item.size)}
-                        aria-label={`Remove ${item.name}`}
-                        className="p-1.5 text-stone-400 hover:text-rose-600 transition-colors"
+                        aria-label={AppConstants.Cart.ARIA.REMOVE_ITEM(item.name)}
+                        className={AppConstants.Cart.CLASSES.ITEM_REMOVE_BUTTON}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className={AppConstants.Cart.CLASSES.ICON_SM} />
                       </button>
                     </div>
 
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-stone-600">
-                      <span className="px-2 py-0.5 rounded-md bg-stone-100 font-semibold text-stone-800">
-                        Size: {item.size}
+                    <div className={AppConstants.Cart.CLASSES.ITEM_META_ROW}>
+                      <span className={AppConstants.Cart.CLASSES.ITEM_SIZE_BADGE}>
+                        {AppConstants.Cart.COPY.SIZE_LABEL(item.size)}
                       </span>
-                      {item.color && <span>• {item.color}</span>}
+                      {item.color && (
+                        <span>{AppConstants.Cart.COPY.COLOR_LABEL(item.color)}</span>
+                      )}
                     </div>
 
-                    {item.maxStock < AppConstants.Inventory.LOW_STOCK_THRESHOLD && item.maxStock > 0 && (
-                      <p className="mt-1.5 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200/80 rounded-md px-2 py-0.5 inline-block">
-                        Only {item.maxStock} left in stock for Size {item.size}
-                      </p>
-                    )}
+                    {item.maxStock < AppConstants.Inventory.LOW_STOCK_THRESHOLD &&
+                      item.maxStock > 0 && (
+                        <p className={AppConstants.Cart.CLASSES.ITEM_LOW_STOCK}>
+                          {AppConstants.Cart.COPY.LOW_STOCK(item.maxStock, item.size)}
+                        </p>
+                      )}
 
                     {item.quantity > item.maxStock && (
-                      <div className="mt-2 p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-medium flex items-center gap-1.5">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600" />
+                      <div className={AppConstants.Cart.CLASSES.ITEM_OVER_STOCK}>
+                        <AlertCircle
+                          className={AppConstants.Cart.CLASSES.ITEM_OVER_STOCK_ICON}
+                        />
                         <span>
-                          Only {item.maxStock} available in Size {item.size}. Please reduce quantity to {item.maxStock} to proceed.
+                          {AppConstants.Cart.COPY.OVER_STOCK_ITEM(
+                            item.maxStock,
+                            item.size
+                          )}
                         </span>
                       </div>
                     )}
                   </div>
 
-                  <div className="pt-3 flex items-center justify-between gap-2">
+                  <div className={AppConstants.Cart.CLASSES.ITEM_BOTTOM_ROW}>
                     {/* Quantity Adjuster */}
-                    <div className="inline-flex items-center rounded-lg border border-stone-300 bg-stone-50">
+                    <div className={AppConstants.Cart.CLASSES.QTY_WRAPPER}>
                       <button
-                        type="button"
+                        type={AppConstants.Cart.FORM.BUTTON_TYPE}
                         onClick={() =>
                           updateQuantity(item.sku, item.size, item.quantity - 1)
                         }
-                        aria-label="Decrease quantity"
-                        className="w-8 h-8 flex items-center justify-center text-stone-700 hover:bg-stone-200/70 rounded-l-lg"
+                        aria-label={AppConstants.Cart.ARIA.DECREASE_QUANTITY}
+                        className={AppConstants.Cart.CLASSES.QTY_DECREASE}
                       >
-                        <Minus className="w-3.5 h-3.5" />
+                        <Minus className={AppConstants.Cart.CLASSES.QTY_ICON} />
                       </button>
-                      <span className="w-8 text-center text-xs font-semibold tabular-nums">
+                      <span className={AppConstants.Cart.CLASSES.QTY_VALUE}>
                         {item.quantity}
                       </span>
                       <button
-                        type="button"
+                        type={AppConstants.Cart.FORM.BUTTON_TYPE}
                         disabled={item.quantity >= item.maxStock}
                         onClick={() =>
                           updateQuantity(item.sku, item.size, item.quantity + 1)
                         }
-                        aria-label="Increase quantity"
-                        className="w-8 h-8 flex items-center justify-center text-stone-700 hover:bg-stone-200/70 rounded-r-lg disabled:opacity-40"
+                        aria-label={AppConstants.Cart.ARIA.INCREASE_QUANTITY}
+                        className={AppConstants.Cart.CLASSES.QTY_INCREASE}
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus className={AppConstants.Cart.CLASSES.QTY_ICON} />
                       </button>
                     </div>
 
                     {/* Line Total */}
-                    <div className="text-right">
-                      <span className="text-sm sm:text-base font-bold text-stone-950">
+                    <div className={AppConstants.Cart.CLASSES.LINE_TOTAL_WRAPPER}>
+                      <span className={AppConstants.Cart.CLASSES.LINE_TOTAL}>
                         {formatPrice(item.unitPrice * item.quantity)}
                       </span>
                       {item.originalPrice > item.unitPrice && (
-                        <span className="block text-[11px] text-stone-400 line-through">
+                        <span className={AppConstants.Cart.CLASSES.LINE_TOTAL_ORIGINAL}>
                           {formatPrice(item.originalPrice * item.quantity)}
                         </span>
                       )}
@@ -639,143 +681,157 @@ export default function CartPage() {
               </div>
             ))
           ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-800 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-amber-800" />
-                  <span>Choose a Stored Delivery Address</span>
+            <div className={AppConstants.Cart.CLASSES.ADDRESS_SECTION}>
+              <div className={AppConstants.Cart.CLASSES.ADDRESS_HEADER_ROW}>
+                <h2 className={AppConstants.Cart.CLASSES.ADDRESS_HEADING}>
+                  <MapPin className={AppConstants.Cart.CLASSES.ADDRESS_HEADING_ICON} />
+                  <span>{AppConstants.Cart.COPY.CHOOSE_ADDRESS}</span>
                 </h2>
                 <button
-                  type="button"
+                  type={AppConstants.Cart.FORM.BUTTON_TYPE}
                   onClick={() => setShowNewAddressForm(!showNewAddressForm)}
-                  className="text-xs font-semibold text-stone-900 hover:underline cursor-pointer"
+                  className={AppConstants.Cart.CLASSES.ADD_ADDRESS_BUTTON}
                 >
-                  + Add New Address
+                  {AppConstants.Cart.COPY.ADD_NEW_ADDRESS}
                 </button>
               </div>
 
               {showNewAddressForm && (
                 <form
                   onSubmit={handleSaveNewAddressInline}
-                  className="p-5 rounded-2xl bg-white border-2 border-stone-900 space-y-3"
+                  className={AppConstants.Cart.CLASSES.NEW_ADDRESS_FORM}
                 >
-                  <p className="text-xs font-bold uppercase tracking-wider text-stone-900">
-                    New Delivery Address
+                  <p className={AppConstants.Cart.CLASSES.NEW_ADDRESS_TITLE}>
+                    {AppConstants.Cart.COPY.NEW_ADDRESS_TITLE}
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className={AppConstants.Cart.CLASSES.FORM_GRID_2}>
                     <input
                       required
-                      type="text"
+                      type={AppConstants.Cart.FORM.INPUT_TEXT}
                       value={addressForm.fullName}
                       onChange={(e) =>
                         setAddressForm({ ...addressForm, fullName: e.target.value })
                       }
-                      placeholder={customer?.name || 'Full Name *'}
-                      className="px-3.5 py-2 rounded-xl border border-stone-300 text-sm"
+                      placeholder={
+                        customer?.name || AppConstants.Cart.FORM.PLACEHOLDER_FULL_NAME
+                      }
+                      className={AppConstants.Cart.CLASSES.FORM_INPUT}
                     />
                     <input
                       required
-                      type="tel"
+                      type={AppConstants.Cart.FORM.INPUT_TEL}
                       value={addressForm.phone}
                       onChange={(e) =>
                         setAddressForm({ ...addressForm, phone: e.target.value })
                       }
-                      placeholder={customer?.phone || 'WhatsApp Phone *'}
-                      className="px-3.5 py-2 rounded-xl border border-stone-300 text-sm"
+                      placeholder={
+                        customer?.phone || AppConstants.Cart.FORM.PLACEHOLDER_PHONE
+                      }
+                      className={AppConstants.Cart.CLASSES.FORM_INPUT}
                     />
                   </div>
                   <input
                     required
-                    type="text"
+                    type={AppConstants.Cart.FORM.INPUT_TEXT}
                     value={addressForm.addressLine1}
                     onChange={(e) =>
                       setAddressForm({ ...addressForm, addressLine1: e.target.value })
                     }
-                    placeholder="House / Flat / Street / Landmark *"
-                    className="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-sm"
+                    placeholder={AppConstants.Cart.FORM.PLACEHOLDER_ADDRESS_LINE1}
+                    className={AppConstants.Cart.CLASSES.FORM_INPUT_FULL}
                   />
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className={AppConstants.Cart.CLASSES.FORM_GRID_3}>
                     <input
                       required
-                      type="text"
+                      type={AppConstants.Cart.FORM.INPUT_TEXT}
                       value={addressForm.city}
                       onChange={(e) =>
                         setAddressForm({ ...addressForm, city: e.target.value })
                       }
-                      placeholder="City *"
-                      className="px-3.5 py-2 rounded-xl border border-stone-300 text-sm"
+                      placeholder={AppConstants.Cart.FORM.PLACEHOLDER_CITY}
+                      className={AppConstants.Cart.CLASSES.FORM_INPUT}
                     />
                     <input
                       required
-                      type="text"
+                      type={AppConstants.Cart.FORM.INPUT_TEXT}
                       value={addressForm.state}
                       onChange={(e) =>
                         setAddressForm({ ...addressForm, state: e.target.value })
                       }
-                      placeholder="State *"
-                      className="px-3.5 py-2 rounded-xl border border-stone-300 text-sm"
+                      placeholder={AppConstants.Cart.FORM.PLACEHOLDER_STATE}
+                      className={AppConstants.Cart.CLASSES.FORM_INPUT}
                     />
                     <input
                       required
-                      type="text"
-                      pattern="[0-9]{6}"
+                      type={AppConstants.Cart.FORM.INPUT_TEXT}
+                      pattern={AppConstants.Cart.FORM.POSTAL_CODE_PATTERN}
                       value={addressForm.postalCode}
                       onChange={(e) =>
                         setAddressForm({ ...addressForm, postalCode: e.target.value })
                       }
-                      placeholder="PIN Code *"
-                      className="px-3.5 py-2 rounded-xl border border-stone-300 text-sm"
+                      placeholder={AppConstants.Cart.FORM.PLACEHOLDER_POSTAL_CODE}
+                      className={AppConstants.Cart.CLASSES.FORM_INPUT}
                     />
                   </div>
-                  <div className="flex justify-end gap-2">
+                  <div className={AppConstants.Cart.CLASSES.FORM_ACTIONS}>
                     <button
-                      type="button"
+                      type={AppConstants.Cart.FORM.BUTTON_TYPE}
                       onClick={() => setShowNewAddressForm(false)}
-                      className="px-3.5 py-1.5 rounded-xl border border-stone-300 text-xs font-semibold"
+                      className={AppConstants.Cart.CLASSES.FORM_CANCEL_BUTTON}
                     >
-                      Cancel
+                      {AppConstants.Cart.COPY.CANCEL}
                     </button>
                     <button
-                      type="submit"
-                      className="px-4 py-1.5 rounded-xl bg-stone-900 text-white text-xs font-semibold"
+                      type={AppConstants.Cart.FORM.SUBMIT_TYPE}
+                      className={AppConstants.Cart.CLASSES.FORM_SUBMIT_BUTTON}
                     >
-                      Save &amp; Select
+                      {AppConstants.Cart.COPY.SAVE_AND_SELECT}
                     </button>
                   </div>
                 </form>
               )}
 
-              <div className="space-y-3">
+              <div className={AppConstants.Cart.CLASSES.ADDRESS_LIST}>
                 {addresses.map((addr) => {
                   const isSelected = defaultAddr?.id === addr.id;
                   return (
                     <label
                       key={addr.id}
                       onClick={() => setSelectedAddressId(addr.id)}
-                      className={`block p-4 rounded-2xl border cursor-pointer transition-all ${
+                      className={
                         isSelected
-                          ? 'bg-amber-50/50 border-stone-900 ring-2 ring-stone-900/10'
-                          : 'bg-white border-stone-200 hover:border-stone-400'
-                      }`}
+                          ? `${AppConstants.Cart.CLASSES.ADDRESS_CARD_BASE} ${AppConstants.Cart.CLASSES.ADDRESS_CARD_SELECTED}`
+                          : `${AppConstants.Cart.CLASSES.ADDRESS_CARD_BASE} ${AppConstants.Cart.CLASSES.ADDRESS_CARD_UNSELECTED}`
+                      }
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-stone-900 text-white">
+                      <div className={AppConstants.Cart.CLASSES.ADDRESS_CARD_TOP_ROW}>
+                        <span className={AppConstants.Cart.CLASSES.ADDRESS_LABEL_BADGE}>
                           {addr.label}
                         </span>
                         <Link
-                          href="/account"
-                          className="text-xs font-semibold text-stone-600 hover:text-stone-950"
+                          href={AppConstants.Cart.ROUTES.ACCOUNT}
+                          className={AppConstants.Cart.CLASSES.ADDRESS_EDIT_LINK}
                         >
-                          Edit in My Account →
+                          {AppConstants.Cart.COPY.EDIT_IN_ACCOUNT}
                         </Link>
                       </div>
-                      <p className="text-sm font-bold text-stone-950 mt-2">
-                        {addr.full_name} • {addr.phone}
+                      <p className={AppConstants.Cart.CLASSES.ADDRESS_NAME}>
+                        {AppConstants.Cart.COPY.ADDRESS_NAME_PHONE(
+                          addr.full_name,
+                          addr.phone
+                        )}
                       </p>
-                      <p className="text-xs text-stone-600 mt-0.5">
+                      <p className={AppConstants.Cart.CLASSES.ADDRESS_LINES}>
                         {addr.address_line1}
-                        {addr.address_line2 ? `, ${addr.address_line2}` : ''},{' '}
-                        {addr.city}, {addr.state} - {addr.postal_code}
+                        {addr.address_line2
+                          ? `${AppConstants.Cart.COPY.ADDRESS_LINE2_PREFIX}${addr.address_line2}`
+                          : ''}
+                        {AppConstants.Cart.COPY.ADDRESS_LINE_SEPARATOR}
+                        {addr.city}
+                        {AppConstants.Cart.COPY.ADDRESS_LINE_SEPARATOR}
+                        {addr.state}
+                        {AppConstants.Cart.COPY.ADDRESS_POSTAL_SEPARATOR}
+                        {addr.postal_code}
                       </p>
                     </label>
                   );
@@ -786,196 +842,225 @@ export default function CartPage() {
         </div>
 
         {/* Right Column: Order Summary */}
-        <div className="lg:col-span-5">
-          <div className="rounded-3xl bg-white border border-stone-200 p-6 sm:p-8 space-y-5 sticky top-24">
-            <h2 className="font-serif text-xl font-semibold text-stone-950">
-              Order Summary
+        <div className={AppConstants.Cart.CLASSES.SUMMARY_COLUMN}>
+          <div className={AppConstants.Cart.CLASSES.SUMMARY_CARD}>
+            <h2 className={AppConstants.Cart.CLASSES.SUMMARY_TITLE}>
+              {AppConstants.Cart.COPY.ORDER_SUMMARY}
             </h2>
 
             {!isAuthenticated && (
-              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-950 flex items-center gap-2.5">
-                <Lock className="w-4 h-4 text-amber-800 shrink-0" />
-                <span>
-                  Sign in with Google is required before completing your order.
-                </span>
+              <div className={AppConstants.Cart.CLASSES.SIGN_IN_NOTICE}>
+                <Lock className={AppConstants.Cart.CLASSES.SIGN_IN_ICON} />
+                <span>{AppConstants.Cart.COPY.SIGN_IN_REQUIRED}</span>
               </div>
             )}
 
             {subtotalAmount < freeShippingThreshold && (
-              <div className="p-3 rounded-xl bg-stone-100 border border-stone-200 text-xs text-stone-800">
-                Add{' '}
-                <strong>
-                  {formatPrice(freeShippingThreshold - subtotalAmount)}
-                </strong>{' '}
-                more to unlock <strong>FREE Express Shipping</strong>!
+              <div className={AppConstants.Cart.CLASSES.FREE_SHIPPING_NOTICE}>
+                {AppConstants.Cart.COPY.FREE_SHIPPING_ADD}
+                <strong>{formatPrice(freeShippingThreshold - subtotalAmount)}</strong>
+                {AppConstants.Cart.COPY.FREE_SHIPPING_MORE_TO_UNLOCK}
+                <strong>{AppConstants.Cart.COPY.FREE_SHIPPING_HIGHLIGHT}</strong>
+                {AppConstants.Cart.COPY.FREE_SHIPPING_END}
               </div>
             )}
 
-            <div className="space-y-3 text-sm border-b border-stone-200 pb-4">
-              <div className="flex justify-between text-stone-600">
-                <span>Bag Subtotal ({totalQuantity} items)</span>
-                <span className="font-semibold text-stone-900">
+            <div className={AppConstants.Cart.CLASSES.SUMMARY_ROWS}>
+              <div className={AppConstants.Cart.CLASSES.SUMMARY_ROW}>
+                <span>{AppConstants.Cart.COPY.BAG_SUBTOTAL(totalQuantity)}</span>
+                <span className={AppConstants.Cart.CLASSES.SUMMARY_VALUE}>
                   {formatPrice(subtotalAmount)}
                 </span>
               </div>
 
               {totalSavingsAmount > 0 && (
-                <div className="flex justify-between text-emerald-700">
-                  <span>Collection Discount Savings</span>
-                  <span className="font-semibold">
-                    -{formatPrice(totalSavingsAmount)}
+                <div className={AppConstants.Cart.CLASSES.SUMMARY_ROW_DISCOUNT}>
+                  <span>{AppConstants.Cart.COPY.DISCOUNT_SAVINGS}</span>
+                  <span className={AppConstants.Cart.CLASSES.SUMMARY_DISCOUNT_VALUE}>
+                    {AppConstants.Cart.COPY.DISCOUNT_PREFIX}
+                    {formatPrice(totalSavingsAmount)}
                   </span>
                 </div>
               )}
 
-              <div className="flex justify-between text-stone-600">
-                <span>Shipping</span>
-                <span className="font-semibold text-stone-900">
-                  {shippingAmount === 0 ? 'FREE' : formatPrice(shippingAmount)}
+              <div className={AppConstants.Cart.CLASSES.SUMMARY_ROW}>
+                <span>{AppConstants.Cart.COPY.SHIPPING}</span>
+                <span className={AppConstants.Cart.CLASSES.SUMMARY_VALUE}>
+                  {shippingAmount === 0
+                    ? AppConstants.Cart.COPY.SHIPPING_FREE
+                    : formatPrice(shippingAmount)}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-baseline justify-between">
-              <span className="text-base font-semibold text-stone-900">
-                Total Payable
+            <div className={AppConstants.Cart.CLASSES.TOTAL_ROW}>
+              <span className={AppConstants.Cart.CLASSES.TOTAL_LABEL}>
+                {AppConstants.Cart.COPY.TOTAL_PAYABLE}
               </span>
-              <span className="text-2xl font-bold text-stone-950">
+              <span className={AppConstants.Cart.CLASSES.TOTAL_VALUE}>
                 {formatPrice(finalTotal)}
               </span>
             </div>
 
             {paymentError && (
-              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
+              <div className={AppConstants.Cart.CLASSES.PAYMENT_ERROR}>
+                <AlertCircle className={AppConstants.Cart.CLASSES.PAYMENT_ERROR_ICON} />
                 <span>{paymentError}</span>
               </div>
             )}
 
             {hasOverStockItems && (
-              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+              <div className={AppConstants.Cart.CLASSES.STOCK_LIMIT_BOX}>
+                <AlertCircle className={AppConstants.Cart.CLASSES.STOCK_LIMIT_ICON} />
                 <div>
-                  <p className="font-bold">Stock limit exceeded</p>
-                  <p className="text-[11px] text-rose-700 mt-0.5">
-                    One or more items in your bag exceed available warehouse stock. Please reduce the quantity using the minus (-) button to proceed.
+                  <p className={AppConstants.Cart.CLASSES.STOCK_LIMIT_TITLE}>
+                    {AppConstants.Cart.COPY.STOCK_LIMIT_TITLE}
+                  </p>
+                  <p className={AppConstants.Cart.CLASSES.STOCK_LIMIT_TEXT}>
+                    {AppConstants.Cart.COPY.STOCK_LIMIT_DESCRIPTION}
                   </p>
                 </div>
               </div>
             )}
 
-            {checkoutStep === 'cart' ? (
+            {checkoutStep === AppConstants.Cart.CHECKOUT_STEPS.CART ? (
               <button
-                type="button"
+                type={AppConstants.Cart.FORM.BUTTON_TYPE}
                 disabled={hasOverStockItems}
                 onClick={handleProceedToAddressStep}
-                className="w-full h-13 rounded-xl bg-stone-900 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-stone-800 transition-colors cursor-pointer disabled:bg-stone-300 disabled:text-stone-500 disabled:cursor-not-allowed"
+                className={AppConstants.Cart.CLASSES.PROCEED_BUTTON}
               >
                 <span>
                   {hasOverStockItems
-                    ? 'Reduce Quantities to Proceed'
+                    ? AppConstants.Cart.COPY.CTA_REDUCE_QUANTITIES
                     : isAuthenticated
-                    ? 'Proceed to Delivery Address'
-                    : 'Sign In with Google to Checkout'}
+                    ? AppConstants.Cart.COPY.CTA_PROCEED_TO_ADDRESS
+                    : AppConstants.Cart.COPY.CTA_SIGN_IN_TO_CHECKOUT}
                 </span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className={AppConstants.Cart.CLASSES.ICON_SM} />
               </button>
             ) : (
-              <div className="space-y-4">
+              <div className={AppConstants.Cart.CLASSES.PAYMENT_SECTION}>
                 {/* Payment Method Selector: Online Razorpay vs Cash on Delivery (COD) */}
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                    Choose Payment Method
+                <div className={AppConstants.Cart.CLASSES.PAYMENT_OPTIONS}>
+                  <p className={AppConstants.Cart.CLASSES.PAYMENT_OPTIONS_TITLE}>
+                    {AppConstants.Cart.COPY.CHOOSE_PAYMENT_METHOD}
                   </p>
 
                   <label
-                    onClick={() => setPaymentMethod('razorpay')}
-                    className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
-                      paymentMethod === 'razorpay'
-                        ? 'bg-amber-50/60 border-stone-900 ring-1 ring-stone-900/10'
-                        : 'bg-white border-stone-200 hover:border-stone-400'
-                    }`}
+                    onClick={() =>
+                      setPaymentMethod(AppConstants.Cart.PAYMENT_METHODS.RAZORPAY)
+                    }
+                    className={
+                      paymentMethod === AppConstants.Cart.PAYMENT_METHODS.RAZORPAY
+                        ? `${AppConstants.Cart.CLASSES.PAYMENT_OPTION_BASE} ${AppConstants.Cart.CLASSES.PAYMENT_OPTION_SELECTED}`
+                        : `${AppConstants.Cart.CLASSES.PAYMENT_OPTION_BASE} ${AppConstants.Cart.CLASSES.PAYMENT_OPTION_UNSELECTED}`
+                    }
                   >
                     <input
-                      type="radio"
-                      name="paymentMethod"
-                      checked={paymentMethod === 'razorpay'}
-                      onChange={() => setPaymentMethod('razorpay')}
-                      className="mt-1"
+                      type={AppConstants.Cart.FORM.INPUT_RADIO}
+                      name={AppConstants.Cart.FORM.PAYMENT_METHOD_NAME}
+                      checked={
+                        paymentMethod === AppConstants.Cart.PAYMENT_METHODS.RAZORPAY
+                      }
+                      onChange={() =>
+                        setPaymentMethod(AppConstants.Cart.PAYMENT_METHODS.RAZORPAY)
+                      }
+                      className={AppConstants.Cart.CLASSES.PAYMENT_RADIO}
                     />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs sm:text-sm font-bold text-stone-950 flex items-center gap-1.5">
-                          <CreditCard className="w-4 h-4 text-amber-800" />
-                          Pay Online (UPI / Card / NetBanking)
+                    <div className={AppConstants.Cart.CLASSES.PAYMENT_OPTION_BODY}>
+                      <div className={AppConstants.Cart.CLASSES.PAYMENT_OPTION_ROW}>
+                        <span className={AppConstants.Cart.CLASSES.PAYMENT_OPTION_LABEL}>
+                          <CreditCard
+                            className={AppConstants.Cart.CLASSES.PAYMENT_ONLINE_ICON}
+                          />
+                          {AppConstants.Cart.COPY.PAY_ONLINE}
                         </span>
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                          Fastest Dispatch
+                        <span
+                          className={AppConstants.Cart.CLASSES.PAYMENT_ONLINE_BADGE}
+                        >
+                          {AppConstants.Cart.COPY.PAY_ONLINE_BADGE}
                         </span>
                       </div>
-                      <p className="text-[11px] text-stone-500 mt-0.5">
-                        Secured by Razorpay • Instant order &amp; GST invoice
+                      <p className={AppConstants.Cart.CLASSES.PAYMENT_OPTION_NOTE}>
+                        {AppConstants.Cart.COPY.PAY_ONLINE_NOTE}
                       </p>
                     </div>
                   </label>
 
                   <label
-                    onClick={() => setPaymentMethod('cod')}
-                    className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
-                      paymentMethod === 'cod'
-                        ? 'bg-amber-50/60 border-stone-900 ring-1 ring-stone-900/10'
-                        : 'bg-white border-stone-200 hover:border-stone-400'
-                    }`}
+                    onClick={() =>
+                      setPaymentMethod(AppConstants.Cart.PAYMENT_METHODS.COD)
+                    }
+                    className={
+                      paymentMethod === AppConstants.Cart.PAYMENT_METHODS.COD
+                        ? `${AppConstants.Cart.CLASSES.PAYMENT_OPTION_BASE} ${AppConstants.Cart.CLASSES.PAYMENT_OPTION_SELECTED}`
+                        : `${AppConstants.Cart.CLASSES.PAYMENT_OPTION_BASE} ${AppConstants.Cart.CLASSES.PAYMENT_OPTION_UNSELECTED}`
+                    }
                   >
                     <input
-                      type="radio"
-                      name="paymentMethod"
-                      checked={paymentMethod === 'cod'}
-                      onChange={() => setPaymentMethod('cod')}
-                      className="mt-1"
+                      type={AppConstants.Cart.FORM.INPUT_RADIO}
+                      name={AppConstants.Cart.FORM.PAYMENT_METHOD_NAME}
+                      checked={paymentMethod === AppConstants.Cart.PAYMENT_METHODS.COD}
+                      onChange={() =>
+                        setPaymentMethod(AppConstants.Cart.PAYMENT_METHODS.COD)
+                      }
+                      className={AppConstants.Cart.CLASSES.PAYMENT_RADIO}
                     />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs sm:text-sm font-bold text-stone-950 flex items-center gap-1.5">
-                          <Banknote className="w-4 h-4 text-emerald-700" />
-                          Cash on Delivery (COD)
+                    <div className={AppConstants.Cart.CLASSES.PAYMENT_OPTION_BODY}>
+                      <div className={AppConstants.Cart.CLASSES.PAYMENT_OPTION_ROW}>
+                        <span className={AppConstants.Cart.CLASSES.PAYMENT_OPTION_LABEL}>
+                          <Banknote
+                            className={AppConstants.Cart.CLASSES.PAYMENT_COD_ICON}
+                          />
+                          {AppConstants.Cart.COPY.PAY_COD}
                         </span>
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-stone-100 text-stone-700">
-                          Pay at Doorstep
+                        <span className={AppConstants.Cart.CLASSES.PAYMENT_COD_BADGE}>
+                          {AppConstants.Cart.COPY.PAY_COD_BADGE}
                         </span>
                       </div>
-                      <p className="text-[11px] text-stone-500 mt-0.5">
-                        Pay in cash or UPI to the courier partner upon delivery
+                      <p className={AppConstants.Cart.CLASSES.PAYMENT_OPTION_NOTE}>
+                        {AppConstants.Cart.COPY.PAY_COD_NOTE}
                       </p>
                     </div>
                   </label>
                 </div>
 
                 <button
-                  type="button"
+                  type={AppConstants.Cart.FORM.BUTTON_TYPE}
                   disabled={isProcessingPayment}
                   onClick={handlePlaceOrderWithSavedAddress}
-                  className="w-full h-13 rounded-xl bg-stone-900 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-stone-800 disabled:opacity-50 transition-colors cursor-pointer"
+                  className={AppConstants.Cart.CLASSES.PLACE_ORDER_BUTTON}
                 >
-                  {paymentMethod === 'cod' ? (
+                  {paymentMethod === AppConstants.Cart.PAYMENT_METHODS.COD ? (
                     <>
-                      <Banknote className="w-4 h-4 text-emerald-300" />
-                      <span>Place COD Order ({formatPrice(finalTotal)})</span>
+                      <Banknote className={AppConstants.Cart.CLASSES.PLACE_COD_ICON} />
+                      <span>
+                        {AppConstants.Cart.COPY.PLACE_COD_ORDER(
+                          formatPrice(finalTotal)
+                        )}
+                      </span>
                     </>
                   ) : (
                     <>
-                      <CreditCard className="w-4 h-4 text-amber-300" />
-                      <span>Pay Online via Razorpay ({formatPrice(finalTotal)})</span>
+                      <CreditCard
+                        className={AppConstants.Cart.CLASSES.PLACE_ONLINE_ICON}
+                      />
+                      <span>
+                        {AppConstants.Cart.COPY.PAY_ONLINE_RAZORPAY(
+                          formatPrice(finalTotal)
+                        )}
+                      </span>
                     </>
                   )}
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className={AppConstants.Cart.CLASSES.ICON_SM} />
                 </button>
               </div>
             )}
 
-            <div className="pt-2 flex items-center justify-center gap-2 text-xs text-stone-500">
-              <ShieldCheck className="w-4 h-4 text-stone-700" />
-              <span>100% Secure Checkout • Easy 7-Day Size Exchange</span>
+            <div className={AppConstants.Cart.CLASSES.SECURE_ROW}>
+              <ShieldCheck className={AppConstants.Cart.CLASSES.SECURE_ICON} />
+              <span>{AppConstants.Cart.COPY.SECURE_CHECKOUT}</span>
             </div>
           </div>
         </div>
