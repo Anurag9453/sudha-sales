@@ -8,6 +8,7 @@
 // 3. In-Memory Client Cache: Keeps all loaded products preserved in memory so when
 //    the user scrolls back UP, zero data is reloaded, with 0 layout shifts or jumps.
 // 4. Smooth "Back to Top" navigation and completion indicator when all styles loaded.
+// Bound to AppConstants.Product.GRID and AppConstants.Product.API.
 // ============================================================================
 
 'use client';
@@ -44,12 +45,12 @@ const gridMemoryCache = new Map<string, CachedGridState>();
 
 function buildCacheKey(filters: FilterParams): string {
   return [
-    filters.category || 'all',
-    filters.collection || 'all',
-    filters.size || 'all',
-    filters.sort || 'newest',
+    filters.category || AppConstants.Product.GRID.DEFAULT_CATEGORY,
+    filters.collection || AppConstants.Product.GRID.DEFAULT_COLLECTION,
+    filters.size || AppConstants.Product.GRID.DEFAULT_SIZE,
+    filters.sort || AppConstants.Product.GRID.DEFAULT_SORT,
     (filters.q || '').trim().toLowerCase(),
-  ].join('::');
+  ].join(AppConstants.Product.GRID.KEY_SEPARATOR);
 }
 
 export function InfiniteProductGrid({
@@ -115,26 +116,46 @@ export function InfiniteProductGrid({
 
     const nextPage = page + 1;
     const query = new URLSearchParams();
-    query.set('page', String(nextPage));
-    query.set('limit', String(batchSize));
-    if (filterParams.category && filterParams.category !== 'all') {
-      query.set('category', filterParams.category);
+    query.set(AppConstants.Product.GRID.QUERY_PARAMS.PAGE, String(nextPage));
+    query.set(AppConstants.Product.GRID.QUERY_PARAMS.LIMIT, String(batchSize));
+    if (
+      filterParams.category &&
+      filterParams.category !== AppConstants.Product.GRID.DEFAULT_CATEGORY
+    ) {
+      query.set(
+        AppConstants.Product.GRID.QUERY_PARAMS.CATEGORY,
+        filterParams.category
+      );
     }
-    if (filterParams.collection && filterParams.collection !== 'all') {
-      query.set('collection', filterParams.collection);
+    if (
+      filterParams.collection &&
+      filterParams.collection !== AppConstants.Product.GRID.DEFAULT_COLLECTION
+    ) {
+      query.set(
+        AppConstants.Product.GRID.QUERY_PARAMS.COLLECTION,
+        filterParams.collection
+      );
     }
-    if (filterParams.size && filterParams.size !== 'all') {
-      query.set('size', filterParams.size);
+    if (
+      filterParams.size &&
+      filterParams.size !== AppConstants.Product.GRID.DEFAULT_SIZE
+    ) {
+      query.set(AppConstants.Product.GRID.QUERY_PARAMS.SIZE, filterParams.size);
     }
-    if (filterParams.sort && filterParams.sort !== 'newest') {
-      query.set('sort', filterParams.sort);
+    if (
+      filterParams.sort &&
+      filterParams.sort !== AppConstants.Product.GRID.DEFAULT_SORT
+    ) {
+      query.set(AppConstants.Product.GRID.QUERY_PARAMS.SORT, filterParams.sort);
     }
     if (filterParams.q) {
-      query.set('q', filterParams.q);
+      query.set(AppConstants.Product.GRID.QUERY_PARAMS.Q, filterParams.q);
     }
 
     try {
-      const res = await fetch(`/api/products?${query.toString()}`);
+      const res = await fetch(
+        `${AppConstants.Product.API.PRODUCTS}?${query.toString()}`
+      );
       if (!res.ok) {
         throw new Error(`Failed to load more products (status: ${res.status})`);
       }
@@ -168,7 +189,9 @@ export function InfiniteProductGrid({
       }
     } catch (err) {
       setLoadError(
-        err instanceof Error ? err.message : 'Unable to load more styles'
+        err instanceof Error
+          ? err.message
+          : AppConstants.Product.GRID.COPY.ERROR_DEFAULT
       );
     } finally {
       setIsLoadingMore(false);
@@ -206,33 +229,39 @@ export function InfiniteProductGrid({
   };
 
   return (
-    <div className="space-y-8">
+    <div className={AppConstants.Product.GRID.CLASSES.WRAPPER}>
       {/* Product Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className={AppConstants.Product.GRID.CLASSES.GRID}>
         {products.map((product, index) => (
           <ProductCard
             key={product.id || `${product.sku}-${index}`}
             product={product}
-            priority={index < 4}
+            priority={index < AppConstants.Product.GRID.SKELETON_COUNT}
           />
         ))}
       </div>
 
       {/* Lazy Loading Sentinel */}
-      <div ref={sentinelRef} className="h-4 w-full" aria-hidden="true" />
+      <div
+        ref={sentinelRef}
+        className={AppConstants.Product.GRID.CLASSES.SENTINEL}
+        aria-hidden="true"
+      />
 
       {/* Loading Skeleton & Spinner */}
       {isLoadingMore && (
-        <div className="py-6 flex flex-col items-center justify-center gap-3">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-900 text-white text-xs font-medium shadow-md">
-            <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-            <span>Discovering more handcrafted styles...</span>
+        <div className={AppConstants.Product.GRID.CLASSES.LOADING_BOX}>
+          <div className={AppConstants.Product.GRID.CLASSES.LOADING_PILL}>
+            <Loader2 className={AppConstants.Product.GRID.CLASSES.LOADER_ICON} />
+            <span>{AppConstants.Product.GRID.COPY.LOADING_MORE}</span>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full opacity-60">
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className={AppConstants.Product.GRID.CLASSES.SKELETON_GRID}>
+            {Array.from({
+              length: AppConstants.Product.GRID.SKELETON_COUNT,
+            }).map((_, i) => (
               <div
                 key={`skel-${i}`}
-                className="rounded-2xl bg-stone-100 aspect-[3/4] animate-pulse"
+                className={AppConstants.Product.GRID.CLASSES.SKELETON_CARD}
               />
             ))}
           </div>
@@ -241,29 +270,34 @@ export function InfiniteProductGrid({
 
       {/* Error Retry CTA */}
       {loadError && (
-        <div className="py-6 text-center space-y-2">
-          <p className="text-xs text-rose-700 font-medium">{loadError}</p>
+        <div className={AppConstants.Product.GRID.CLASSES.ERROR_BOX}>
+          <p className={AppConstants.Product.GRID.CLASSES.ERROR_TEXT}>
+            {loadError}
+          </p>
           <button
             type="button"
             onClick={() => loadNextBatch()}
-            className="px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800 transition-colors"
+            className={AppConstants.Product.GRID.CLASSES.RETRY_BUTTON}
           >
-            Retry Loading More
+            {AppConstants.Product.GRID.COPY.RETRY}
           </button>
         </div>
       )}
 
       {/* Manual Fallback Button (if user has high-speed scroll) */}
       {!isLoadingMore && hasMore && (
-        <div className="py-4 text-center">
+        <div className={AppConstants.Product.GRID.CLASSES.MANUAL_LOAD_BOX}>
           <button
             type="button"
             onClick={() => loadNextBatch()}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-stone-300 bg-white text-xs font-semibold text-stone-800 hover:border-stone-900 hover:bg-stone-50 transition-all shadow-2xs"
+            className={AppConstants.Product.GRID.CLASSES.MANUAL_LOAD_BUTTON}
           >
-            <span>Load More Styles</span>
-            <span className="text-stone-400">
-              ({products.length} of {totalCount} shown)
+            <span>{AppConstants.Product.GRID.COPY.MANUAL_LOAD_MORE}</span>
+            <span className={AppConstants.Product.GRID.CLASSES.MANUAL_LOAD_MUTED}>
+              {AppConstants.Product.GRID.COPY.SHOWN_COUNT(
+                products.length,
+                totalCount
+              )}
             </span>
           </button>
         </div>
@@ -271,21 +305,23 @@ export function InfiniteProductGrid({
 
       {/* End of Catalog Indicator & Back to Top */}
       {!hasMore && products.length > 0 && (
-        <div className="pt-8 pb-4 border-t border-stone-200 text-center space-y-3">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-stone-100 text-stone-700 text-xs font-medium">
-            <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+        <div className={AppConstants.Product.GRID.CLASSES.END_BOX}>
+          <div className={AppConstants.Product.GRID.CLASSES.END_PILL}>
+            <Sparkles className={AppConstants.Product.GRID.CLASSES.SPARKLE_ICON} />
             <span>
-              You&apos;ve viewed all {products.length} styles in this collection
+              {AppConstants.Product.GRID.COPY.ALL_VIEWED(products.length)}
             </span>
           </div>
           <div>
             <button
               type="button"
               onClick={handleScrollToTop}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-stone-950 transition-colors cursor-pointer group"
+              className={AppConstants.Product.GRID.CLASSES.BACK_TO_TOP_BUTTON}
             >
-              <span>Back to Top</span>
-              <ArrowUp className="w-3.5 h-3.5 transition-transform group-hover:-translate-y-0.5" />
+              <span>{AppConstants.Product.GRID.COPY.BACK_TO_TOP}</span>
+              <ArrowUp
+                className={AppConstants.Product.GRID.CLASSES.ARROW_UP_ICON}
+              />
             </button>
           </div>
         </div>

@@ -5,6 +5,7 @@
 // - As soon as a customer submits a review & star rating, it is persisted to
 //   the product record in Supabase and displayed with the computed average
 //   rating, 5-star breakdown bars, and verified customer comments.
+// Bound to AppConstants.Product.REVIEWS and AppConstants.Product.ROUTES.
 // ============================================================================
 
 'use client';
@@ -21,6 +22,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useCustomerAuth } from '@/store/customer-auth-context';
+import { AppConstants } from '@/constants/app.constants';
 import type { Product, ProductReview } from '@/types/domain';
 
 interface ProductReviewsSectionProps {
@@ -41,7 +43,9 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
 
   // Review Form State
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [rating, setRating] = useState<number>(5);
+  const [rating, setRating] = useState<number>(
+    AppConstants.Product.REVIEWS.DEFAULT_RATING
+  );
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [selectedSize, setSelectedSize] = useState<string>(
     product.sizes[0] ?? ''
@@ -55,7 +59,7 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated || !customer) {
-      router.push(`/login?next=/product/${product.sku}`);
+      router.push(AppConstants.Product.ROUTES.LOGIN_FOR_REVIEW(product.sku));
       return;
     }
 
@@ -64,9 +68,9 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(AppConstants.Product.API.REVIEWS, {
+        method: AppConstants.Product.API.METHOD_POST,
+        headers: AppConstants.Product.API.HEADERS_JSON,
         body: JSON.stringify({
           sku: product.sku,
           customerName: customer.name,
@@ -87,7 +91,9 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
       };
 
       if (!data.ok) {
-        throw new Error(data.error || 'Could not submit review');
+        throw new Error(
+          data.error || AppConstants.Product.REVIEWS.COPY.ERROR_SUBMIT_FAILED
+        );
       }
 
       setReviews(data.reviews ?? []);
@@ -95,13 +101,15 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
       setReviewCount(data.review_count ?? 0);
       setTitle('');
       setComment('');
-      setRating(5);
+      setRating(AppConstants.Product.REVIEWS.DEFAULT_RATING);
       setIsFormOpen(false);
-      setSuccessMsg('Thank you! Your review has been published on this product.');
+      setSuccessMsg(AppConstants.Product.REVIEWS.COPY.SUCCESS_DEFAULT);
       router.refresh();
     } catch (err) {
       setErrorMsg(
-        err instanceof Error ? err.message : 'Failed to submit review'
+        err instanceof Error
+          ? err.message
+          : AppConstants.Product.REVIEWS.COPY.ERROR_UNKNOWN
       );
     } finally {
       setIsSubmitting(false);
@@ -109,26 +117,30 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
   };
 
   // Compute star distribution (5★ down to 1★) when reviews exist
-  const starDistribution = [5, 4, 3, 2, 1].map((starValue) => {
-    const count = reviews.filter((r) => Math.round(r.rating) === starValue).length;
-    const pct = reviewCount > 0 ? Math.round((count / reviewCount) * 100) : 0;
-    return { starValue, count, pct };
-  });
+  const starDistribution = AppConstants.Product.REVIEWS.BREAKDOWN_STARS.map(
+    (starValue) => {
+      const count = reviews.filter(
+        (r) => Math.round(r.rating) === starValue
+      ).length;
+      const pct = reviewCount > 0 ? Math.round((count / reviewCount) * 100) : 0;
+      return { starValue, count, pct };
+    }
+  );
 
   return (
     <section
-      id="customer-reviews"
-      className="mt-16 sm:mt-20 pt-12 border-t border-stone-200 space-y-8"
+      id={AppConstants.Product.REVIEWS.SECTION_ID}
+      className={AppConstants.Product.REVIEWS.CLASSES.SECTION}
     >
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className={AppConstants.Product.REVIEWS.CLASSES.HEADER}>
         <div>
-          <span className="text-xs font-semibold uppercase tracking-widest text-amber-800 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" />
-            Shopper Feedback
+          <span className={AppConstants.Product.REVIEWS.CLASSES.TAG}>
+            <Sparkles className={AppConstants.Product.REVIEWS.CLASSES.TAG_ICON} />
+            {AppConstants.Product.REVIEWS.COPY.HEADER_TAG}
           </span>
-          <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-stone-950 mt-1">
-            Customer Reviews &amp; Ratings
+          <h2 className={AppConstants.Product.REVIEWS.CLASSES.TITLE}>
+            {AppConstants.Product.REVIEWS.COPY.TITLE}
           </h2>
         </div>
 
@@ -136,25 +148,35 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
           <button
             type="button"
             onClick={() => setIsFormOpen(!isFormOpen)}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-xs sm:text-sm font-semibold transition-colors cursor-pointer self-start sm:self-auto"
+            className={AppConstants.Product.REVIEWS.CLASSES.FORM_TOGGLE}
           >
-            <MessageSquarePlus className="w-4 h-4 text-amber-300" />
-            <span>{isFormOpen ? 'Close Review Form' : 'Write a Review'}</span>
+            <MessageSquarePlus
+              className={
+                AppConstants.Product.REVIEWS.CLASSES.FORM_TOGGLE_ICON
+              }
+            />
+            <span>
+              {isFormOpen
+                ? AppConstants.Product.REVIEWS.COPY.CLOSE_FORM
+                : AppConstants.Product.REVIEWS.COPY.WRITE_REVIEW}
+            </span>
           </button>
         ) : (
           <Link
-            href={`/login?next=/product/${product.sku}`}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-900 text-xs sm:text-sm font-semibold transition-colors self-start sm:self-auto"
+            href={AppConstants.Product.ROUTES.LOGIN_FOR_REVIEW(product.sku)}
+            className={AppConstants.Product.REVIEWS.CLASSES.SIGN_IN_LINK}
           >
-            <Lock className="w-3.5 h-3.5 text-stone-600" />
-            <span>Sign In to Write a Review</span>
+            <Lock className={AppConstants.Product.REVIEWS.CLASSES.LOCK_ICON} />
+            <span>{AppConstants.Product.REVIEWS.COPY.SIGN_IN_PROMPT}</span>
           </Link>
         )}
       </div>
 
       {successMsg && (
-        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs sm:text-sm text-emerald-900 flex items-center gap-2.5">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className={AppConstants.Product.REVIEWS.CLASSES.SUCCESS_BANNER}>
+          <CheckCircle2
+            className={AppConstants.Product.REVIEWS.CLASSES.SUCCESS_ICON}
+          />
           <span>{successMsg}</span>
         </div>
       )}
@@ -163,34 +185,37 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
       {isFormOpen && isAuthenticated && (
         <form
           onSubmit={handleSubmitReview}
-          className="p-6 sm:p-8 rounded-3xl bg-white border-2 border-stone-900 shadow-lg space-y-5"
+          className={AppConstants.Product.REVIEWS.CLASSES.FORM}
         >
-          <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+          <div className={AppConstants.Product.REVIEWS.CLASSES.FORM_HEADER}>
             <div>
-              <h3 className="font-serif text-lg sm:text-xl font-semibold text-stone-950">
-                Share Your Experience with {product.name}
+              <h3 className={AppConstants.Product.REVIEWS.CLASSES.FORM_TITLE}>
+                {AppConstants.Product.REVIEWS.COPY.FORM_TITLE(product.name)}
               </h3>
-              <p className="text-xs text-stone-500">
-                Posting publicly as <strong>{customer?.name}</strong>
+              <p className={AppConstants.Product.REVIEWS.CLASSES.FORM_SUBTITLE}>
+                {AppConstants.Product.REVIEWS.COPY.POSTING_AS}
+                <strong>{customer?.name}</strong>
               </p>
             </div>
           </div>
 
           {errorMsg && (
-            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+            <div className={AppConstants.Product.REVIEWS.CLASSES.ERROR_BANNER}>
+              <AlertCircle
+                className={AppConstants.Product.REVIEWS.CLASSES.ERROR_ICON}
+              />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className={AppConstants.Product.REVIEWS.CLASSES.FORM_GRID}>
             {/* Interactive 1-5 Star Selector */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 mb-2">
-                Your Overall Rating *
+              <label className={AppConstants.Product.REVIEWS.CLASSES.LABEL}>
+                {AppConstants.Product.REVIEWS.COPY.LABEL_RATING}
               </label>
-              <div className="flex items-center gap-1.5">
-                {[1, 2, 3, 4, 5].map((star) => {
+              <div className={AppConstants.Product.REVIEWS.CLASSES.STARS_ROW}>
+                {AppConstants.Product.REVIEWS.STARS.map((star) => {
                   const active = (hoverRating || rating) >= star;
                   return (
                     <button
@@ -199,38 +224,42 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
                       onMouseEnter={() => setHoverRating(star)}
                       onMouseLeave={() => setHoverRating(0)}
                       onClick={() => setRating(star)}
-                      aria-label={`Rate ${star} out of 5 stars`}
-                      className="p-1.5 rounded-lg hover:bg-amber-50 transition-colors cursor-pointer"
+                      aria-label={AppConstants.Product.REVIEWS.COPY.RATE_STAR_ARIA(
+                        star
+                      )}
+                      className={AppConstants.Product.REVIEWS.CLASSES.STAR_BTN}
                     >
                       <Star
-                        className={`w-7 h-7 transition-transform ${
+                        className={AppConstants.Product.REVIEWS.CLASSES.STAR_ICON(
                           active
-                            ? 'fill-amber-400 text-amber-500 scale-105'
-                            : 'text-stone-300'
-                        }`}
+                        )}
                       />
                     </button>
                   );
                 })}
-                <span className="ml-2 text-xs font-bold text-stone-800">
-                  {rating} / 5 Stars
+                <span
+                  className={
+                    AppConstants.Product.REVIEWS.CLASSES.RATING_DISPLAY
+                  }
+                >
+                  {AppConstants.Product.REVIEWS.COPY.STAR_COUNT_TEXT(rating)}
                 </span>
               </div>
             </div>
 
             {/* Size Purchased / Worn */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 mb-2">
-                Size Purchased (Optional)
+              <label className={AppConstants.Product.REVIEWS.CLASSES.LABEL}>
+                {AppConstants.Product.REVIEWS.COPY.LABEL_SIZE_PURCHASED}
               </label>
               <select
                 value={selectedSize}
                 onChange={(e) => setSelectedSize(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm bg-white"
+                className={AppConstants.Product.REVIEWS.CLASSES.SELECT}
               >
                 {product.sizes.map((sz) => (
                   <option key={sz} value={sz}>
-                    Size: {sz}
+                    {AppConstants.Product.REVIEWS.COPY.SIZE_OPTION(sz)}
                   </option>
                 ))}
               </select>
@@ -238,103 +267,142 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 mb-1.5">
-              Review Headline (Optional)
+            <label className={AppConstants.Product.REVIEWS.CLASSES.LABEL_INPUT}>
+              {AppConstants.Product.REVIEWS.COPY.LABEL_HEADLINE}
             </label>
             <input
               type="text"
-              maxLength={100}
+              maxLength={AppConstants.Product.REVIEWS.MAX_TITLE_LENGTH}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Pure fabric quality & gorgeous Bandhej colour!"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+              placeholder={
+                AppConstants.Product.REVIEWS.COPY.PLACEHOLDER_HEADLINE
+              }
+              className={AppConstants.Product.REVIEWS.CLASSES.INPUT}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 mb-1.5">
-              Your Review / Comment *
+            <label className={AppConstants.Product.REVIEWS.CLASSES.LABEL_INPUT}>
+              {AppConstants.Product.REVIEWS.COPY.LABEL_COMMENT}
             </label>
             <textarea
               required
               rows={3}
-              maxLength={1200}
+              maxLength={AppConstants.Product.REVIEWS.MAX_COMMENT_LENGTH}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Tell other shoppers about the fabric feel, Zari/Bandhej work, colour accuracy, and fit..."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
+              placeholder={
+                AppConstants.Product.REVIEWS.COPY.PLACEHOLDER_COMMENT
+              }
+              className={AppConstants.Product.REVIEWS.CLASSES.TEXTAREA}
             />
           </div>
 
-          <div className="flex justify-end gap-3">
+          <div className={AppConstants.Product.REVIEWS.CLASSES.FORM_ACTIONS}>
             <button
               type="button"
               onClick={() => setIsFormOpen(false)}
-              className="px-4 py-2.5 rounded-xl border border-stone-300 text-xs font-semibold text-stone-700"
+              className={AppConstants.Product.REVIEWS.CLASSES.CANCEL_BTN}
             >
-              Cancel
+              {AppConstants.Product.REVIEWS.COPY.CANCEL}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-6 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs sm:text-sm font-semibold disabled:opacity-50 cursor-pointer"
+              className={AppConstants.Product.REVIEWS.CLASSES.SUBMIT_BTN}
             >
-              {isSubmitting ? 'Publishing Review...' : 'Post Customer Review'}
+              {isSubmitting
+                ? AppConstants.Product.REVIEWS.COPY.SUBMITTING
+                : AppConstants.Product.REVIEWS.COPY.SUBMIT}
             </button>
           </div>
         </form>
       )}
 
-      {/* Conditional Rendering:
-          - If reviewCount === 0: Do NOT show any fake reviews or rating numbers.
-          - If reviewCount > 0: Show Average Rating Summary + Verified Customer Comments. */}
+      {/* Review Count Logic */}
       {reviewCount > 0 && averageRating !== null ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className={AppConstants.Product.REVIEWS.CLASSES.SUMMARY_GRID}>
           {/* Left Column: Overall Average Rating & Star Distribution */}
-          <div className="lg:col-span-4">
-            <div className="p-6 rounded-3xl bg-white border border-stone-200/90 shadow-2xs space-y-5">
-              <div className="flex items-center gap-4">
-                <div className="text-4xl sm:text-5xl font-serif font-bold text-stone-950">
+          <div className={AppConstants.Product.REVIEWS.CLASSES.LEFT_COL}>
+            <div className={AppConstants.Product.REVIEWS.CLASSES.SUMMARY_CARD}>
+              <div className={AppConstants.Product.REVIEWS.CLASSES.AVERAGE_ROW}>
+                <div
+                  className={
+                    AppConstants.Product.REVIEWS.CLASSES.AVERAGE_NUMBER
+                  }
+                >
                   {averageRating.toFixed(1)}
                 </div>
                 <div className="space-y-1">
-                  <div className="flex items-center gap-0.5">
-                    {[1, 2, 3, 4, 5].map((star) => (
+                  <div className={AppConstants.Product.REVIEWS.CLASSES.STARS_GROUP}>
+                    {AppConstants.Product.REVIEWS.STARS.map((star) => (
                       <Star
                         key={star}
-                        className={`w-4 h-4 ${
+                        className={AppConstants.Product.REVIEWS.CLASSES.AVG_STAR(
                           star <= Math.round(averageRating)
-                            ? 'fill-amber-400 text-amber-500'
-                            : 'text-stone-300'
-                        }`}
+                        )}
                       />
                     ))}
                   </div>
-                  <p className="text-xs font-medium text-stone-600">
-                    Based on <strong>{reviewCount}</strong>{' '}
-                    {reviewCount === 1 ? 'customer review' : 'customer reviews'}
+                  <p
+                    className={
+                      AppConstants.Product.REVIEWS.CLASSES.REVIEW_COUNT_TEXT
+                    }
+                  >
+                    {AppConstants.Product.REVIEWS.COPY.BASED_ON}
+                    <strong>{reviewCount}</strong>{' '}
+                    {reviewCount === 1
+                      ? AppConstants.Product.REVIEWS.COPY.REVIEW_SINGULAR
+                      : AppConstants.Product.REVIEWS.COPY.REVIEW_PLURAL}
                   </p>
                 </div>
               </div>
 
               {/* 5-Star to 1-Star Breakdown Bars */}
-              <div className="space-y-2 pt-3 border-t border-stone-100">
+              <div
+                className={
+                  AppConstants.Product.REVIEWS.CLASSES.BREAKDOWN_WRAPPER
+                }
+              >
                 {starDistribution.map(({ starValue, count, pct }) => (
                   <div
                     key={starValue}
-                    className="flex items-center gap-2.5 text-xs"
+                    className={
+                      AppConstants.Product.REVIEWS.CLASSES.BREAKDOWN_ROW
+                    }
                   >
-                    <span className="w-8 font-semibold text-stone-700 flex items-center gap-0.5">
+                    <span
+                      className={
+                        AppConstants.Product.REVIEWS.CLASSES
+                          .BREAKDOWN_STAR_LABEL
+                      }
+                    >
                       {starValue}
-                      <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                      <Star
+                        className={
+                          AppConstants.Product.REVIEWS.CLASSES
+                            .BREAKDOWN_STAR_ICON
+                        }
+                      />
                     </span>
-                    <div className="flex-1 h-2 rounded-full bg-stone-100 overflow-hidden">
+                    <div
+                      className={
+                        AppConstants.Product.REVIEWS.CLASSES.BREAKDOWN_TRACK
+                      }
+                    >
                       <div
-                        className="h-full rounded-full bg-amber-400 transition-all duration-500"
+                        className={
+                          AppConstants.Product.REVIEWS.CLASSES.BREAKDOWN_FILL
+                        }
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="w-7 text-right text-stone-500 tabular-nums">
+                    <span
+                      className={
+                        AppConstants.Product.REVIEWS.CLASSES.BREAKDOWN_COUNT
+                      }
+                    >
                       {count}
                     </span>
                   </div>
@@ -344,67 +412,111 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
           </div>
 
           {/* Right Column: Customer Reviews & Comments List */}
-          <div className="lg:col-span-8 space-y-4">
+          <div className={AppConstants.Product.REVIEWS.CLASSES.REVIEWS_LIST}>
             {reviews.map((rev) => {
               const initial = rev.customer_name.charAt(0).toUpperCase();
               return (
                 <article
                   key={rev.id}
-                  className="p-5 sm:p-6 rounded-3xl bg-white border border-stone-200/90 shadow-2xs space-y-3"
+                  className={AppConstants.Product.REVIEWS.CLASSES.REVIEW_CARD}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-stone-900 text-amber-300 font-serif font-bold text-xs flex items-center justify-center shrink-0">
+                  <div
+                    className={AppConstants.Product.REVIEWS.CLASSES.REVIEW_TOP}
+                  >
+                    <div
+                      className={
+                        AppConstants.Product.REVIEWS.CLASSES.AUTHOR_INFO
+                      }
+                    >
+                      <div
+                        className={AppConstants.Product.REVIEWS.CLASSES.AVATAR}
+                      >
                         {initial}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-stone-950">
+                        <div
+                          className={
+                            AppConstants.Product.REVIEWS.CLASSES.AUTHOR_NAME_ROW
+                          }
+                        >
+                          <span
+                            className={
+                              AppConstants.Product.REVIEWS.CLASSES.AUTHOR_NAME
+                            }
+                          >
                             {rev.customer_name}
                           </span>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-semibold">
-                            <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
-                            Verified Reviewer
+                          <span
+                            className={
+                              AppConstants.Product.REVIEWS.CLASSES.VERIFIED_BADGE
+                            }
+                          >
+                            <CheckCircle2
+                              className={
+                                AppConstants.Product.REVIEWS.CLASSES.VERIFIED_ICON
+                              }
+                            />
+                            {
+                              AppConstants.Product.REVIEWS.COPY
+                                .VERIFIED_REVIEWER
+                            }
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div
+                          className={
+                            AppConstants.Product.REVIEWS.CLASSES
+                              .REVIEW_STARS_ROW
+                          }
+                        >
                           <div className="flex items-center gap-0.5">
-                            {[1, 2, 3, 4, 5].map((star) => (
+                            {AppConstants.Product.REVIEWS.STARS.map((star) => (
                               <Star
                                 key={star}
-                                className={`w-3.5 h-3.5 ${
+                                className={AppConstants.Product.REVIEWS.CLASSES.REVIEW_STAR(
                                   star <= rev.rating
-                                    ? 'fill-amber-400 text-amber-500'
-                                    : 'text-stone-300'
-                                }`}
+                                )}
                               />
                             ))}
                           </div>
                           {rev.selected_size && (
-                            <span className="text-[11px] text-stone-500">
-                              • Size: <strong>{rev.selected_size}</strong>
+                            <span
+                              className={
+                                AppConstants.Product.REVIEWS.CLASSES.REVIEW_SIZE
+                              }
+                            >
+                              {AppConstants.Product.REVIEWS.COPY.SIZE_TAG}
+                              <strong>{rev.selected_size}</strong>
                             </span>
                           )}
                         </div>
                       </div>
                     </div>
 
-                    <time className="text-[11px] text-stone-400">
-                      {new Date(rev.created_at).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
+                    <time
+                      className={AppConstants.Product.REVIEWS.CLASSES.DATE_TIME}
+                    >
+                      {new Date(rev.created_at).toLocaleDateString(
+                        AppConstants.Account.LOCALE,
+                        AppConstants.Account.DATE_FORMATS.ORDER_PLACED
+                      )}
                     </time>
                   </div>
 
                   {rev.title && (
-                    <h4 className="text-sm font-bold text-stone-900 pt-1">
+                    <h4
+                      className={
+                        AppConstants.Product.REVIEWS.CLASSES.REVIEW_TITLE
+                      }
+                    >
                       {rev.title}
                     </h4>
                   )}
 
-                  <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
+                  <p
+                    className={
+                      AppConstants.Product.REVIEWS.CLASSES.REVIEW_BODY
+                    }
+                  >
                     {rev.comment}
                   </p>
                 </article>
@@ -414,13 +526,12 @@ export function ProductReviewsSection({ product }: ProductReviewsSectionProps) {
         </div>
       ) : (
         !isFormOpen && (
-          <div className="p-8 sm:p-10 rounded-3xl bg-stone-100/70 border border-stone-200/80 text-center max-w-xl mx-auto space-y-3">
-            <p className="text-sm font-semibold text-stone-800">
-              No reviews yet for this piece
+          <div className={AppConstants.Product.REVIEWS.CLASSES.EMPTY_CARD}>
+            <p className={AppConstants.Product.REVIEWS.CLASSES.EMPTY_TITLE}>
+              {AppConstants.Product.REVIEWS.COPY.EMPTY_TITLE}
             </p>
-            <p className="text-xs text-stone-500 leading-relaxed">
-              Purchased or tried <strong>{product.name}</strong>? Be the first
-              customer to share a review and help other shoppers!
+            <p className={AppConstants.Product.REVIEWS.CLASSES.EMPTY_SUBTITLE}>
+              {AppConstants.Product.REVIEWS.COPY.EMPTY_BODY(product.name)}
             </p>
           </div>
         )

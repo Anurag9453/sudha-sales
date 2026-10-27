@@ -180,6 +180,15 @@ export class AppConstants {
   } as const;
 
   /**
+   * Product Catalog Statuses
+   */
+  public static readonly ProductStatus = {
+    ACTIVE: 'ACTIVE',
+    DRAFT: 'DRAFT',
+    ARCHIVED: 'ARCHIVED',
+  } as const;
+
+  /**
    * Standard Apparel Sizes
    */
   public static readonly Sizes = {

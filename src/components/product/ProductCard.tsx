@@ -7,6 +7,8 @@
 //   containing glassy dot indicators (0 0 0 0) showing the active photo.
 // - Below the product card is the "Add to Cart" button that navigates to
 //   `/product/[sku]` (e.g. `/product/SKU005`) for size & quantity selection.
+// All visual copy, SVG attributes, CSS class names, and image dimensions
+// are bound to AppConstants.Product.CARD and AppConstants.Product.ROUTES.
 // ============================================================================
 
 'use client';
@@ -26,6 +28,7 @@ import {
 } from 'lucide-react';
 import { formatPrice, getDiscountPercentage } from '@/lib/format';
 import { LuxurySpinner } from '@/components/ui/LuxurySpinner';
+import { AppConstants } from '@/constants/app.constants';
 import type { Product } from '@/types/domain';
 
 interface ProductCardProps {
@@ -44,23 +47,25 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   const secondaryImage = product.images[1];
   const discountPct = getDiscountPercentage(product.price, product.sale_price);
   const isOutOfStock = product.stock <= 0;
-  const isLowStock = product.stock > 0 && product.stock <= 5;
+  const isLowStock =
+    product.stock > 0 &&
+    product.stock <= AppConstants.Inventory.LOW_STOCK_THRESHOLD;
 
   // Lock page background scrolling and interaction when modal is open
   useEffect(() => {
     if (!isModalOpen) return;
 
     const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = AppConstants.Product.CARD.OVERFLOW_HIDDEN;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === AppConstants.Product.CARD.KEY_ESCAPE) {
         setIsModalOpen(false);
-      } else if (e.key === 'ArrowLeft') {
+      } else if (e.key === AppConstants.Product.CARD.KEY_ARROW_LEFT) {
         setActiveSlideIndex((prev) =>
           prev === 0 ? product.images.length - 1 : prev - 1
         );
-      } else if (e.key === 'ArrowRight') {
+      } else if (e.key === AppConstants.Product.CARD.KEY_ARROW_RIGHT) {
         setActiveSlideIndex((prev) =>
           prev === product.images.length - 1 ? 0 : prev + 1
         );
@@ -93,7 +98,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   return (
     <>
       <article
-        className="group flex flex-col"
+        className={AppConstants.Product.CARD.CLASSES.ARTICLE}
         onMouseEnter={preloadAllProductImages}
         onTouchStart={preloadAllProductImages}
       >
@@ -101,8 +106,8 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         <button
           type="button"
           onClick={openGalleryModal}
-          aria-label={`View all photos of ${product.name}`}
-          className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-stone-100 block text-left cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-stone-900"
+          aria-label={AppConstants.Product.CARD.ARIA.VIEW_ALL_PHOTOS(product.name)}
+          className={AppConstants.Product.CARD.CLASSES.IMAGE_BUTTON}
         >
           {primaryImage ? (
             <>
@@ -110,64 +115,67 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                 src={primaryImage.image_url}
                 alt={primaryImage.alt_text || product.name}
                 fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                sizes={AppConstants.Product.CARD.SIZES_IMAGE}
                 priority={priority}
-                className={`object-cover object-top transition-all duration-500 group-hover:scale-105 ${
-                  secondaryImage ? 'group-hover:opacity-0' : ''
-                }`}
+                className={AppConstants.Product.CARD.CLASSES.IMAGE_PRIMARY(
+                  Boolean(secondaryImage)
+                )}
               />
               {secondaryImage && (
                 <Image
                   src={secondaryImage.image_url}
                   alt={
-                    secondaryImage.alt_text || `${product.name} alternate view`
+                    secondaryImage.alt_text ||
+                    AppConstants.Product.CARD.COPY.ALTERNATE_VIEW(product.name)
                   }
                   fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  className="object-cover object-top opacity-0 transition-all duration-500 group-hover:opacity-100 group-hover:scale-105"
+                  sizes={AppConstants.Product.CARD.SIZES_IMAGE}
+                  className={AppConstants.Product.CARD.CLASSES.IMAGE_SECONDARY}
                 />
               )}
             </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-stone-400 text-xs">
-              No image
+            <div className={AppConstants.Product.CARD.CLASSES.NO_IMAGE}>
+              {AppConstants.Product.CARD.COPY.NO_IMAGE}
             </div>
           )}
 
           {/* Top-left Badges */}
-          <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5">
+          <div className={AppConstants.Product.CARD.CLASSES.BADGE_CONTAINER}>
             {isOutOfStock ? (
-              <span className="px-2.5 py-1 rounded-full bg-stone-900/90 text-white text-[10px] font-semibold uppercase tracking-wider">
-                Sold Out
+              <span className={AppConstants.Product.CARD.CLASSES.BADGE_SOLD_OUT}>
+                {AppConstants.Product.CARD.COPY.SOLD_OUT}
               </span>
             ) : discountPct ? (
-              <span className="px-2.5 py-1 rounded-full bg-rose-700 text-white text-[10px] font-semibold uppercase tracking-wider shadow-xs">
-                -{discountPct}% Off
+              <span className={AppConstants.Product.CARD.CLASSES.BADGE_DISCOUNT}>
+                {AppConstants.Product.CARD.COPY.DISCOUNT_BADGE(discountPct)}
               </span>
             ) : null}
 
-            {!isOutOfStock && product.collection?.slug === 'new-collection' && (
-              <span className="px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-xs text-stone-900 text-[10px] font-semibold uppercase tracking-wider">
-                New Drop
-              </span>
-            )}
+            {!isOutOfStock &&
+              product.collection?.slug ===
+                AppConstants.Product.COLLECTIONS.NEW_COLLECTION_SLUG && (
+                <span className={AppConstants.Product.CARD.CLASSES.BADGE_NEW_DROP}>
+                  {AppConstants.Product.CARD.COPY.NEW_DROP}
+                </span>
+              )}
           </div>
 
           {/* Top-right Photo Count Indicator */}
           {product.images.length > 1 && (
-            <div className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-stone-950/75 text-white text-[10px] font-medium backdrop-blur-xs">
-              <Images className="w-3 h-3" />
+            <div className={AppConstants.Product.CARD.CLASSES.COUNT_BADGE}>
+              <Images className={AppConstants.Product.CARD.CLASSES.COUNT_ICON} />
               <span>{product.images.length}</span>
             </div>
           )}
 
           {/* Bottom Size Strip Overlay */}
-          <div className="absolute bottom-2.5 inset-x-2.5 flex items-center justify-between gap-1 pointer-events-none">
-            <div className="flex flex-wrap gap-1 bg-white/90 backdrop-blur-xs px-2 py-1 rounded-lg border border-stone-200/70">
+          <div className={AppConstants.Product.CARD.CLASSES.SIZE_STRIP_WRAPPER}>
+            <div className={AppConstants.Product.CARD.CLASSES.SIZE_STRIP}>
               {product.sizes.map((size) => (
                 <span
                   key={size}
-                  className="text-[10px] font-semibold text-stone-800 px-1"
+                  className={AppConstants.Product.CARD.CLASSES.SIZE_BADGE}
                 >
                   {size}
                 </span>
@@ -175,46 +183,49 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             </div>
 
             {isLowStock && (
-              <span className="hidden sm:inline-block bg-amber-950/85 text-amber-100 text-[10px] font-medium px-2 py-1 rounded-lg">
-                Only {product.stock} left
+              <span className={AppConstants.Product.CARD.CLASSES.LOW_STOCK_BADGE}>
+                {AppConstants.Product.CARD.COPY.ONLY_LEFT(product.stock)}
               </span>
             )}
           </div>
         </button>
 
         {/* Product Metadata & Add to Cart Button below card (navigates to /product/[sku]) */}
-        <div className="pt-3 flex-1 flex flex-col justify-between space-y-2.5">
+        <div className={AppConstants.Product.CARD.CLASSES.META_CONTAINER}>
           <div>
-            <div className="flex items-center justify-between gap-2 text-[11px] text-stone-500">
-              <span className="truncate">
-                {product.category?.name ?? 'Apparel'}
+            <div className={AppConstants.Product.CARD.CLASSES.META_HEADER}>
+              <span className={AppConstants.Product.CARD.CLASSES.CATEGORY}>
+                {product.category?.name ??
+                  AppConstants.Product.CARD.DEFAULT_CATEGORY}
               </span>
-              <span className="font-mono text-[10px] text-stone-400">
+              <span className={AppConstants.Product.CARD.CLASSES.SKU}>
                 {product.sku}
               </span>
             </div>
 
             <Link
-              href={`/product/${product.sku}`}
-              className="mt-0.5 text-sm sm:text-[15px] font-medium text-stone-900 group-hover:text-stone-700 line-clamp-2 leading-snug block"
+              href={AppConstants.Product.ROUTES.PRODUCT(product.sku)}
+              className={AppConstants.Product.CARD.CLASSES.NAME_LINK}
             >
               {product.name}
             </Link>
 
-            <div className="pt-1 flex items-center justify-between gap-2">
-              <div className="flex items-baseline gap-2">
+            <div className={AppConstants.Product.CARD.CLASSES.PRICE_ROW}>
+              <div className={AppConstants.Product.CARD.CLASSES.PRICE_GROUP}>
                 {product.sale_price !== null &&
                 product.sale_price < product.price ? (
                   <>
-                    <span className="text-sm sm:text-base font-semibold text-stone-950">
+                    <span className={AppConstants.Product.CARD.CLASSES.PRICE_SALE}>
                       {formatPrice(product.sale_price)}
                     </span>
-                    <span className="text-xs text-stone-400 line-through">
+                    <span
+                      className={AppConstants.Product.CARD.CLASSES.PRICE_REGULAR}
+                    >
                       {formatPrice(product.price)}
                     </span>
                   </>
                 ) : (
-                  <span className="text-sm sm:text-base font-semibold text-stone-950">
+                  <span className={AppConstants.Product.CARD.CLASSES.PRICE_NORMAL}>
                     {formatPrice(product.price)}
                   </span>
                 )}
@@ -224,10 +235,10 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               {product.review_count &&
               product.review_count > 0 &&
               product.average_rating ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200/80 text-[11px] font-bold text-stone-900 shrink-0">
-                  <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                <span className={AppConstants.Product.CARD.CLASSES.RATING_BADGE}>
+                  <Star className={AppConstants.Product.CARD.CLASSES.RATING_STAR} />
                   <span>{product.average_rating.toFixed(1)}</span>
-                  <span className="text-stone-400 font-normal">
+                  <span className={AppConstants.Product.CARD.CLASSES.RATING_COUNT}>
                     ({product.review_count})
                   </span>
                 </span>
@@ -241,20 +252,26 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             disabled={isNavigating}
             onClick={() => {
               startTransition(() => {
-                router.push(`/product/${product.sku}`);
+                router.push(AppConstants.Product.ROUTES.PRODUCT(product.sku));
               });
             }}
-            className="w-full py-2.5 px-3 rounded-xl bg-stone-900 text-white hover:bg-stone-800 active:scale-[0.99] text-xs sm:text-sm font-semibold inline-flex items-center justify-center gap-1.5 transition-all disabled:opacity-75 cursor-pointer"
+            className={AppConstants.Product.CARD.CLASSES.CTA_BUTTON}
           >
             {isNavigating ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-300" />
-                <span>Opening {product.sku}...</span>
+                <Loader2
+                  className={AppConstants.Product.CARD.CLASSES.CTA_SPINNER}
+                />
+                <span>
+                  {AppConstants.Product.CARD.COPY.OPENING_SKU(product.sku)}
+                </span>
               </>
             ) : (
               <>
-                <ShoppingBag className="w-3.5 h-3.5" />
-                <span>Add to Cart</span>
+                <ShoppingBag
+                  className={AppConstants.Product.CARD.CLASSES.CTA_ICON}
+                />
+                <span>{AppConstants.Product.CARD.COPY.ADD_TO_CART}</span>
               </>
             )}
           </button>
@@ -264,18 +281,18 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       {isNavigating && (
         <LuxurySpinner
           fullScreenOverlay
-          title={`Opening ${product.name}...`}
-          subtitle={`Loading sizes, stock & photos for ${product.sku}`}
+          title={AppConstants.Product.CARD.COPY.SPINNER_TITLE(product.name)}
+          subtitle={AppConstants.Product.CARD.COPY.SPINNER_SUBTITLE(product.sku)}
         />
       )}
 
-      {/* Centered Pure Frosted-Glass Photo Modal (No header bar overlapping photo; purely photo + X + arrows + dots) */}
+      {/* Centered Pure Frosted-Glass Photo Modal */}
       {isModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={`${product.name} photo viewer`}
-          className="fixed inset-0 z-50 bg-black/25 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
+          aria-label={AppConstants.Product.CARD.ARIA.PHOTO_VIEWER(product.name)}
+          className={AppConstants.Product.CARD.CLASSES.MODAL_BACKDROP}
         >
           {/* Pure Translucent Frosted Glass Card */}
           <div
@@ -284,7 +301,10 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               if (touchStartX === null || product.images.length <= 1) return;
               const touchEndX = e.changedTouches[0]?.clientX ?? touchStartX;
               const deltaX = touchStartX - touchEndX;
-              if (Math.abs(deltaX) > 40) {
+              if (
+                Math.abs(deltaX) >
+                AppConstants.Product.CARD.SWIPE_THRESHOLD_PX
+              ) {
                 if (deltaX > 0) {
                   setActiveSlideIndex((prev) =>
                     prev === product.images.length - 1 ? 0 : prev + 1
@@ -297,16 +317,16 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               }
               setTouchStartX(null);
             }}
-            className="relative w-full max-w-xl aspect-[4/4.2] sm:aspect-[16/11] max-h-[68vh] rounded-[32px] bg-white/20 backdrop-blur-2xl border border-white/60 shadow-[0_24px_80px_rgba(0,0,0,0.28)] ring-1 ring-white/30 flex items-center justify-center overflow-hidden touch-pan-y"
+            className={AppConstants.Product.CARD.CLASSES.MODAL_CARD}
           >
-            {/* Floating Glassy Close (X) Button in Top-Right Corner Only */}
+            {/* Floating Glassy Close (X) Button */}
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              aria-label="Close photo viewer"
-              className="absolute top-3.5 right-3.5 z-30 w-9 h-9 rounded-full bg-white/65 hover:bg-white/90 backdrop-blur-xl border border-white/80 text-stone-900 shadow-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+              aria-label={AppConstants.Product.CARD.ARIA.CLOSE_VIEWER}
+              className={AppConstants.Product.CARD.CLASSES.CLOSE_BUTTON}
             >
-              <X className="w-4 h-4" />
+              <X className={AppConstants.Product.CARD.CLASSES.CLOSE_ICON} />
             </button>
 
             {/* Pre-rendered Stack of All Product Photos for 0ms Instant Switching */}
@@ -316,16 +336,20 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                 <Image
                   key={img.id || idx}
                   src={img.image_url}
-                  alt={img.alt_text || `${product.name} view ${idx + 1}`}
+                  alt={
+                    img.alt_text ||
+                    AppConstants.Product.GALLERY.COPY.VIEW_N(
+                      product.name,
+                      idx + 1
+                    )
+                  }
                   fill
                   priority
                   loading="eager"
-                  sizes="(max-width: 640px) 92vw, 576px"
-                  className={`object-contain p-3 sm:p-5 pb-14 drop-shadow-[0_16px_36px_rgba(0,0,0,0.28)] transition-opacity duration-150 ${
+                  sizes={AppConstants.Product.CARD.MODAL_IMAGE_SIZES}
+                  className={AppConstants.Product.CARD.CLASSES.MODAL_IMAGE(
                     isActive
-                      ? 'opacity-100 z-10'
-                      : 'opacity-0 z-0 pointer-events-none'
-                  }`}
+                  )}
                 />
               );
             })}
@@ -339,10 +363,12 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                       prev === 0 ? product.images.length - 1 : prev - 1
                     )
                   }
-                  aria-label="Previous photo"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/65 hover:bg-white/90 backdrop-blur-xl border border-white/80 text-stone-900 shadow-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+                  aria-label={AppConstants.Product.CARD.ARIA.PREV_PHOTO}
+                  className={AppConstants.Product.CARD.CLASSES.NAV_PREV}
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  <ChevronLeft
+                    className={AppConstants.Product.CARD.CLASSES.NAV_ICON}
+                  />
                 </button>
 
                 <button
@@ -352,20 +378,22 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                       prev === product.images.length - 1 ? 0 : prev + 1
                     )
                   }
-                  aria-label="Next photo"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/65 hover:bg-white/90 backdrop-blur-xl border border-white/80 text-stone-900 shadow-lg flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+                  aria-label={AppConstants.Product.CARD.ARIA.NEXT_PHOTO}
+                  className={AppConstants.Product.CARD.CLASSES.NAV_NEXT}
                 >
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight
+                    className={AppConstants.Product.CARD.CLASSES.NAV_ICON}
+                  />
                 </button>
               </>
             )}
 
-            {/* Bottom Glassmorphism Pill with Glassy Dot Indicators (0 0 0) */}
-            <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-20">
+            {/* Bottom Glassmorphism Pill with Glassy Dot Indicators */}
+            <div className={AppConstants.Product.CARD.CLASSES.DOTS_WRAPPER}>
               <div
                 role="tablist"
-                aria-label="Photo navigation indicators"
-                className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/60 backdrop-blur-xl border border-white/80 shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+                aria-label={AppConstants.Product.CARD.ARIA.TABLIST}
+                className={AppConstants.Product.CARD.CLASSES.DOTS_BAR}
               >
                 {product.images.map((img, idx) => {
                   const isCurrent = idx === activeSlideIndex;
@@ -375,13 +403,12 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                       type="button"
                       role="tab"
                       aria-selected={isCurrent}
-                      aria-label={`Photo ${idx + 1} of ${product.images.length}`}
+                      aria-label={AppConstants.Product.CARD.ARIA.PHOTO_TAB(
+                        idx + 1,
+                        product.images.length
+                      )}
                       onClick={() => setActiveSlideIndex(idx)}
-                      className={`rounded-full transition-all duration-300 cursor-pointer ${
-                        isCurrent
-                          ? 'w-3.5 h-3.5 bg-stone-900 border-2 border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.7)] scale-110'
-                          : 'w-2.5 h-2.5 bg-stone-900/30 hover:bg-stone-900/60 border border-white/80 backdrop-blur-md'
-                      }`}
+                      className={AppConstants.Product.CARD.CLASSES.DOT(isCurrent)}
                     />
                   );
                 })}

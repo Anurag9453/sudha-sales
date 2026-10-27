@@ -2,6 +2,7 @@
 // Product Detail Page: src/app/(storefront)/product/[sku]/page.tsx
 // Displays multi-image gallery, SKU badge, regular & sale price, size selector,
 // stock availability, quantity selector, Add to Bag, and related products.
+// Bound to AppConstants.Product.DETAIL and AppConstants.Product.ROUTES.
 // ============================================================================
 
 import React from 'react';
@@ -14,6 +15,7 @@ import { ProductPurchasePanel } from '@/components/product/ProductPurchasePanel'
 import { ProductReviewsSection } from '@/components/product/ProductReviewsSection';
 import { ProductCard } from '@/components/product/ProductCard';
 import { formatPrice, getDiscountPercentage } from '@/lib/format';
+import { AppConstants } from '@/constants/app.constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,42 +33,61 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  const relatedProducts = await getRelatedProducts(product, 4);
+  const relatedProducts = await getRelatedProducts(
+    product,
+    AppConstants.Product.DETAIL.RELATED_PRODUCTS_LIMIT
+  );
   const discountPct = getDiscountPercentage(product.price, product.sale_price);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+    <div className={AppConstants.Product.DETAIL.CLASSES.PAGE}>
       {/* Breadcrumb Navigation */}
       <nav
-        aria-label="Breadcrumb"
-        className="flex items-center gap-1.5 text-xs text-stone-500 mb-6 overflow-x-auto whitespace-nowrap"
+        aria-label={AppConstants.Product.DETAIL.ARIA.BREADCRUMB}
+        className={AppConstants.Product.DETAIL.CLASSES.BREADCRUMB}
       >
-        <Link href="/" className="hover:text-stone-900">
-          Home
+        <Link
+          href={AppConstants.Product.ROUTES.HOME}
+          className={AppConstants.Product.DETAIL.CLASSES.BREADCRUMB_LINK}
+        >
+          {AppConstants.Product.DETAIL.COPY.HOME}
         </Link>
-        <ChevronRight className="w-3.5 h-3.5 shrink-0" />
-        <Link href="/shop" className="hover:text-stone-900">
-          Shop
+        <ChevronRight
+          className={AppConstants.Product.DETAIL.CLASSES.BREADCRUMB_ICON}
+        />
+        <Link
+          href={AppConstants.Product.ROUTES.SHOP}
+          className={AppConstants.Product.DETAIL.CLASSES.BREADCRUMB_LINK}
+        >
+          {AppConstants.Product.DETAIL.COPY.SHOP}
         </Link>
         {product.category && (
           <>
-            <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+            <ChevronRight
+              className={AppConstants.Product.DETAIL.CLASSES.BREADCRUMB_ICON}
+            />
             <Link
-              href={`/shop?category=${product.category.slug}`}
-              className="hover:text-stone-900"
+              href={AppConstants.Product.ROUTES.SHOP_CATEGORY(
+                product.category.slug
+              )}
+              className={AppConstants.Product.DETAIL.CLASSES.BREADCRUMB_LINK}
             >
               {product.category.name}
             </Link>
           </>
         )}
-        <ChevronRight className="w-3.5 h-3.5 shrink-0" />
-        <span className="text-stone-900 font-medium truncate">{product.name}</span>
+        <ChevronRight
+          className={AppConstants.Product.DETAIL.CLASSES.BREADCRUMB_ICON}
+        />
+        <span className={AppConstants.Product.DETAIL.CLASSES.BREADCRUMB_CURRENT}>
+          {product.name}
+        </span>
       </nav>
 
       {/* Main Product Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+      <div className={AppConstants.Product.DETAIL.CLASSES.LAYOUT_GRID}>
         {/* Left: Multi-Image Gallery */}
-        <div className="lg:col-span-7">
+        <div className={AppConstants.Product.DETAIL.CLASSES.GALLERY_COL}>
           <ProductGallery
             images={product.images}
             productName={product.name}
@@ -75,31 +96,42 @@ export default async function ProductDetailPage({
         </div>
 
         {/* Right: Product Info & Purchase Controls */}
-        <div className="lg:col-span-5 space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
+        <div className={AppConstants.Product.DETAIL.CLASSES.INFO_COL}>
+          <div className={AppConstants.Product.DETAIL.CLASSES.TAGS_ROW}>
+            <div className={AppConstants.Product.DETAIL.CLASSES.TAGS_LEFT}>
               {product.collection && (
                 <Link
-                  href={`/shop?collection=${product.collection.slug}`}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-950 text-[11px] font-semibold"
+                  href={AppConstants.Product.ROUTES.SHOP_COLLECTION(
+                    product.collection.slug
+                  )}
+                  className={
+                    AppConstants.Product.DETAIL.CLASSES.COLLECTION_BADGE
+                  }
                 >
-                  <Sparkles className="w-3 h-3" />
+                  <Sparkles
+                    className={
+                      AppConstants.Product.DETAIL.CLASSES.SPARKLE_ICON
+                    }
+                  />
                   {product.collection.name}
                 </Link>
               )}
               {product.category && (
-                <span className="text-xs font-medium text-stone-500">
+                <span
+                  className={AppConstants.Product.DETAIL.CLASSES.CATEGORY_TEXT}
+                >
                   {product.category.name}
                 </span>
               )}
             </div>
 
-            <span className="font-mono text-xs px-2.5 py-1 rounded-md bg-stone-100 text-stone-600 border border-stone-200">
-              SKU: {product.sku}
+            <span className={AppConstants.Product.DETAIL.CLASSES.SKU_BADGE}>
+              {AppConstants.Product.DETAIL.COPY.SKU_PREFIX}
+              {product.sku}
             </span>
           </div>
 
-          <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-semibold text-stone-950 leading-tight">
+          <h1 className={AppConstants.Product.DETAIL.CLASSES.TITLE}>
             {product.name}
           </h1>
 
@@ -108,64 +140,89 @@ export default async function ProductDetailPage({
           product.review_count > 0 &&
           product.average_rating ? (
             <a
-              href="#customer-reviews"
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-200/90 text-xs font-semibold text-stone-900 transition-colors"
+              href={`#${AppConstants.Product.REVIEWS.SECTION_ID}`}
+              className={AppConstants.Product.DETAIL.CLASSES.RATING_LINK}
             >
-              <span className="flex items-center gap-0.5">
-                {[1, 2, 3, 4, 5].map((star) => (
+              <span
+                className={AppConstants.Product.DETAIL.CLASSES.RATING_STARS}
+              >
+                {AppConstants.Product.REVIEWS.STARS.map((star) => (
                   <Star
                     key={star}
-                    className={`w-3.5 h-3.5 ${
+                    className={AppConstants.Product.DETAIL.CLASSES.STAR_ICON(
                       star <= Math.round(product.average_rating!)
-                        ? 'fill-amber-400 text-amber-500'
-                        : 'text-stone-300'
-                    }`}
+                    )}
                   />
                 ))}
               </span>
-              <span className="font-bold">
-                {product.average_rating.toFixed(1)} out of 5
+              <span className={AppConstants.Product.DETAIL.CLASSES.RATING_AVG}>
+                {AppConstants.Product.DETAIL.COPY.RATING_OUT_OF_5(
+                  product.average_rating.toFixed(1)
+                )}
               </span>
-              <span className="text-stone-400">•</span>
-              <span className="underline text-stone-700">
+              <span className={AppConstants.Product.DETAIL.CLASSES.RATING_DOT}>
+                •
+              </span>
+              <span
+                className={
+                  AppConstants.Product.DETAIL.CLASSES.RATING_COUNT_TEXT
+                }
+              >
                 {product.review_count}{' '}
-                {product.review_count === 1 ? 'Customer Review' : 'Customer Reviews'}
+                {product.review_count === 1
+                  ? AppConstants.Product.DETAIL.COPY.CUSTOMER_REVIEW
+                  : AppConstants.Product.DETAIL.COPY.CUSTOMER_REVIEWS}
               </span>
             </a>
           ) : null}
 
           {/* Pricing Block */}
-          <div className="flex items-baseline gap-3 pt-1">
-            {product.sale_price !== null && product.sale_price < product.price ? (
+          <div className={AppConstants.Product.DETAIL.CLASSES.PRICE_ROW}>
+            {product.sale_price !== null &&
+            product.sale_price < product.price ? (
               <>
-                <span className="text-2xl sm:text-3xl font-bold text-stone-950">
+                <span className={AppConstants.Product.DETAIL.CLASSES.PRICE_SALE}>
                   {formatPrice(product.sale_price)}
                 </span>
-                <span className="text-base text-stone-400 line-through">
+                <span
+                  className={AppConstants.Product.DETAIL.CLASSES.PRICE_REGULAR}
+                >
                   {formatPrice(product.price)}
                 </span>
                 {discountPct && (
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-800">
-                    Save {discountPct}%
+                  <span
+                    className={
+                      AppConstants.Product.DETAIL.CLASSES.PRICE_DISCOUNT_BADGE
+                    }
+                  >
+                    {AppConstants.Product.DETAIL.COPY.SAVE_PCT(discountPct)}
                   </span>
                 )}
               </>
             ) : (
-              <span className="text-2xl sm:text-3xl font-bold text-stone-950">
+              <span
+                className={AppConstants.Product.DETAIL.CLASSES.PRICE_NORMAL}
+              >
                 {formatPrice(product.price)}
               </span>
             )}
           </div>
-          <p className="text-[11px] text-stone-500 -mt-3">
-            Inclusive of all taxes • Free shipping on orders over ₹1,499
+          <p className={AppConstants.Product.DETAIL.CLASSES.TAX_NOTE}>
+            {AppConstants.Product.DETAIL.COPY.TAX_SHIPPING_NOTE}
           </p>
 
           {/* Color Pill */}
           {product.color && (
-            <div className="pt-1 flex items-center gap-2 text-xs text-stone-700">
-              <Layers className="w-4 h-4 text-stone-500" />
-              <span>Color / Shade:</span>
-              <strong className="text-stone-950">{product.color}</strong>
+            <div className={AppConstants.Product.DETAIL.CLASSES.COLOR_ROW}>
+              <Layers
+                className={AppConstants.Product.DETAIL.CLASSES.LAYERS_ICON}
+              />
+              <span>{AppConstants.Product.DETAIL.COPY.COLOR_SHADE_LABEL}</span>
+              <strong
+                className={AppConstants.Product.DETAIL.CLASSES.COLOR_VALUE}
+              >
+                {product.color}
+              </strong>
             </div>
           )}
 
@@ -173,33 +230,45 @@ export default async function ProductDetailPage({
           <ProductPurchasePanel product={product} />
 
           {/* Product Story & Fabric Details */}
-          <div className="pt-6 border-t border-stone-200 space-y-4">
+          <div className={AppConstants.Product.DETAIL.CLASSES.STORY_SECTION}>
             <div>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-stone-900 mb-2">
-                Description &amp; Craftsmanship
+              <h2
+                className={
+                  AppConstants.Product.DETAIL.CLASSES.DESCRIPTION_HEADING
+                }
+              >
+                {AppConstants.Product.DETAIL.COPY.DESCRIPTION_HEADING}
               </h2>
-              <p className="text-sm text-stone-600 leading-relaxed">
+              <p
+                className={AppConstants.Product.DETAIL.CLASSES.DESCRIPTION_TEXT}
+              >
                 {product.description}
               </p>
             </div>
 
-            <div className="rounded-2xl bg-stone-100/80 border border-stone-200/80 p-4 space-y-2 text-xs text-stone-600">
-              <div className="flex justify-between">
-                <span className="text-stone-500">Product Code (SKU)</span>
-                <span className="font-mono font-semibold text-stone-900">
+            <div className={AppConstants.Product.DETAIL.CLASSES.SPECS_BOX}>
+              <div className={AppConstants.Product.DETAIL.CLASSES.SPEC_ROW}>
+                <span className={AppConstants.Product.DETAIL.CLASSES.SPEC_LABEL}>
+                  {AppConstants.Product.DETAIL.COPY.SPEC_SKU_LABEL}
+                </span>
+                <span className={AppConstants.Product.DETAIL.CLASSES.SPEC_SKU}>
                   {product.sku}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-stone-500">Available Sizes</span>
-                <span className="font-semibold text-stone-900">
+              <div className={AppConstants.Product.DETAIL.CLASSES.SPEC_ROW}>
+                <span className={AppConstants.Product.DETAIL.CLASSES.SPEC_LABEL}>
+                  {AppConstants.Product.DETAIL.COPY.SPEC_SIZES_LABEL}
+                </span>
+                <span className={AppConstants.Product.DETAIL.CLASSES.SPEC_SIZES}>
                   {product.sizes.join(', ')}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-stone-500">Wash Care</span>
-                <span className="font-medium text-stone-900">
-                  Gentle cold hand wash or dry clean
+              <div className={AppConstants.Product.DETAIL.CLASSES.SPEC_ROW}>
+                <span className={AppConstants.Product.DETAIL.CLASSES.SPEC_LABEL}>
+                  {AppConstants.Product.DETAIL.COPY.SPEC_WASH_CARE_LABEL}
+                </span>
+                <span className={AppConstants.Product.DETAIL.CLASSES.SPEC_CARE}>
+                  {AppConstants.Product.DETAIL.COPY.SPEC_WASH_CARE_VALUE}
                 </span>
               </div>
             </div>
@@ -212,11 +281,15 @@ export default async function ProductDetailPage({
 
       {/* Related Styles Section */}
       {relatedProducts.length > 0 && (
-        <section className="mt-16 sm:mt-24 pt-12 border-t border-stone-200">
-          <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-stone-950 mb-6">
-            You May Also Like
+        <section
+          className={AppConstants.Product.DETAIL.CLASSES.RELATED_SECTION}
+        >
+          <h2
+            className={AppConstants.Product.DETAIL.CLASSES.RELATED_HEADING}
+          >
+            {AppConstants.Product.DETAIL.COPY.RELATED_HEADING}
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+          <div className={AppConstants.Product.DETAIL.CLASSES.RELATED_GRID}>
             {relatedProducts.map((item) => (
               <ProductCard key={item.id} product={item} />
             ))}

@@ -2,6 +2,7 @@
 // Product Purchase Panel: src/components/product/ProductPurchasePanel.tsx
 // Handles size selection, quantity selection, stock validation, Add to Cart,
 // and instant Buy Now redirection to the Cart page.
+// Bound to AppConstants.Product.PURCHASE and AppConstants.Product.ROUTES.
 // ============================================================================
 
 'use client';
@@ -41,7 +42,8 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   };
 
   const initialSize = React.useMemo(() => {
-    if (!product.sizes || product.sizes.length === 0) return AppConstants.Sizes.FREE_SIZE;
+    if (!product.sizes || product.sizes.length === 0)
+      return AppConstants.Sizes.FREE_SIZE;
     const firstAvailable = product.sizes.find((s) => {
       const q =
         product.size_stock && typeof product.size_stock[s] === 'number'
@@ -57,7 +59,9 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   const [addedFeedback, setAddedFeedback] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const isOverallOutOfStock = product.stock <= 0 || product.status !== 'ACTIVE';
+  const isOverallOutOfStock =
+    product.stock <= 0 ||
+    product.status !== AppConstants.Product.STATUS.ACTIVE;
   const currentSizeStock = getStockForSize(selectedSize);
   const isSelectedSizeOutOfStock = isOverallOutOfStock || currentSizeStock <= 0;
   const isOverQuantity = quantity > currentSizeStock;
@@ -68,7 +72,10 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     if (next < 1) return;
     if (next > currentSizeStock) {
       setErrorMessage(
-        `Cannot select more than ${currentSizeStock}. Only ${currentSizeStock} piece(s) available in Size ${selectedSize}. Please reduce quantity to proceed.`
+        AppConstants.Product.PURCHASE.COPY.MAX_QUANTITY_REACHED(
+          currentSizeStock,
+          selectedSize
+        )
       );
       return;
     }
@@ -95,71 +102,108 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   const handleAddToCart = () => {
     if (cannotProceed) return;
     if (!isAuthenticated) {
-      router.push(`/login?next=/product/${product.sku}&reason=purchase`);
+      router.push(
+        AppConstants.Product.ROUTES.LOGIN_WITH_PURCHASE(product.sku)
+      );
       return;
     }
     if (!selectedSize) {
-      setErrorMessage('Please select a size first.');
+      setErrorMessage(AppConstants.Product.PURCHASE.COPY.SELECT_SIZE_FIRST);
       return;
     }
     setErrorMessage(null);
     addItem(buildCartItem());
     setAddedFeedback(true);
-    setTimeout(() => setAddedFeedback(false), 2200);
+    setTimeout(
+      () => setAddedFeedback(false),
+      AppConstants.Product.PURCHASE.FEEDBACK_DURATION_MS
+    );
   };
 
   const handleBuyNow = () => {
     if (cannotProceed) return;
     if (!isAuthenticated) {
-      router.push(`/login?next=/product/${product.sku}&reason=purchase`);
+      router.push(
+        AppConstants.Product.ROUTES.LOGIN_WITH_PURCHASE(product.sku)
+      );
       return;
     }
     if (!selectedSize) {
-      setErrorMessage('Please select a size first.');
+      setErrorMessage(AppConstants.Product.PURCHASE.COPY.SELECT_SIZE_FIRST);
       return;
     }
     addItem(buildCartItem());
-    router.push('/cart');
+    router.push(AppConstants.Product.ROUTES.CART);
   };
 
   return (
-    <div className="space-y-6 pt-2">
+    <div className={AppConstants.Product.PURCHASE.CLASSES.PANEL}>
       {/* Stock Status Indicator */}
-      <div className="flex items-center gap-2 text-xs font-medium">
+      <div className={AppConstants.Product.PURCHASE.CLASSES.STATUS_WRAPPER}>
         {isOverallOutOfStock ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-            <span className="w-2 h-2 rounded-full bg-rose-600" />
-            Currently Out of Stock
+          <span
+            className={
+              AppConstants.Product.PURCHASE.CLASSES.BADGE_OUT_OF_STOCK
+            }
+          >
+            <span className={AppConstants.Product.PURCHASE.CLASSES.DOT_ROSE} />
+            {AppConstants.Product.PURCHASE.COPY.OUT_OF_STOCK}
           </span>
         ) : isSelectedSizeOutOfStock ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-            <span className="w-2 h-2 rounded-full bg-rose-600" />
-            Size {selectedSize} is Out of Stock — please choose another size
+          <span
+            className={
+              AppConstants.Product.PURCHASE.CLASSES.BADGE_OUT_OF_STOCK
+            }
+          >
+            <span className={AppConstants.Product.PURCHASE.CLASSES.DOT_ROSE} />
+            {AppConstants.Product.PURCHASE.COPY.SIZE_OUT_OF_STOCK(selectedSize)}
           </span>
         ) : currentSizeStock < AppConstants.Inventory.LOW_STOCK_THRESHOLD ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-900 border border-amber-300 shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            Only {currentSizeStock} available in Size {selectedSize} (Max {currentSizeStock} can be purchased)
+          <span
+            className={AppConstants.Product.PURCHASE.CLASSES.BADGE_LOW_STOCK}
+          >
+            <span
+              className={AppConstants.Product.PURCHASE.CLASSES.DOT_AMBER_PULSE}
+            />
+            {AppConstants.Product.PURCHASE.COPY.ONLY_AVAILABLE(
+              currentSizeStock,
+              selectedSize
+            )}
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-600" />
-            In Stock ({currentSizeStock} ready to dispatch in Size {selectedSize})
+          <span
+            className={AppConstants.Product.PURCHASE.CLASSES.BADGE_IN_STOCK}
+          >
+            <span
+              className={AppConstants.Product.PURCHASE.CLASSES.DOT_EMERALD}
+            />
+            {AppConstants.Product.PURCHASE.COPY.IN_STOCK_DISPATCH(
+              currentSizeStock,
+              selectedSize
+            )}
           </span>
         )}
       </div>
 
       {/* Size Selector */}
       <div>
-        <div className="flex items-center justify-between mb-2.5">
-          <label className="text-xs font-semibold uppercase tracking-wider text-stone-800">
-            Select Size:{' '}
-            <span className="text-stone-950 font-bold">{selectedSize}</span>
+        <div className={AppConstants.Product.PURCHASE.CLASSES.SIZE_HEADER}>
+          <label className={AppConstants.Product.PURCHASE.CLASSES.SIZE_LABEL}>
+            {AppConstants.Product.PURCHASE.COPY.SELECT_SIZE_LABEL}
+            <span
+              className={
+                AppConstants.Product.PURCHASE.CLASSES.SIZE_LABEL_SELECTED
+              }
+            >
+              {selectedSize}
+            </span>
           </label>
-          <span className="text-xs text-stone-500">Standard Indian Fit</span>
+          <span className={AppConstants.Product.PURCHASE.CLASSES.FIT_SUBTITLE}>
+            {AppConstants.Product.PURCHASE.FIT_TEXT}
+          </span>
         </div>
 
-        <div className="flex flex-wrap gap-2.5">
+        <div className={AppConstants.Product.PURCHASE.CLASSES.SIZE_GRID}>
           {product.sizes.map((size) => {
             const isSelected = selectedSize === size;
             const sizeQty = getStockForSize(size);
@@ -176,40 +220,46 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
                   if (quantity > sizeQty) {
                     setQuantity(Math.max(1, sizeQty));
                     setErrorMessage(
-                      `Quantity adjusted to ${sizeQty} because only ${sizeQty} piece(s) are available in Size ${size}.`
+                      AppConstants.Product.PURCHASE.COPY.QUANTITY_ADJUSTED(
+                        sizeQty,
+                        size
+                      )
                     );
                   } else {
                     setErrorMessage(null);
                   }
                 }}
-                className={`relative min-w-[4rem] min-h-[3rem] px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all border flex flex-col items-center justify-center leading-tight ${
-                  isSelected
-                    ? 'bg-stone-900 text-white border-stone-900 shadow-sm ring-2 ring-stone-900/10'
-                    : isSizeSoldOut
-                    ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed line-through'
-                    : 'bg-white text-stone-800 border-stone-300 hover:border-stone-900'
-                }`}
+                className={AppConstants.Product.PURCHASE.CLASSES.SIZE_BUTTON(
+                  isSelected,
+                  isSizeSoldOut
+                )}
               >
-                <span className="font-bold">{size}</span>
+                <span className={AppConstants.Product.PURCHASE.CLASSES.SIZE_NAME}>
+                  {size}
+                </span>
                 {isSizeSoldOut ? (
-                  <span className="text-[9px] font-normal leading-none text-rose-500 no-underline">
-                    Sold Out
+                  <span
+                    className={
+                      AppConstants.Product.PURCHASE.CLASSES.SIZE_SOLD_OUT_TAG
+                    }
+                  >
+                    {AppConstants.Product.PURCHASE.COPY.SOLD_OUT_SMALL}
                   </span>
                 ) : sizeQty < AppConstants.Inventory.LOW_STOCK_THRESHOLD ? (
                   <span
-                    className={`text-[9.5px] font-semibold leading-none tracking-tight ${
-                      isSelected ? 'text-amber-300' : 'text-amber-700'
-                    }`}
+                    className={AppConstants.Product.PURCHASE.CLASSES.SIZE_LOW_TAG(
+                      isSelected
+                    )}
                   >
-                    {sizeQty} left
+                    {AppConstants.Product.PURCHASE.COPY.LEFT_COUNT(sizeQty)}
                   </span>
                 ) : (
                   <span
-                    className={`text-[9.5px] font-normal leading-none tracking-tight ${
-                      isSelected ? 'text-stone-300' : 'text-stone-500'
-                    }`}
+                    className={AppConstants.Product.PURCHASE.CLASSES.SIZE_STOCK_TAG(
+                      isSelected
+                    )}
                   >
-                    {sizeQty} in stock
+                    {AppConstants.Product.PURCHASE.COPY.IN_STOCK_COUNT(sizeQty)}
                   </span>
                 )}
               </button>
@@ -220,73 +270,87 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
 
       {/* Quantity Selector */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-stone-800">
-            Quantity
+        <div className={AppConstants.Product.PURCHASE.CLASSES.QTY_HEADER}>
+          <label className={AppConstants.Product.PURCHASE.CLASSES.QTY_LABEL}>
+            {AppConstants.Product.PURCHASE.COPY.QUANTITY_LABEL}
           </label>
-          {currentSizeStock < AppConstants.Inventory.LOW_STOCK_THRESHOLD && currentSizeStock > 0 && (
-            <span className="text-xs font-medium text-amber-700">
-              Stock limit: {currentSizeStock} max
-            </span>
-          )}
+          {currentSizeStock < AppConstants.Inventory.LOW_STOCK_THRESHOLD &&
+            currentSizeStock > 0 && (
+              <span
+                className={
+                  AppConstants.Product.PURCHASE.CLASSES.QTY_LIMIT_TEXT
+                }
+              >
+                {AppConstants.Product.PURCHASE.COPY.STOCK_LIMIT_LABEL(
+                  currentSizeStock
+                )}
+              </span>
+            )}
         </div>
-        <div className="inline-flex items-center rounded-xl border border-stone-300 bg-white">
+        <div className={AppConstants.Product.PURCHASE.CLASSES.QTY_SELECTOR}>
           <button
             type="button"
             disabled={isSelectedSizeOutOfStock || quantity <= 1}
             onClick={() => handleQuantityChange(quantity - 1)}
-            aria-label="Decrease quantity"
-            className="w-11 h-11 flex items-center justify-center text-stone-700 hover:bg-stone-100 rounded-l-xl disabled:opacity-40 transition-colors"
+            aria-label={AppConstants.Product.PURCHASE.COPY.DECREASE_ARIA}
+            className={AppConstants.Product.PURCHASE.CLASSES.QTY_DEC}
           >
-            <Minus className="w-4 h-4" />
+            <Minus className={AppConstants.Product.PURCHASE.CLASSES.QTY_ICON} />
           </button>
-          <span className="w-12 text-center text-sm font-semibold tabular-nums text-stone-900">
+          <span className={AppConstants.Product.PURCHASE.CLASSES.QTY_VALUE}>
             {quantity}
           </span>
           <button
             type="button"
-            disabled={isSelectedSizeOutOfStock || quantity >= currentSizeStock}
+            disabled={
+              isSelectedSizeOutOfStock || quantity >= currentSizeStock
+            }
             onClick={() => handleQuantityChange(quantity + 1)}
-            aria-label="Increase quantity"
-            className="w-11 h-11 flex items-center justify-center text-stone-700 hover:bg-stone-100 rounded-r-xl disabled:opacity-40 transition-colors"
+            aria-label={AppConstants.Product.PURCHASE.COPY.INCREASE_ARIA}
+            className={AppConstants.Product.PURCHASE.CLASSES.QTY_INC}
           >
-            <Plus className="w-4 h-4" />
+            <Plus className={AppConstants.Product.PURCHASE.CLASSES.QTY_ICON} />
           </button>
         </div>
       </div>
 
       {errorMessage && (
-        <div className="flex items-center gap-2 text-xs text-rose-700 bg-rose-50 border border-rose-200 px-3.5 py-2.5 rounded-xl">
-          <AlertCircle className="w-4 h-4 shrink-0" />
+        <div className={AppConstants.Product.PURCHASE.CLASSES.ERROR_BANNER}>
+          <AlertCircle
+            className={AppConstants.Product.PURCHASE.CLASSES.ERROR_ICON}
+          />
           <span>{errorMessage}</span>
         </div>
       )}
 
       {/* Primary Action CTAs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+      <div className={AppConstants.Product.PURCHASE.CLASSES.ACTIONS_GRID}>
         <button
           type="button"
           disabled={cannotProceed}
           onClick={handleAddToCart}
-          className={`h-13 px-6 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all border ${
+          className={AppConstants.Product.PURCHASE.CLASSES.ADD_BAG_BUTTON(
             addedFeedback
-              ? 'bg-emerald-700 text-white border-emerald-700'
-              : 'bg-stone-900 text-white border-stone-900 hover:bg-stone-800 active:scale-[0.99]'
-          } disabled:bg-stone-200 disabled:text-stone-500 disabled:border-stone-200 disabled:cursor-not-allowed`}
+          )}
         >
           {addedFeedback ? (
             <>
-              <Check className="w-4 h-4" />
-              Added to Bag
+              <Check className={AppConstants.Product.PURCHASE.CLASSES.CHECK_ICON} />
+              {AppConstants.Product.PURCHASE.COPY.ADDED_TO_BAG}
             </>
           ) : (
             <>
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingBag
+                className={AppConstants.Product.PURCHASE.CLASSES.BAG_ICON}
+              />
               {isSelectedSizeOutOfStock
-                ? 'Sold Out'
+                ? AppConstants.Product.PURCHASE.COPY.SOLD_OUT_SMALL
                 : isOverQuantity
-                ? `Only ${currentSizeStock} Available`
-                : 'Add to Bag'}
+                ? AppConstants.Product.PURCHASE.COPY.ONLY_AVAILABLE(
+                    currentSizeStock,
+                    selectedSize
+                  )
+                : AppConstants.Product.PURCHASE.COPY.ADD_TO_BAG}
             </>
           )}
         </button>
@@ -295,25 +359,37 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           type="button"
           disabled={cannotProceed}
           onClick={handleBuyNow}
-          className="h-13 px-6 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-amber-600/15 text-amber-950 border border-amber-700/30 hover:bg-amber-600/25 active:scale-[0.99] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          className={AppConstants.Product.PURCHASE.CLASSES.BUY_NOW_BUTTON}
         >
-          {cannotProceed && isOverQuantity ? 'Reduce Qty to Buy' : 'Buy Now'}
+          {cannotProceed && isOverQuantity
+            ? AppConstants.Product.PURCHASE.COPY.REDUCE_QTY_TO_BUY
+            : AppConstants.Product.PURCHASE.COPY.BUY_NOW}
         </button>
       </div>
 
       {/* Reassurance / Trust Highlights */}
-      <div className="grid grid-cols-3 gap-3 pt-4 border-t border-stone-200 text-center">
-        <div className="p-2.5 rounded-xl bg-stone-50 space-y-1">
-          <Truck className="w-4 h-4 mx-auto text-stone-700" />
-          <p className="text-[11px] font-medium text-stone-700">{AppConstants.Shipping.DISPATCH_TIMELINE}</p>
+      <div className={AppConstants.Product.PURCHASE.CLASSES.TRUST_GRID}>
+        <div className={AppConstants.Product.PURCHASE.CLASSES.TRUST_ITEM}>
+          <Truck className={AppConstants.Product.PURCHASE.CLASSES.TRUST_ICON} />
+          <p className={AppConstants.Product.PURCHASE.CLASSES.TRUST_TEXT}>
+            {AppConstants.Shipping.DISPATCH_TIMELINE}
+          </p>
         </div>
-        <div className="p-2.5 rounded-xl bg-stone-50 space-y-1">
-          <RefreshCw className="w-4 h-4 mx-auto text-stone-700" />
-          <p className="text-[11px] font-medium text-stone-700">{AppConstants.Shipping.EXCHANGE_POLICY}</p>
+        <div className={AppConstants.Product.PURCHASE.CLASSES.TRUST_ITEM}>
+          <RefreshCw
+            className={AppConstants.Product.PURCHASE.CLASSES.TRUST_ICON}
+          />
+          <p className={AppConstants.Product.PURCHASE.CLASSES.TRUST_TEXT}>
+            {AppConstants.Shipping.EXCHANGE_POLICY}
+          </p>
         </div>
-        <div className="p-2.5 rounded-xl bg-stone-50 space-y-1">
-          <ShieldCheck className="w-4 h-4 mx-auto text-stone-700" />
-          <p className="text-[11px] font-medium text-stone-700">{AppConstants.Shipping.QUALITY_ASSURANCE}</p>
+        <div className={AppConstants.Product.PURCHASE.CLASSES.TRUST_ITEM}>
+          <ShieldCheck
+            className={AppConstants.Product.PURCHASE.CLASSES.TRUST_ICON}
+          />
+          <p className={AppConstants.Product.PURCHASE.CLASSES.TRUST_TEXT}>
+            {AppConstants.Shipping.QUALITY_ASSURANCE}
+          </p>
         </div>
       </div>
     </div>
