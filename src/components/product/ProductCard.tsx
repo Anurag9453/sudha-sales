@@ -257,38 +257,23 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         />
       )}
 
-      {/* Top-of-Page LANDSCAPE Photo Modal (Does NOT cover entire page; background non-clickable) */}
+      {/* Top-of-Page Frosted Glass LANDSCAPE Photo Modal (Background non-clickable) */}
       {isModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label={`${product.name} photo viewer`}
-          className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-[3px] flex items-start justify-center px-4 pt-12 sm:pt-16"
+          className="fixed inset-0 z-50 bg-stone-900/20 backdrop-blur-md flex items-start justify-center px-3 sm:px-4 pt-12 sm:pt-16"
         >
-          {/* Landscape Card Container (16:10 / 16:9 ratio, max height ~52vh so page remains visible below) */}
-          <div className="relative w-full max-w-2xl rounded-3xl bg-stone-900/95 shadow-2xl border border-white/20 overflow-hidden ring-1 ring-black/40">
-            {/* Glassy Top Bar Overlay */}
-            <div className="absolute top-0 inset-x-0 z-20 px-4 py-3 bg-gradient-to-b from-black/70 via-black/30 to-transparent flex items-center justify-between gap-3">
-              <div className="min-w-0 text-white">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-amber-300/95 block">
-                  {product.sku} • {product.color}
-                </span>
-                <h3 className="text-xs sm:text-sm font-semibold text-white truncate drop-shadow-xs">
-                  {product.name}
-                </h3>
-              </div>
+          {/* Outer Frosted Glass Frame (True Glassmorphism) */}
+          <div className="relative w-full max-w-2xl rounded-[28px] bg-white/35 backdrop-blur-2xl shadow-[0_24px_70px_rgba(0,0,0,0.22)] border border-white/70 ring-1 ring-white/40 p-2 sm:p-3 overflow-hidden">
+            {/* Subtle top glass reflection highlight */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/50 to-transparent"
+            />
 
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                aria-label="Close photo viewer"
-                className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/30 backdrop-blur-md border border-white/25 text-white flex items-center justify-center shrink-0 transition-all shadow-sm"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Landscape Photo Stage (16:10 aspect ratio, capped height, supports touch swipe on mobile) */}
+            {/* Inner Glassy Landscape Stage */}
             <div
               onTouchStart={(e) => setTouchStartX(e.touches[0]?.clientX ?? null)}
               onTouchEnd={(e) => {
@@ -308,27 +293,48 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                 }
                 setTouchStartX(null);
               }}
-              className="relative aspect-[16/10] max-h-[52vh] w-full bg-stone-950 flex items-center justify-center overflow-hidden touch-pan-y"
+              className="relative aspect-[16/10] max-h-[52vh] w-full rounded-2xl bg-white/30 backdrop-blur-xl border border-white/60 flex items-center justify-center overflow-hidden touch-pan-y shadow-inner"
             >
+              {/* Glassy Top Bar Overlay */}
+              <div className="absolute top-2.5 inset-x-2.5 z-20 px-3.5 py-2 rounded-2xl bg-white/55 backdrop-blur-xl border border-white/70 shadow-sm flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-amber-900 font-semibold block">
+                    {product.sku} • {product.color}
+                  </span>
+                  <h3 className="text-xs sm:text-sm font-semibold text-stone-950 truncate">
+                    {product.name}
+                  </h3>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  aria-label="Close photo viewer"
+                  className="w-8 h-8 rounded-full bg-white/70 hover:bg-white backdrop-blur-md border border-white/80 text-stone-900 flex items-center justify-center shrink-0 transition-all shadow-xs cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
               {activeModalImage && (
                 <>
-                  {/* Soft blurred ambient background fill for landscape framing */}
+                  {/* Soft translucent ambient color glow behind the garment */}
                   <Image
                     src={activeModalImage.image_url}
                     alt=""
                     fill
                     sizes="672px"
                     aria-hidden="true"
-                    className="object-cover scale-110 blur-xl opacity-45"
+                    className="object-cover scale-125 blur-2xl opacity-30"
                   />
 
-                  {/* Crisp main product image centered in the landscape frame */}
+                  {/* Crisp main product image floating inside the frosted glass frame */}
                   <Image
                     src={activeModalImage.image_url}
                     alt={activeModalImage.alt_text || product.name}
                     fill
                     sizes="(max-width: 640px) 92vw, 672px"
-                    className="object-contain z-10 p-2 sm:p-3 drop-shadow-xl"
+                    className="object-contain z-10 pt-12 pb-11 px-2 sm:px-4 drop-shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
                   />
                 </>
               )}
@@ -343,7 +349,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                       )
                     }
                     aria-label="Previous photo"
-                    className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white shadow-lg flex items-center justify-center transition-all"
+                    className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/60 hover:bg-white/90 backdrop-blur-xl border border-white/80 text-stone-900 shadow-lg flex items-center justify-center transition-all cursor-pointer"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
@@ -356,7 +362,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                       )
                     }
                     aria-label="Next photo"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/15 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white shadow-lg flex items-center justify-center transition-all"
+                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/60 hover:bg-white/90 backdrop-blur-xl border border-white/80 text-stone-900 shadow-lg flex items-center justify-center transition-all cursor-pointer"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>
@@ -364,11 +370,11 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               )}
 
               {/* Bottom Glassmorphism Pill with Glassy Dot Indicators (0 0 0 0) */}
-              <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 z-20">
+              <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-20">
                 <div
                   role="tablist"
                   aria-label="Photo navigation indicators"
-                  className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/15 backdrop-blur-xl border border-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
+                  className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/55 backdrop-blur-xl border border-white/80 shadow-[0_8px_24px_rgba(0,0,0,0.15)]"
                 >
                   {product.images.map((img, idx) => {
                     const isCurrent = idx === activeSlideIndex;
@@ -380,10 +386,10 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                         aria-selected={isCurrent}
                         aria-label={`Photo ${idx + 1} of ${product.images.length}`}
                         onClick={() => setActiveSlideIndex(idx)}
-                        className={`rounded-full transition-all duration-300 ${
+                        className={`rounded-full transition-all duration-300 cursor-pointer ${
                           isCurrent
-                            ? 'w-3.5 h-3.5 bg-white/95 border-2 border-amber-300 shadow-[0_0_12px_rgba(255,255,255,0.9)] scale-110'
-                            : 'w-2.5 h-2.5 bg-white/25 hover:bg-white/50 border border-white/40 backdrop-blur-md'
+                            ? 'w-3.5 h-3.5 bg-stone-900 border-2 border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.7)] scale-110'
+                            : 'w-2.5 h-2.5 bg-stone-900/25 hover:bg-stone-900/50 border border-white/80 backdrop-blur-md'
                         }`}
                       />
                     );
