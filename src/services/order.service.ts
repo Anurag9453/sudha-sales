@@ -32,6 +32,158 @@ export interface CreateVerifiedOrderInput {
   paymentStatus: PaymentStatus;
 }
 
+export interface StockValidationError {
+  sku: string;
+  productName: string;
+  size: string;
+  requestedQty: number;
+  availableQty: number;
+  message: string;
+}
+
+export interface StockValidationResult {
+  valid: boolean;
+  errors: StockValidationError[];
+}
+
+/**
+ * Validates requested cart quantities against real warehouse stock (both aggregate
+ * and variant size-level stock) before any payment or order placement occurs.
+ */
+export async function validateItemsStock(
+  items: CartItem[]
+): Promise<StockValidationResult> {
+  const errors: StockValidationError[] = [];
+  const supabase = getSupabaseServerAdminClient();
+
+  if (supabase) {
+    try {
+      const skus = Array.from(new Set(items.map((i) => i.sku)));
+      const { data: products, error } = await supabase
+        .from('products')
+        .select('id, sku, name, stock, size_stock')
+        .in('sku', skus);
+
+      if (!error && products) {
+        const prodMap = new Map<
+          string,
+          {
+            id: string;
+            sku: string;
+            name: string;
+            stock: number;
+            size_stock: Record<string, unknown>;
+          }
+        >();
+        for (const p of products) {
+          prodMap.set(String(p.sku).toUpperCase(), p);
+        }
+
+        for (const item of items) {
+          const prod = prodMap.get(item.sku.toUpperCase());
+          if (!prod) {
+            errors.push({
+              sku: item.sku,
+              productName: item.name,
+              size: item.size,
+              requestedQty: item.quantity,
+              availableQty: 0,
+              message: `Product "${item.name}" (${item.sku}) is no longer available.`,
+            });
+            continue;
+          }
+
+          const overallStock = Number(prod.stock ?? 0);
+          const sizeStockMap =
+            (prod.size_stock as Record<string, unknown> | null) ?? {};
+          const targetSize = (item.size || '').trim().toUpperCase();
+          const matchedKey =
+            Object.keys(sizeStockMap).find(
+              (k) => k.toUpperCase() === targetSize
+            ) ?? targetSize;
+          const sizeStockVal =
+            typeof sizeStockMap[matchedKey] === 'number'
+              ? Number(sizeStockMap[matchedKey])
+              : overallStock;
+          const maxAvailable = Math.max(0, Math.min(overallStock, sizeStockVal));
+
+          if (item.quantity > maxAvailable) {
+            errors.push({
+              sku: item.sku,
+              productName: item.name,
+              size: item.size,
+              requestedQty: item.quantity,
+              availableQty: maxAvailable,
+              message:
+                maxAvailable === 0
+                  ? `"${item.name}" in Size ${item.size} is currently out of stock. Please remove it from your bag to proceed.`
+                  : `Only ${maxAvailable} piece(s) available in Size ${item.size} for "${item.name}". Please reduce quantity from ${item.quantity} to ${maxAvailable} to proceed.`,
+            });
+          }
+        }
+
+        return {
+          valid: errors.length === 0,
+          errors,
+        };
+      }
+    } catch {
+      // Fall through to local catalog validation
+    }
+  }
+
+  // Fallback: Local catalog validation
+  const snapshot = await readLocalCatalog();
+  for (const item of items) {
+    const prod = snapshot.products.find(
+      (p) => p.sku.toUpperCase() === item.sku.toUpperCase()
+    );
+
+    if (!prod) {
+      errors.push({
+        sku: item.sku,
+        productName: item.name,
+        size: item.size,
+        requestedQty: item.quantity,
+        availableQty: 0,
+        message: `Product "${item.name}" (${item.sku}) is no longer available.`,
+      });
+      continue;
+    }
+
+    const overallStock = Number(prod.stock ?? 0);
+    const sizeStockMap = prod.size_stock ?? {};
+    const targetSize = (item.size || '').trim().toUpperCase();
+    const matchedKey =
+      Object.keys(sizeStockMap).find((k) => k.toUpperCase() === targetSize) ??
+      targetSize;
+    const sizeStockVal =
+      typeof sizeStockMap[matchedKey] === 'number'
+        ? Number(sizeStockMap[matchedKey])
+        : overallStock;
+    const maxAvailable = Math.max(0, Math.min(overallStock, sizeStockVal));
+
+    if (item.quantity > maxAvailable) {
+      errors.push({
+        sku: item.sku,
+        productName: item.name,
+        size: item.size,
+        requestedQty: item.quantity,
+        availableQty: maxAvailable,
+        message:
+          maxAvailable === 0
+            ? `"${item.name}" in Size ${item.size} is currently out of stock. Please remove it from your bag to proceed.`
+            : `Only ${maxAvailable} piece(s) available in Size ${item.size} for "${item.name}". Please reduce quantity from ${item.quantity} to ${maxAvailable} to proceed.`,
+      });
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
 function generateOrderNumber(): string {
   const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
@@ -41,6 +193,15 @@ function generateOrderNumber(): string {
 export async function createPersistedOrder(
   input: CreateVerifiedOrderInput
 ): Promise<Order> {
+  // Pre-flight stock availability verification: block order if customer selected more than available
+  const validation = await validateItemsStock(input.items);
+  if (!validation.valid) {
+    const primaryError =
+      validation.errors[0]?.message ||
+      'One or more items in your bag exceed available stock.';
+    throw new Error(primaryError);
+  }
+
   const orderNumber = generateOrderNumber();
   const trackingNumber = `SUDHA${Math.floor(1000000 + Math.random() * 9000000)}IN`;
   const now = new Date().toISOString();

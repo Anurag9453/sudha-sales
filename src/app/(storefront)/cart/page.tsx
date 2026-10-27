@@ -217,11 +217,44 @@ export default function CartPage() {
     addresses.find((a) => a.is_default) ||
     addresses[0];
 
-  const handleProceedToAddressStep = () => {
+  const hasOverStockItems = items.some(
+    (item) => item.quantity > item.maxStock || item.maxStock <= 0
+  );
+
+  const handleProceedToAddressStep = async () => {
     if (!isAuthenticated) {
       router.push('/login?next=/cart&reason=purchase');
       return;
     }
+
+    const overStockItem = items.find(
+      (i) => i.quantity > i.maxStock || i.maxStock <= 0
+    );
+    if (overStockItem) {
+      setPaymentError(
+        `Cannot proceed: "${overStockItem.name}" in Size ${overStockItem.size} only has ${overStockItem.maxStock} available in stock. Please reduce your requested quantity to ${overStockItem.maxStock} to continue.`
+      );
+      return;
+    }
+
+    try {
+      const valRes = await fetch('/api/cart/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      });
+      const valData = await valRes.json();
+      if (!valData.valid) {
+        setPaymentError(
+          valData.errors[0]?.message ||
+            'One or more items in your cart exceed available stock. Please reduce quantity to proceed.'
+        );
+        return;
+      }
+    } catch {
+      // Continue if network check fails
+    }
+
     if (defaultAddr && !selectedAddressId) {
       setSelectedAddressId(defaultAddr.id);
     }
@@ -307,6 +340,7 @@ export default function CartPage() {
           customerName: defaultAddr.full_name,
           customerEmail: customer?.email,
           customerPhone: defaultAddr.phone,
+          items,
         }),
       });
 
@@ -540,6 +574,21 @@ export default function CartPage() {
                       </span>
                       {item.color && <span>• {item.color}</span>}
                     </div>
+
+                    {item.maxStock < 10 && item.maxStock > 0 && (
+                      <p className="mt-1.5 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200/80 rounded-md px-2 py-0.5 inline-block">
+                        Only {item.maxStock} left in stock for Size {item.size}
+                      </p>
+                    )}
+
+                    {item.quantity > item.maxStock && (
+                      <div className="mt-2 p-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-medium flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600" />
+                        <span>
+                          Only {item.maxStock} available in Size {item.size}. Please reduce quantity to {item.maxStock} to proceed.
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="pt-3 flex items-center justify-between gap-2">
@@ -800,14 +849,29 @@ export default function CartPage() {
               </div>
             )}
 
+            {hasOverStockItems && (
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                <div>
+                  <p className="font-bold">Stock limit exceeded</p>
+                  <p className="text-[11px] text-rose-700 mt-0.5">
+                    One or more items in your bag exceed available warehouse stock. Please reduce the quantity using the minus (-) button to proceed.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {checkoutStep === 'cart' ? (
               <button
                 type="button"
+                disabled={hasOverStockItems}
                 onClick={handleProceedToAddressStep}
-                className="w-full h-13 rounded-xl bg-stone-900 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-stone-800 transition-colors cursor-pointer"
+                className="w-full h-13 rounded-xl bg-stone-900 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-stone-800 transition-colors cursor-pointer disabled:bg-stone-300 disabled:text-stone-500 disabled:cursor-not-allowed"
               >
                 <span>
-                  {isAuthenticated
+                  {hasOverStockItems
+                    ? 'Reduce Quantities to Proceed'
+                    : isAuthenticated
                     ? 'Proceed to Delivery Address'
                     : 'Sign In with Google to Checkout'}
                 </span>

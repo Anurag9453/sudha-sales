@@ -59,13 +59,16 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   const isOverallOutOfStock = product.stock <= 0 || product.status !== 'ACTIVE';
   const currentSizeStock = getStockForSize(selectedSize);
   const isSelectedSizeOutOfStock = isOverallOutOfStock || currentSizeStock <= 0;
-  const maxAllowedQty = Math.max(1, Math.min(currentSizeStock, 10));
+  const isOverQuantity = quantity > currentSizeStock;
+  const cannotProceed = isSelectedSizeOutOfStock || isOverQuantity;
   const effectivePrice = getEffectivePrice(product.price, product.sale_price);
 
   const handleQuantityChange = (next: number) => {
     if (next < 1) return;
-    if (next > maxAllowedQty) {
-      setErrorMessage(`Maximum available stock in size ${selectedSize} is ${currentSizeStock}.`);
+    if (next > currentSizeStock) {
+      setErrorMessage(
+        `Cannot select more than ${currentSizeStock}. Only ${currentSizeStock} piece(s) available in Size ${selectedSize}. Please reduce quantity to proceed.`
+      );
       return;
     }
     setErrorMessage(null);
@@ -89,7 +92,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   });
 
   const handleAddToCart = () => {
-    if (isSelectedSizeOutOfStock) return;
+    if (cannotProceed) return;
     if (!isAuthenticated) {
       router.push(`/login?next=/product/${product.sku}&reason=purchase`);
       return;
@@ -105,7 +108,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   };
 
   const handleBuyNow = () => {
-    if (isSelectedSizeOutOfStock) return;
+    if (cannotProceed) return;
     if (!isAuthenticated) {
       router.push(`/login?next=/product/${product.sku}&reason=purchase`);
       return;
@@ -123,24 +126,24 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
       {/* Stock Status Indicator */}
       <div className="flex items-center gap-2 text-xs font-medium">
         {isOverallOutOfStock ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
             <span className="w-2 h-2 rounded-full bg-rose-600" />
             Currently Out of Stock
           </span>
         ) : isSelectedSizeOutOfStock ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
             <span className="w-2 h-2 rounded-full bg-rose-600" />
             Size {selectedSize} is Out of Stock — please choose another size
           </span>
-        ) : currentSizeStock <= 5 ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+        ) : currentSizeStock < 10 ? (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-900 border border-amber-300 shadow-xs">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            Hurry! Only {currentSizeStock} left in size {selectedSize}
+            Only {currentSizeStock} available in Size {selectedSize} (Max {currentSizeStock} can be purchased)
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
             <span className="w-2 h-2 rounded-full bg-emerald-600" />
-            In Stock ({currentSizeStock} ready to dispatch in size {selectedSize})
+            In Stock ({currentSizeStock} ready to dispatch in Size {selectedSize})
           </span>
         )}
       </div>
@@ -169,33 +172,43 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
                 onClick={() => {
                   if (isSizeSoldOut) return;
                   setSelectedSize(size);
-                  setErrorMessage(null);
-                  const nextMax = Math.max(1, Math.min(sizeQty, 10));
-                  if (quantity > nextMax) {
-                    setQuantity(nextMax);
+                  if (quantity > sizeQty) {
+                    setQuantity(Math.max(1, sizeQty));
+                    setErrorMessage(
+                      `Quantity adjusted to ${sizeQty} because only ${sizeQty} piece(s) are available in Size ${size}.`
+                    );
+                  } else {
+                    setErrorMessage(null);
                   }
                 }}
-                className={`relative min-w-[3.75rem] min-h-[2.85rem] px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all border flex flex-col items-center justify-center leading-tight ${
+                className={`relative min-w-[4rem] min-h-[3rem] px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all border flex flex-col items-center justify-center leading-tight ${
                   isSelected
                     ? 'bg-stone-900 text-white border-stone-900 shadow-sm ring-2 ring-stone-900/10'
                     : isSizeSoldOut
-                    ? 'bg-stone-100/80 text-stone-400 border-stone-200 cursor-not-allowed line-through'
+                    ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed line-through'
                     : 'bg-white text-stone-800 border-stone-300 hover:border-stone-900'
                 }`}
               >
-                <span>{size}</span>
-                {sizeQty > 0 && sizeQty <= 5 && (
+                <span className="font-bold">{size}</span>
+                {isSizeSoldOut ? (
+                  <span className="text-[9px] font-normal leading-none text-rose-500 no-underline">
+                    Sold Out
+                  </span>
+                ) : sizeQty < 10 ? (
                   <span
-                    className={`text-[9.5px] font-medium leading-none tracking-tight ${
-                      isSelected ? 'text-amber-300' : 'text-amber-600'
+                    className={`text-[9.5px] font-semibold leading-none tracking-tight ${
+                      isSelected ? 'text-amber-300' : 'text-amber-700'
                     }`}
                   >
                     {sizeQty} left
                   </span>
-                )}
-                {isSizeSoldOut && (
-                  <span className="text-[9px] font-normal leading-none text-stone-400 no-underline">
-                    Out
+                ) : (
+                  <span
+                    className={`text-[9.5px] font-normal leading-none tracking-tight ${
+                      isSelected ? 'text-stone-300' : 'text-stone-500'
+                    }`}
+                  >
+                    {sizeQty} in stock
                   </span>
                 )}
               </button>
@@ -206,9 +219,16 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
 
       {/* Quantity Selector */}
       <div>
-        <label className="block text-xs font-semibold uppercase tracking-wider text-stone-800 mb-2.5">
-          Quantity
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-xs font-semibold uppercase tracking-wider text-stone-800">
+            Quantity
+          </label>
+          {currentSizeStock < 10 && currentSizeStock > 0 && (
+            <span className="text-xs font-medium text-amber-700">
+              Stock limit: {currentSizeStock} max
+            </span>
+          )}
+        </div>
         <div className="inline-flex items-center rounded-xl border border-stone-300 bg-white">
           <button
             type="button"
@@ -224,7 +244,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           </span>
           <button
             type="button"
-            disabled={isSelectedSizeOutOfStock || quantity >= maxAllowedQty}
+            disabled={isSelectedSizeOutOfStock || quantity >= currentSizeStock}
             onClick={() => handleQuantityChange(quantity + 1)}
             aria-label="Increase quantity"
             className="w-11 h-11 flex items-center justify-center text-stone-700 hover:bg-stone-100 rounded-r-xl disabled:opacity-40 transition-colors"
@@ -245,7 +265,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
         <button
           type="button"
-          disabled={isSelectedSizeOutOfStock}
+          disabled={cannotProceed}
           onClick={handleAddToCart}
           className={`h-13 px-6 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all border ${
             addedFeedback
@@ -261,18 +281,22 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           ) : (
             <>
               <ShoppingBag className="w-4 h-4" />
-              {isSelectedSizeOutOfStock ? 'Sold Out' : 'Add to Bag'}
+              {isSelectedSizeOutOfStock
+                ? 'Sold Out'
+                : isOverQuantity
+                ? `Only ${currentSizeStock} Available`
+                : 'Add to Bag'}
             </>
           )}
         </button>
 
         <button
           type="button"
-          disabled={isSelectedSizeOutOfStock}
+          disabled={cannotProceed}
           onClick={handleBuyNow}
           className="h-13 px-6 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-amber-600/15 text-amber-950 border border-amber-700/30 hover:bg-amber-600/25 active:scale-[0.99] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          Buy Now
+          {cannotProceed && isOverQuantity ? 'Reduce Qty to Buy' : 'Buy Now'}
         </button>
       </div>
 

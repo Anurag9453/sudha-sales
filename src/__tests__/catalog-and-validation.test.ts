@@ -312,6 +312,92 @@ describe('Razorpay Payment Signature & Order Persistence', () => {
     // Size L should have remained untouched at 6
     assert.equal(updatedProd.size_stock['L'], 6);
   });
+
+  it('rejects order placement and returns validation error if requested quantity exceeds available stock', async () => {
+    const { validateItemsStock } = await import('../services/order.service');
+    const { readLocalCatalog, writeLocalCatalog } = await import('../database/local-store');
+
+    const snapshot = await readLocalCatalog();
+    let testProd = snapshot.products.find((p) => p.sku === 'SKU001');
+    if (!testProd) {
+      testProd = { ...snapshot.products[0], sku: 'SKU001' };
+      snapshot.products.push(testProd);
+    }
+    // Set stock to 6 for size M
+    testProd.stock = 6;
+    testProd.sizes = ['M'];
+    testProd.size_stock = { M: 6 };
+    await writeLocalCatalog(snapshot);
+
+    // Customer requests 10 of size M
+    const result = await validateItemsStock([
+      {
+        sku: 'SKU001',
+        productId: testProd.id,
+        name: testProd.name,
+        slug: testProd.slug,
+        imageUrl: 'https://images.unsplash.com/photo-1',
+        color: 'Blue',
+        size: 'M',
+        unitPrice: 1199,
+        originalPrice: 1299,
+        quantity: 10,
+        maxStock: 6,
+      },
+    ]);
+
+    assert.equal(result.valid, false);
+    assert.equal(result.errors.length, 1);
+    assert.equal(result.errors[0].availableQty, 6);
+    assert.equal(result.errors[0].requestedQty, 10);
+    assert.ok(result.errors[0].message.includes('Only 6 piece(s) available in Size M'));
+
+    // Attempting to create order should reject
+    await assert.rejects(
+      async () => {
+        await createPersistedOrder({
+          customerName: 'Test Overstock Buyer',
+          customerEmail: 'test@example.com',
+          customerPhone: '+91 99999 88888',
+          shippingAddress: {
+            full_name: 'Test Buyer',
+            phone: '+91 99999 88888',
+            address_line1: '12 Test St',
+            city: 'Jaipur',
+            state: 'Rajasthan',
+            postal_code: '302001',
+            country: 'IN',
+          },
+          items: [
+            {
+              sku: 'SKU001',
+              productId: testProd.id,
+              name: testProd.name,
+              slug: testProd.slug,
+              imageUrl: 'https://images.unsplash.com/photo-1',
+              color: 'Blue',
+              size: 'M',
+              unitPrice: 1199,
+              originalPrice: 1299,
+              quantity: 10,
+              maxStock: 6,
+            },
+          ],
+          subtotalAmount: 11990,
+          discountAmount: 0,
+          shippingAmount: 0,
+          totalAmount: 11990,
+          paymentProvider: 'COD',
+          paymentReference: 'COD-FAIL',
+          paymentStatus: 'COD',
+        });
+      },
+      (err: Error) => {
+        assert.ok(err.message.includes('Only 6 piece(s) available in Size M'));
+        return true;
+      }
+    );
+  });
 });
 
 describe('Customer Reviews & Average Rating Calculation', () => {

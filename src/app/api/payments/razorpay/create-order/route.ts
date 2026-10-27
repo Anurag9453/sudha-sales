@@ -6,6 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createRazorpayOrderSession } from '@/services/razorpay.service';
+import { validateItemsStock } from '@/services/order.service';
+import type { CartItem } from '@/types/domain';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +16,7 @@ export async function POST(request: NextRequest) {
       customerName?: string;
       customerEmail?: string;
       customerPhone?: string;
+      items?: CartItem[];
     };
 
     const amount = Number(body.amountInRupees);
@@ -22,6 +25,22 @@ export async function POST(request: NextRequest) {
         { ok: false, error: 'Invalid order amount' },
         { status: 400 }
       );
+    }
+
+    // Pre-flight check: ensure requested items do not exceed current stock
+    if (body.items && Array.isArray(body.items) && body.items.length > 0) {
+      const stockCheck = await validateItemsStock(body.items);
+      if (!stockCheck.valid) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              stockCheck.errors[0]?.message ||
+              'One or more items in your cart exceed available stock. Please adjust quantities.',
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const receipt = `rcpt_${Date.now()}`;
