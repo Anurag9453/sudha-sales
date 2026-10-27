@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { publicEnv } from '@/lib/env';
+import { AppConstants } from '@/constants/app.constants';
 import type { ProductImage } from '@/types/domain';
 
 /**
@@ -19,7 +20,7 @@ export function resolveProductImageUrl(
 ): string {
   const cdnBase = publicEnv.cdnBaseUrl.replace(/\/+$/, '');
   const isPlaceholderCdn =
-    !cdnBase || cdnBase.includes('d111111abcdef8.cloudfront.net');
+    !cdnBase || cdnBase.includes(AppConstants.Services.STORAGE.PLACEHOLDER_CDN_SUBSTRING);
 
   if (!isPlaceholderCdn && image.s3_key) {
     const cleanKey = image.s3_key.replace(/^\/+/, '');

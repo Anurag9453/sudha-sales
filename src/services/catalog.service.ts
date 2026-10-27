@@ -20,6 +20,9 @@ import type {
   ProductReview,
 } from '@/types/domain';
 
+const tables = AppConstants.Services.TABLES;
+const catalogConstants = AppConstants.Services.CATALOG;
+
 function normalizeProductImages(images: ProductImage[] | undefined): ProductImage[] {
   if (!images || images.length === 0) return [];
   return [...images]
@@ -34,7 +37,7 @@ function cleanSizeStockMap(raw: unknown): Record<string, number> {
   if (!raw || typeof raw !== 'object') return {};
   const clean: Record<string, number> = {};
   for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
-    if (k !== '__reviews' && typeof v === 'number') {
+    if (k !== AppConstants.Services.REVIEWS.REVIEWS_KEY && typeof v === 'number') {
       clean[k] = v;
     }
   }
@@ -62,7 +65,7 @@ function normalizeSupabaseProduct(row: Record<string, unknown>): Product {
     size_stock: cleanSizeStockMap(row.size_stock),
     color: String(row.color ?? ''),
     vendor_code: row.vendor_code ? String(row.vendor_code) : null,
-    status: (row.status as Product['status']) ?? 'ACTIVE',
+    status: (row.status as Product['status']) ?? catalogConstants.STATUS_ACTIVE,
     gdrive_folder_id: row.gdrive_folder_id ? String(row.gdrive_folder_id) : null,
     last_synced_at: row.last_synced_at ? String(row.last_synced_at) : null,
     created_at: String(row.created_at),
@@ -80,7 +83,7 @@ export async function getCategories(): Promise<Category[]> {
   const supabase = getSupabaseServerAnonClient();
   if (supabase) {
     const { data, error } = await supabase
-      .from('categories')
+      .from(tables.CATEGORIES)
       .select('*')
       .eq('is_active', true)
       .order('display_order', { ascending: true });
@@ -100,7 +103,7 @@ export async function getCollections(): Promise<Collection[]> {
   const supabase = getSupabaseServerAnonClient();
   if (supabase) {
     const { data, error } = await supabase
-      .from('collections')
+      .from(tables.COLLECTIONS)
       .select('*')
       .eq('is_active', true)
       .order('is_featured', { ascending: false });
@@ -120,7 +123,7 @@ export async function getProducts(filters: CatalogFilterParams = {}): Promise<Pr
     collectionSlug,
     search,
     size,
-    sort = 'newest',
+    sort = catalogConstants.DEFAULT_SORT,
     includeInactive = false,
   } = filters;
 
@@ -130,14 +133,15 @@ export async function getProducts(filters: CatalogFilterParams = {}): Promise<Pr
 
   if (supabase) {
     let query = supabase
-      .from('products')
+      .from(tables.PRODUCTS)
       .select('*, categories(*), collections(*), product_images(*)');
 
     if (!includeInactive) {
-      query = query.eq('status', 'ACTIVE');
+      query = query.eq('status', catalogConstants.STATUS_ACTIVE);
     }
 
     const { data, error } = await query.order('created_at', { ascending: false });
+
     if (!error && data) {
       const hydrated = data.map((r) => normalizeSupabaseProduct(r as Record<string, unknown>));
       return applyInMemoryCatalogFilters(hydrated, {
@@ -182,21 +186,21 @@ export function applyInMemoryCatalogFilters(
     collectionSlug,
     search,
     size,
-    sort = 'newest',
+    sort = catalogConstants.DEFAULT_SORT,
     includeInactive = false,
   } = filters;
 
-  let result = products.filter((p) => (includeInactive ? true : p.status === 'ACTIVE'));
+  let result = products.filter((p) => (includeInactive ? true : p.status === catalogConstants.STATUS_ACTIVE));
 
-  if (categorySlug && categorySlug !== 'all') {
+  if (categorySlug && categorySlug !== catalogConstants.ALL_FILTER_VALUE) {
     result = result.filter((p) => p.category?.slug === categorySlug);
   }
 
-  if (collectionSlug && collectionSlug !== 'all') {
+  if (collectionSlug && collectionSlug !== catalogConstants.ALL_FILTER_VALUE) {
     result = result.filter((p) => p.collection?.slug === collectionSlug);
   }
 
-  if (size && size !== 'all') {
+  if (size && size !== catalogConstants.ALL_FILTER_VALUE) {
     const targetSize = size.toUpperCase();
     result = result.filter((p) => p.sizes.includes(targetSize));
   }
@@ -213,10 +217,10 @@ export function applyInMemoryCatalogFilters(
   }
 
   result = [...result].sort((a, b) => {
-    if (sort === 'price-asc') {
+    if (sort === catalogConstants.SORT_PRICE_ASC) {
       return getEffectivePrice(a.price, a.sale_price) - getEffectivePrice(b.price, b.sale_price);
     }
-    if (sort === 'price-desc') {
+    if (sort === catalogConstants.SORT_PRICE_DESC) {
       return getEffectivePrice(b.price, b.sale_price) - getEffectivePrice(a.price, a.sale_price);
     }
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -270,7 +274,7 @@ export async function getProductBySku(
 }
 
 export async function getNewCollectionProducts(limit = 4): Promise<Product[]> {
-  const products = await getProducts({ collectionSlug: 'new-collection' });
+  const products = await getProducts({ collectionSlug: catalogConstants.DEFAULT_COLLECTION_SLUG });
   return products.slice(0, limit);
 }
 

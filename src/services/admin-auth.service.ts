@@ -5,18 +5,19 @@
 
 import { cookies } from 'next/headers';
 import { getServerEnv } from '@/lib/env';
+import { AppConstants } from '@/constants/app.constants';
 
-const ADMIN_SESSION_COOKIE = 'vastra_admin_session';
+const authConstants = AppConstants.Services.AUTH;
 
 export async function isAdminAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
-  const sessionToken = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  const sessionToken = cookieStore.get(authConstants.SESSION_COOKIE)?.value;
   if (!sessionToken) {
     return false;
   }
 
   const { adminPasscode } = getServerEnv();
-  return sessionToken === `authenticated:${adminPasscode}`;
+  return sessionToken === `${authConstants.SESSION_PREFIX}${adminPasscode}`;
 }
 
 export async function verifyAndCreateAdminSession(passcode: string): Promise<boolean> {
@@ -26,16 +27,16 @@ export async function verifyAndCreateAdminSession(passcode: string): Promise<boo
   }
 
   const cookieStore = await cookies();
-  cookieStore.set(ADMIN_SESSION_COOKIE, `authenticated:${adminPasscode}`, {
+  cookieStore.set(authConstants.SESSION_COOKIE, `${authConstants.SESSION_PREFIX}${adminPasscode}`, {
     httpOnly: true,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    sameSite: authConstants.COOKIE_SAME_SITE,
+    path: authConstants.COOKIE_PATH,
+    maxAge: authConstants.MAX_AGE_SECONDS,
   });
   return true;
 }
 
 export async function clearAdminSession(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete(ADMIN_SESSION_COOKIE);
+  cookieStore.delete(authConstants.SESSION_COOKIE);
 }

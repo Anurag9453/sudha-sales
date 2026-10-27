@@ -11,7 +11,11 @@
 import crypto from 'crypto';
 import { getSupabaseServerAdminClient } from '@/database/supabase-server';
 import { readLocalCatalog, writeLocalCatalog } from '@/database/local-store';
+import { AppConstants } from '@/constants/app.constants';
 import type { Product, ProductReview } from '@/types/domain';
+
+const tables = AppConstants.Services.TABLES;
+const reviewConstants = AppConstants.Services.REVIEWS;
 
 export interface CreateProductReviewInput {
   sku: string;
@@ -68,8 +72,8 @@ export function extractReviewsFromProductRecord(
 
   if (rawSizeStock && typeof rawSizeStock === 'object') {
     const record = rawSizeStock as Record<string, unknown>;
-    if (Array.isArray(record.__reviews)) {
-      return computeReviewStats(record.__reviews as ProductReview[]);
+    if (Array.isArray(record[reviewConstants.REVIEWS_KEY])) {
+      return computeReviewStats(record[reviewConstants.REVIEWS_KEY] as ProductReview[]);
     }
   }
 
@@ -94,13 +98,13 @@ export async function addProductReviewBySku(
   const numericRating = Math.min(5, Math.max(1, Math.round(Number(input.rating))));
 
   if (!cleanSku) {
-    throw new Error('Product SKU is required');
+    throw new Error(reviewConstants.ERROR_SKU_REQUIRED);
   }
   if (!cleanName || cleanName.length < 2) {
-    throw new Error('Please enter your name');
+    throw new Error(reviewConstants.ERROR_NAME_REQUIRED);
   }
   if (!cleanComment || cleanComment.length < 3) {
-    throw new Error('Please write a short review comment');
+    throw new Error(reviewConstants.ERROR_COMMENT_REQUIRED);
   }
 
   const now = new Date().toISOString();
@@ -121,7 +125,7 @@ export async function addProductReviewBySku(
   if (supabase) {
     try {
       const { data: prodRow, error: lookupErr } = await supabase
-        .from('products')
+        .from(tables.PRODUCTS)
         .select('id, sku, size_stock')
         .eq('sku', cleanSku)
         .maybeSingle();
@@ -133,18 +137,18 @@ export async function addProductReviewBySku(
             ? (prodRow.size_stock as Record<string, unknown>)
             : {};
 
-        const existingReviews = Array.isArray(existingSizeStock.__reviews)
-          ? (existingSizeStock.__reviews as ProductReview[])
+        const existingReviews = Array.isArray(existingSizeStock[reviewConstants.REVIEWS_KEY])
+          ? (existingSizeStock[reviewConstants.REVIEWS_KEY] as ProductReview[])
           : [];
 
         const updatedReviews = [newReview, ...existingReviews];
         const nextSizeStock = {
           ...existingSizeStock,
-          __reviews: updatedReviews,
+          [reviewConstants.REVIEWS_KEY]: updatedReviews,
         };
 
         const { error: updateErr } = await supabase
-          .from('products')
+          .from(tables.PRODUCTS)
           .update({ size_stock: nextSizeStock })
           .eq('id', prodRow.id);
 
@@ -171,7 +175,7 @@ export async function addProductReviewBySku(
   );
 
   if (!targetProduct) {
-    throw new Error(`Product ${cleanSku} not found`);
+    throw new Error(reviewConstants.ERROR_PRODUCT_NOT_FOUND(cleanSku));
   }
 
   newReview.product_id = targetProduct.id;
@@ -187,7 +191,7 @@ export async function addProductReviewBySku(
   targetProduct.average_rating = nextStats.average_rating;
   targetProduct.size_stock = {
     ...(targetProduct.size_stock || {}),
-    __reviews: nextStats.reviews as unknown as number,
+    [reviewConstants.REVIEWS_KEY]: nextStats.reviews as unknown as number,
   };
   targetProduct.updated_at = now;
 

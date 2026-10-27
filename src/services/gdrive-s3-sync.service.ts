@@ -30,7 +30,11 @@ import { buildStandardS3Key } from './storage.service';
 import { upsertProductBySku } from './admin-product.service';
 import { getSupabaseServerAdminClient } from '@/database/supabase-server';
 import { readLocalCatalog, writeLocalCatalog } from '@/database/local-store';
+import { AppConstants } from '@/constants/app.constants';
 import type { Category, Collection } from '@/types/domain';
+
+const tables = AppConstants.Services.TABLES;
+const syncConstants = AppConstants.Services.GDRIVE_SYNC;
 
 export interface SyncedProductReportItem {
   sku: string;
@@ -58,15 +62,15 @@ export interface DriveSyncExecutionReport {
 
 const FALLBACK_DRIVE_IMAGES = [
   {
-    name: 'front.jpg',
+    name: AppConstants.Assets.FRONT_IMAGE,
     url: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=85',
   },
   {
-    name: 'model.jpg',
+    name: AppConstants.Assets.MODEL_IMAGE,
     url: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=85',
   },
   {
-    name: 'back.jpg',
+    name: AppConstants.Assets.BACK_IMAGE,
     url: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1000&q=85',
   },
 ];
@@ -78,7 +82,7 @@ async function resolveOrCreateCategoryByName(name: string): Promise<Category> {
   const supabase = getSupabaseServerAdminClient();
   if (supabase) {
     const { data: existing, error: lookupError } = await supabase
-      .from('categories')
+      .from(tables.CATEGORIES)
       .select('*')
       .or(`slug.eq.${targetSlug},name.ilike.${cleanName}`)
       .limit(1)
@@ -90,7 +94,7 @@ async function resolveOrCreateCategoryByName(name: string): Promise<Category> {
       }
 
       const { data: created, error } = await supabase
-        .from('categories')
+        .from(tables.CATEGORIES)
         .insert({
           name: cleanName,
           slug: targetSlug,
@@ -106,7 +110,7 @@ async function resolveOrCreateCategoryByName(name: string): Promise<Category> {
         return created as Category;
       }
       if (error && error.code !== 'PGRST205' && error.code !== '42501') {
-        throw new Error(`Failed to auto-create category "${cleanName}": ${error?.message}`);
+        throw new Error(syncConstants.ERROR_CREATE_CATEGORY(cleanName, error?.message || ''));
       }
     }
   }
@@ -152,7 +156,7 @@ async function resolveOrCreateCollectionByName(
   const supabase = getSupabaseServerAdminClient();
   if (supabase) {
     const { data: existing, error: lookupError } = await supabase
-      .from('collections')
+      .from(tables.COLLECTIONS)
       .select('*')
       .or(`slug.eq.${targetSlug},name.ilike.${cleanName}`)
       .limit(1)
@@ -164,7 +168,7 @@ async function resolveOrCreateCollectionByName(
       }
 
       const { data: created, error } = await supabase
-        .from('collections')
+        .from(tables.COLLECTIONS)
         .insert({
           name: cleanName,
           slug: targetSlug,
@@ -179,9 +183,7 @@ async function resolveOrCreateCollectionByName(
         return created as Collection;
       }
       if (error && error.code !== 'PGRST205' && error.code !== '42501') {
-        throw new Error(
-          `Failed to auto-create collection "${cleanName}": ${error?.message}`
-        );
+        throw new Error(syncConstants.ERROR_CREATE_COLLECTION(cleanName, error?.message || ''));
       }
     }
   }
@@ -259,7 +261,7 @@ async function syncSkuImagesFromDriveToS3(params: {
         const uploadRes = await uploadProductImageToS3({
           s3Key,
           body: buffer,
-          contentType: driveImg.mimeType || 'image/jpeg',
+          contentType: driveImg.mimeType || syncConstants.DEFAULT_MIME_TYPE,
           fallbackUrl: driveImg.previewUrl,
         });
         resolvedUrl = uploadRes.publicUrl;
@@ -318,7 +320,7 @@ export async function runGoogleDriveToS3Sync(options?: {
         sku: row.sku,
         productName: row.name,
         driveFolder,
-        isLiveDrive: workspace.mode === 'live-google-drive',
+        isLiveDrive: workspace.mode === syncConstants.MODE_LIVE,
       });
 
       const saved = await upsertProductBySku({
@@ -333,7 +335,7 @@ export async function runGoogleDriveToS3Sync(options?: {
         sizes: row.sizes,
         size_stock: row.size_stock,
         color: row.color,
-        vendor_code: 'GDRIVE-SYNC',
+        vendor_code: syncConstants.VENDOR_CODE,
         status: row.status,
         images,
       });
@@ -353,7 +355,7 @@ export async function runGoogleDriveToS3Sync(options?: {
       rowErrors.push({
         rowNumber: row.rowNumber,
         sku: row.sku,
-        message: err instanceof Error ? err.message : 'Failed to upsert SKU',
+        message: err instanceof Error ? err.message : syncConstants.ERROR_UPSERT_SKU,
       });
     }
   }

@@ -8,6 +8,9 @@
 
 import crypto from 'crypto';
 import { getServerEnv, isRazorpayConfigured } from '@/lib/env';
+import { AppConstants } from '@/constants/app.constants';
+
+const razorpayConstants = AppConstants.Services.RAZORPAY;
 
 export interface RazorpayOrderSession {
   mode: 'live-razorpay' | 'simulated-razorpay';
@@ -43,7 +46,7 @@ export function verifyRazorpayPaymentSignature(params: {
 }): boolean {
   if (!isRazorpayConfigured()) {
     // Accept simulated test signatures starting with `sim_sig_`
-    return params.razorpaySignature.startsWith('sim_sig_');
+    return params.razorpaySignature.startsWith(razorpayConstants.SIMULATED_SIG_PREFIX);
   }
 
   const { razorpayKeySecret } = getServerEnv();
@@ -78,11 +81,11 @@ export async function createRazorpayOrderSession(params: {
 
   if (!isRazorpayConfigured()) {
     return {
-      mode: 'simulated-razorpay',
-      razorpayOrderId: `order_sim_${Date.now()}`,
+      mode: razorpayConstants.MODE_SIMULATED,
+      razorpayOrderId: `${razorpayConstants.TEST_ORDER_PREFIX}${Date.now()}`,
       amountInPaise,
-      currency: 'INR',
-      keyId: 'rzp_test_simulated',
+      currency: razorpayConstants.CURRENCY_INR,
+      keyId: razorpayConstants.SIMULATED_KEY_ID,
       receipt: params.receipt,
     };
   }
@@ -92,15 +95,15 @@ export async function createRazorpayOrderSession(params: {
     `${razorpayKeyId}:${razorpayKeySecret}`
   ).toString('base64');
 
-  const response = await fetch('https://api.razorpay.com/v1/orders', {
+  const response = await fetch(razorpayConstants.API_ORDERS_URL, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': razorpayConstants.CONTENT_TYPE_JSON,
       Authorization: `Basic ${basicAuth}`,
     },
     body: JSON.stringify({
       amount: amountInPaise,
-      currency: 'INR',
+      currency: razorpayConstants.CURRENCY_INR,
       receipt: params.receipt,
       notes: {
         customer_name: params.customerName || '',
@@ -125,7 +128,7 @@ export async function createRazorpayOrderSession(params: {
   };
 
   return {
-    mode: 'live-razorpay',
+    mode: razorpayConstants.MODE_LIVE,
     razorpayOrderId: data.id,
     amountInPaise: data.amount,
     currency: data.currency,

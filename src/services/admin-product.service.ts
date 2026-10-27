@@ -22,6 +22,8 @@ import {
 } from '@/validation/product.schema';
 import type { Product, ProductImage } from '@/types/domain';
 
+const tables = AppConstants.Services.TABLES;
+
 export async function upsertProductBySku(rawInput: UpsertProductInput): Promise<Product> {
   const input = upsertProductSchema.parse(rawInput);
   const slug = `${slugify(input.name)}-${input.sku.toLowerCase()}`;
@@ -30,7 +32,7 @@ export async function upsertProductBySku(rawInput: UpsertProductInput): Promise<
   const supabase = getSupabaseServerAdminClient();
   if (supabase) {
     const { data: upserted, error: prodError } = await supabase
-      .from('products')
+      .from(tables.PRODUCTS)
       .upsert(
         {
           sku: input.sku,
@@ -57,7 +59,7 @@ export async function upsertProductBySku(rawInput: UpsertProductInput): Promise<
       const productId = String(upserted.id);
 
       // Replace product images cleanly
-      await supabase.from('product_images').delete().eq('product_id', productId);
+      await supabase.from(tables.PRODUCT_IMAGES).delete().eq('product_id', productId);
 
       const imageRows = input.images.map((img, idx) => ({
         product_id: productId,
@@ -75,7 +77,7 @@ export async function upsertProductBySku(rawInput: UpsertProductInput): Promise<
       }));
 
       const { data: insertedImages } = await supabase
-        .from('product_images')
+        .from(tables.PRODUCT_IMAGES)
         .insert(imageRows)
         .select('*');
 
@@ -169,7 +171,7 @@ export async function updateProductStockBySku(rawInput: UpdateStockInput): Promi
   const supabase = getSupabaseServerAdminClient();
   if (supabase) {
     const { data, error } = await supabase
-      .from('products')
+      .from(tables.PRODUCTS)
       .update({ stock })
       .eq('sku', sku)
       .select('*, categories(*), collections(*), product_images(*)')
@@ -201,7 +203,7 @@ export async function updateProductStatusBySku(rawInput: ToggleStatusInput): Pro
   const supabase = getSupabaseServerAdminClient();
   if (supabase) {
     const { data, error } = await supabase
-      .from('products')
+      .from(tables.PRODUCTS)
       .update({ status })
       .eq('sku', sku)
       .select('*, categories(*), collections(*), product_images(*)')

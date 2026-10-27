@@ -18,6 +18,9 @@ import type {
   ShippingAddressSnapshot,
 } from '@/types/domain';
 
+const tables = AppConstants.Services.TABLES;
+const orderConstants = AppConstants.Services.ORDER;
+
 export interface CreateVerifiedOrderInput {
   customerName: string;
   customerEmail: string;
@@ -61,7 +64,7 @@ export async function validateItemsStock(
     try {
       const skus = Array.from(new Set(items.map((i) => i.sku)));
       const { data: products, error } = await supabase
-        .from('products')
+        .from(tables.PRODUCTS)
         .select('id, sku, name, stock, size_stock')
         .in('sku', skus);
 
@@ -89,7 +92,7 @@ export async function validateItemsStock(
               size: item.size,
               requestedQty: item.quantity,
               availableQty: 0,
-              message: `Product "${item.name}" (${item.sku}) is no longer available.`,
+              message: orderConstants.ERROR_NO_LONGER_AVAILABLE(item.name, item.sku),
             });
             continue;
           }
@@ -117,8 +120,13 @@ export async function validateItemsStock(
               availableQty: maxAvailable,
               message:
                 maxAvailable === 0
-                  ? `"${item.name}" in Size ${item.size} is currently out of stock. Please remove it from your bag to proceed.`
-                  : `Only ${maxAvailable} piece(s) available in Size ${item.size} for "${item.name}". Please reduce quantity from ${item.quantity} to ${maxAvailable} to proceed.`,
+                  ? orderConstants.ERROR_OUT_OF_STOCK(item.name, item.size)
+                  : orderConstants.ERROR_PARTIAL_STOCK(
+                      maxAvailable,
+                      item.size,
+                      item.name,
+                      item.quantity
+                    ),
             });
           }
         }
@@ -147,7 +155,7 @@ export async function validateItemsStock(
         size: item.size,
         requestedQty: item.quantity,
         availableQty: 0,
-        message: `Product "${item.name}" (${item.sku}) is no longer available.`,
+        message: orderConstants.ERROR_NO_LONGER_AVAILABLE(item.name, item.sku),
       });
       continue;
     }
@@ -173,8 +181,13 @@ export async function validateItemsStock(
         availableQty: maxAvailable,
         message:
           maxAvailable === 0
-            ? `"${item.name}" in Size ${item.size} is currently out of stock. Please remove it from your bag to proceed.`
-            : `Only ${maxAvailable} piece(s) available in Size ${item.size} for "${item.name}". Please reduce quantity from ${item.quantity} to ${maxAvailable} to proceed.`,
+            ? orderConstants.ERROR_OUT_OF_STOCK(item.name, item.size)
+            : orderConstants.ERROR_PARTIAL_STOCK(
+                maxAvailable,
+                item.size,
+                item.name,
+                item.quantity
+              ),
       });
     }
   }
@@ -188,7 +201,7 @@ export async function validateItemsStock(
 function generateOrderNumber(): string {
   const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-  return `ORD-${datePart}-${randomSuffix}`;
+  return `${orderConstants.ORDER_NUMBER_PREFIX}${datePart}-${randomSuffix}`;
 }
 
 export async function createPersistedOrder(
@@ -198,13 +211,14 @@ export async function createPersistedOrder(
   const validation = await validateItemsStock(input.items);
   if (!validation.valid) {
     const primaryError =
-      validation.errors[0]?.message ||
-      'One or more items in your bag exceed available stock.';
+      validation.errors[0]?.message || orderConstants.ERROR_PRIMARY_GENERIC;
     throw new Error(primaryError);
   }
 
   const orderNumber = generateOrderNumber();
-  const trackingNumber = `SUDHA${Math.floor(1000000 + Math.random() * 9000000)}IN`;
+  const trackingNumber = `${orderConstants.TRACKING_NUMBER_PREFIX}${Math.floor(
+    1000000 + Math.random() * 9000000
+  )}${orderConstants.TRACKING_NUMBER_SUFFIX}`;
   const now = new Date().toISOString();
 
   const supabase = getSupabaseServerAdminClient();
@@ -212,7 +226,7 @@ export async function createPersistedOrder(
     try {
       // 1. Find or create customer row by phone / email
       const { data: existingCustomer, error: lookupError } = await supabase
-        .from('customers')
+        .from(tables.CUSTOMERS)
         .select('*')
         .eq('phone', input.customerPhone)
         .limit(1)
@@ -223,7 +237,7 @@ export async function createPersistedOrder(
         if (existingCustomer) {
           customerId = String(existingCustomer.id);
           await supabase
-            .from('customers')
+            .from(tables.CUSTOMERS)
             .update({
               full_name: input.customerName,
               email: input.customerEmail || existingCustomer.email,
@@ -236,7 +250,7 @@ export async function createPersistedOrder(
             .eq('id', customerId);
         } else {
           const { data: createdCustomer, error: custError } = await supabase
-            .from('customers')
+            .from(tables.CUSTOMERS)
             .insert({
               full_name: input.customerName,
               phone: input.customerPhone,
@@ -253,7 +267,7 @@ export async function createPersistedOrder(
 
           if (custError || !createdCustomer) {
             throw new Error(
-              custError?.message || 'Failed to create customer record in Supabase'
+              custError?.message || orderConstants.ERROR_CUSTOMER_CREATE_FAILED
             );
           }
           customerId = String(createdCustomer.id);
@@ -261,7 +275,7 @@ export async function createPersistedOrder(
 
         // 2. Insert order record
         const { data: insertedOrder, error: orderError } = await supabase
-          .from('orders')
+          .from(tables.ORDERS)
           .insert({
             order_number: orderNumber,
             customer_id: customerId,
@@ -286,7 +300,7 @@ export async function createPersistedOrder(
 
         if (orderError || !insertedOrder) {
           throw new Error(
-            orderError?.message || 'Failed to insert order in Supabase'
+            orderError?.message || orderConstants.ERROR_ORDER_INSERT_FAILED
           );
         }
 
@@ -309,13 +323,13 @@ export async function createPersistedOrder(
         }));
 
         const { data: insertedItems } = await supabase
-          .from('order_items')
+          .from(tables.ORDER_ITEMS)
           .insert(orderItemRows)
           .select('*');
 
         for (const item of input.items) {
           const { data: prodRow } = await supabase
-            .from('products')
+            .from(tables.PRODUCTS)
             .select('id, stock, size_stock')
             .eq('sku', item.sku)
             .maybeSingle();
@@ -342,7 +356,7 @@ export async function createPersistedOrder(
             }
 
             await supabase
-              .from('products')
+              .from(tables.PRODUCTS)
               .update({
                 stock: nextStock,
                 size_stock: updatedSizeStock,
@@ -361,8 +375,6 @@ export async function createPersistedOrder(
         };
       }
     } catch (err) {
-      // If SUPABASE_SERVICE_ROLE_KEY is not configured in Vercel yet and RLS blocks
-      // the anon key, fall back to the server store so checkout always succeeds.
       console.warn(
         '[order.service] Supabase order persistence fell back to local store:',
         err instanceof Error ? err.message : err
@@ -415,7 +427,7 @@ export async function createPersistedOrder(
   const newOrder: Order = {
     id: orderId,
     order_number: orderNumber,
-    customer_id: 'cust-local-1',
+    customer_id: orderConstants.FALLBACK_CUSTOMER_ID,
     status: AppConstants.OrderStatus.CONFIRMED,
     payment_status: input.paymentStatus,
     payment_provider: input.paymentProvider,
@@ -447,7 +459,7 @@ export async function getAllOrdersForAdmin(): Promise<Order[]> {
   const supabase = getSupabaseServerAdminClient();
   if (supabase) {
     const { data, error } = await supabase
-      .from('orders')
+      .from(tables.ORDERS)
       .select('*, order_items(*)')
       .order('created_at', { ascending: false });
 
@@ -472,7 +484,7 @@ export async function updateOrderStatusForAdmin(params: {
   status: OrderStatus;
 }): Promise<Order> {
   const now = new Date().toISOString();
-  const deliveredAt = params.status === 'DELIVERED' ? now : null;
+  const deliveredAt = params.status === AppConstants.OrderStatus.DELIVERED ? now : null;
 
   const supabase = getSupabaseServerAdminClient();
   if (supabase) {
@@ -484,7 +496,7 @@ export async function updateOrderStatusForAdmin(params: {
     }
 
     const { data, error } = await supabase
-      .from('orders')
+      .from(tables.ORDERS)
       .update(updatePayload)
       .eq('order_number', params.orderNumber)
       .select('*, order_items(*)')
@@ -498,7 +510,7 @@ export async function updateOrderStatusForAdmin(params: {
     }
 
     if (error && error.code !== 'PGRST205' && error.code !== '42501') {
-      throw new Error(error.message || 'Failed to update order status');
+      throw new Error(error.message || orderConstants.ERROR_ORDER_UPDATE_FAILED);
     }
   }
 
@@ -506,7 +518,7 @@ export async function updateOrderStatusForAdmin(params: {
   const orders = snapshot.orders ?? [];
   const target = orders.find((o) => o.order_number === params.orderNumber);
   if (!target) {
-    throw new Error(`Order ${params.orderNumber} not found`);
+    throw new Error(orderConstants.ERROR_ORDER_NOT_FOUND(params.orderNumber));
   }
 
   target.status = params.status;
