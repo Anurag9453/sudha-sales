@@ -28,12 +28,12 @@ export async function POST(request: NextRequest) {
 
     if (!body.customerPhone || !body.items || body.items.length === 0) {
       return NextResponse.json(
-        { ok: false, error: 'Missing customer details or cart items for COD order' },
+        { ok: false, error: AppConstants.Api.MESSAGES.MISSING_COD_DETAILS },
         { status: 400 }
       );
     }
 
-    const codReference = `COD-${Date.now()}`;
+    const codReference = `${AppConstants.Api.DEFAULTS.COD_REFERENCE_PREFIX}${Date.now()}`;
 
     const order = await createPersistedOrder({
       customerName: body.customerName,
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : 'Failed to create Cash on Delivery order';
+      err instanceof Error ? err.message : AppConstants.Api.MESSAGES.COD_CREATE_FAILED;
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

@@ -11,18 +11,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { isAdminAuthenticated } from '@/services/admin-auth.service';
 import { runGoogleDriveToS3Sync } from '@/services/gdrive-s3-sync.service';
+import { AppConstants } from '@/constants/app.constants';
+
+const apiConstants = AppConstants.Api;
 
 export async function POST(request: NextRequest) {
   try {
     // Allow either an authenticated Admin browser session OR a valid webhook/cron Bearer secret
     const adminSessionValid = await isAdminAuthenticated();
-    const webhookSecret = process.env.SYNC_WEBHOOK_SECRET || 'sudha-sync-secret';
-    const authHeader = request.headers.get('authorization');
-    const bearerValid = authHeader === `Bearer ${webhookSecret}`;
+    const webhookSecret = process.env.SYNC_WEBHOOK_SECRET || apiConstants.DEFAULTS.SYNC_WEBHOOK_SECRET;
+    const authHeader = request.headers.get(apiConstants.HEADERS.AUTHORIZATION);
+    const bearerValid = authHeader === `${apiConstants.HEADERS.BEARER_PREFIX}${webhookSecret}`;
 
     if (!adminSessionValid && !bearerValid) {
       return NextResponse.json(
-        { ok: false, error: 'Unauthorized sync request' },
+        { ok: false, error: apiConstants.MESSAGES.UNAUTHORIZED_SYNC },
         { status: 401 }
       );
     }
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : 'Unexpected synchronization failure';
+      err instanceof Error ? err.message : apiConstants.MESSAGES.UNEXPECTED_SYNC_FAILURE;
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { addProductReviewBySku } from '@/services/review.service';
+import { AppConstants } from '@/constants/app.constants';
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : 'Failed to submit product review';
+      err instanceof Error ? err.message : AppConstants.Api.MESSAGES.SUBMIT_REVIEW_FAILED;
     return NextResponse.json({ ok: false, error: message }, { status: 400 });
   }
 }

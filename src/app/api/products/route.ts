@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const size = searchParams.get('size') || undefined;
     const sort =
       (searchParams.get('sort') as 'newest' | 'price-asc' | 'price-desc') ||
-      'newest';
+      AppConstants.Services.CATALOG.DEFAULT_SORT;
     const search = searchParams.get('q') || undefined;
 
     const result = await getProductsPaginated({
@@ -42,13 +42,14 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+          [AppConstants.Api.HEADERS.CACHE_CONTROL]:
+            AppConstants.Api.HEADERS.CACHE_CONTROL_PRODUCTS,
         },
       }
     );
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : 'Failed to fetch paginated products';
+      err instanceof Error ? err.message : AppConstants.Api.MESSAGES.FETCH_PRODUCTS_FAILED;
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

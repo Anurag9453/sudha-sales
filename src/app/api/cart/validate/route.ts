@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { validateItemsStock } from '@/services/order.service';
+import { AppConstants } from '@/constants/app.constants';
 import type { CartItem } from '@/types/domain';
 
 export async function POST(request: NextRequest) {
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : 'Failed to validate cart stock';
+      err instanceof Error ? err.message : AppConstants.Api.MESSAGES.CART_VALIDATE_FAILED;
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

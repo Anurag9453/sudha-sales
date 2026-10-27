@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRazorpayOrderSession } from '@/services/razorpay.service';
 import { validateItemsStock } from '@/services/order.service';
+import { AppConstants } from '@/constants/app.constants';
 import type { CartItem } from '@/types/domain';
 
 export async function POST(request: NextRequest) {
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     const amount = Number(body.amountInRupees);
     if (!amount || amount <= 0) {
       return NextResponse.json(
-        { ok: false, error: 'Invalid order amount' },
+        { ok: false, error: AppConstants.Api.MESSAGES.INVALID_ORDER_AMOUNT },
         { status: 400 }
       );
     }
@@ -36,14 +37,14 @@ export async function POST(request: NextRequest) {
             ok: false,
             error:
               stockCheck.errors[0]?.message ||
-              'One or more items in your cart exceed available stock. Please adjust quantities.',
+              AppConstants.Api.MESSAGES.ITEMS_EXCEED_STOCK_GENERIC,
           },
           { status: 400 }
         );
       }
     }
 
-    const receipt = `rcpt_${Date.now()}`;
+    const receipt = `${AppConstants.Api.DEFAULTS.RECEIPT_PREFIX}${Date.now()}`;
     const session = await createRazorpayOrderSession({
       amountInRupees: amount,
       receipt,
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : 'Failed to create Razorpay order';
+      err instanceof Error ? err.message : AppConstants.Api.MESSAGES.CREATE_RAZORPAY_ORDER_FAILED;
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

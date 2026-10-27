@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       !body.razorpay_signature
     ) {
       return NextResponse.json(
-        { ok: false, error: 'Missing Razorpay payment verification parameters' },
+        { ok: false, error: AppConstants.Api.MESSAGES.MISSING_RAZORPAY_PARAMS },
         { status: 400 }
       );
     }
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     if (!isSignatureValid) {
       return NextResponse.json(
-        { ok: false, error: 'Razorpay payment signature verification failed' },
+        { ok: false, error: AppConstants.Api.MESSAGES.SIGNATURE_VERIFICATION_FAILED },
         { status: 400 }
       );
     }
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : 'Failed to verify payment & create order';
+      err instanceof Error ? err.message : AppConstants.Api.MESSAGES.VERIFY_PAYMENT_FAILED;
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
