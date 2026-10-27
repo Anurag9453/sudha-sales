@@ -239,6 +239,20 @@ describe('Customer Reviews & Average Rating Calculation', () => {
     const { computeReviewStats, addProductReviewBySku } = await import(
       '../services/review.service'
     );
+    const { readLocalCatalog, writeLocalCatalog } = await import(
+      '../database/local-store'
+    );
+
+    // Ensure SKU002 starts clean with 0 reviews before testing
+    const snapshot = await readLocalCatalog();
+    const target = snapshot.products.find((p) => p.sku === 'SKU002');
+    if (target) {
+      target.reviews = [];
+      target.review_count = 0;
+      target.average_rating = null;
+      target.size_stock = {};
+      await writeLocalCatalog(snapshot);
+    }
 
     const initialStats = computeReviewStats([]);
     assert.equal(initialStats.review_count, 0);
@@ -266,5 +280,14 @@ describe('Customer Reviews & Average Rating Calculation', () => {
 
     assert.equal(secondResult.review_count, 2);
     assert.equal(secondResult.average_rating, 4.5);
+
+    // Clean up test reviews so initial catalog state remains at 0 reviews
+    if (target) {
+      target.reviews = [];
+      target.review_count = 0;
+      target.average_rating = null;
+      target.size_stock = {};
+      await writeLocalCatalog(snapshot);
+    }
   });
 });
