@@ -30,6 +30,7 @@ import { SAMPLE_GOOGLE_DRIVE_CSV } from '@/lib/sample-csv';
 import type { DriveSyncExecutionReport } from '@/services/gdrive-s3-sync.service';
 import { formatPrice } from '@/lib/format';
 import { LuxurySpinner } from '@/components/ui/LuxurySpinner';
+import { AppConstants } from '@/constants/app.constants';
 
 export default function AdminSyncPage() {
   const [csvText, setCsvText] = useState<string>('');
@@ -37,13 +38,16 @@ export default function AdminSyncPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const copy = AppConstants.Admin.COPY.SYNC;
+  const routes = AppConstants.Admin.ROUTES;
+
   const handleRunSync = () => {
     setErrorMsg(null);
     startTransition(async () => {
       const customCsv = csvText.trim() ? csvText : undefined;
       const res = await triggerGoogleDriveSyncAction(customCsv);
       if (!res.ok || !res.syncReport) {
-        setErrorMsg(res.message || 'Sync failed');
+        setErrorMsg(res.message || copy.ERROR_DEFAULT);
         return;
       }
       setReport(res.syncReport);
@@ -62,8 +66,8 @@ export default function AdminSyncPage() {
       {isPending && (
         <LuxurySpinner
           fullScreenOverlay
-          title="Synchronizing Google Drive & S3..."
-          subtitle="Reading products.csv, scanning SKU image folders, and updating catalog"
+          title={copy.SPINNER_TITLE}
+          subtitle={copy.SPINNER_SUBTITLE}
         />
       )}
 
@@ -71,19 +75,19 @@ export default function AdminSyncPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-stone-200">
         <div>
           <Link
-            href="/admin"
+            href={routes.DASHBOARD}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-stone-950 mb-2"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Back to Product Catalog
+            {copy.BACK_LINK}
           </Link>
           <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-stone-950">
-            Google Drive CSV &amp; S3 Sync Pipeline
+            {copy.TITLE}
           </h1>
           <p className="text-xs sm:text-sm text-stone-600 mt-1">
-            Synchronize <code className="font-mono">Clothing Store/products.csv</code> and{' '}
-            <code className="font-mono">SKU001/</code> image folders to Amazon S3 &amp;
-            Supabase PostgreSQL.
+            {copy.SUBTITLE_PREFIX}<code className="font-mono">{copy.SUBTITLE_CSV}</code>
+            {copy.SUBTITLE_MID}<code className="font-mono">{copy.SUBTITLE_FOLDERS}</code>
+            {copy.SUBTITLE_SUFFIX}
           </p>
         </div>
 
@@ -96,12 +100,12 @@ export default function AdminSyncPage() {
           {isPending ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Running Sync Pipeline...</span>
+              <span>{copy.BTN_RUNNING}</span>
             </>
           ) : (
             <>
               <Play className="w-4 h-4" />
-              <span>Run Sync Now</span>
+              <span>{copy.BTN_RUN_SYNC}</span>
             </>
           )}
         </button>
@@ -112,38 +116,42 @@ export default function AdminSyncPage() {
         <div className="p-5 rounded-2xl bg-white border border-stone-200 space-y-2">
           <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-stone-800">
             <FileSpreadsheet className="w-4 h-4 text-amber-700" />
-            <span>Step 1: Google Drive Source</span>
+            <span>{copy.STEP1_TITLE}</span>
           </div>
           <p className="text-xs text-stone-600 leading-relaxed">
-            Reads <code className="font-mono bg-stone-100 px-1 rounded">products.csv</code>{' '}
-            and discovers matching <code className="font-mono bg-stone-100 px-1 rounded">SKU001/</code>,{' '}
-            <code className="font-mono bg-stone-100 px-1 rounded">SKU011/</code> folders
-            containing <code className="font-mono">front.jpg</code>,{' '}
-            <code className="font-mono">model.jpg</code>, <code className="font-mono">back.jpg</code>.
+            {copy.STEP1_DESC_PRE}
+            <code className="font-mono bg-stone-100 px-1 rounded">{copy.STEP1_CSV}</code>{' '}
+            {copy.STEP1_DESC_MID}
+            <code className="font-mono bg-stone-100 px-1 rounded">{copy.STEP1_SKU1}</code>,{' '}
+            <code className="font-mono bg-stone-100 px-1 rounded">{copy.STEP1_SKU2}</code>
+            {copy.STEP1_DESC_POST}
+            <code className="font-mono">{copy.STEP1_IMG1}</code>,{' '}
+            <code className="font-mono">{copy.STEP1_IMG2}</code>,{' '}
+            <code className="font-mono">{copy.STEP1_IMG3}</code>.
           </p>
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-stone-200 space-y-2">
           <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-stone-800">
             <HardDriveUpload className="w-4 h-4 text-amber-700" />
-            <span>Step 2: Amazon S3 Image Sync</span>
+            <span>{copy.STEP2_TITLE}</span>
           </div>
           <p className="text-xs text-stone-600 leading-relaxed">
-            Maps each photo to its standardized S3 object key{' '}
-            <code className="font-mono bg-stone-100 px-1 rounded">SKU001/front.jpg</code>{' '}
-            and streams new images to your S3 bucket / CloudFront CDN.
+            {copy.STEP2_DESC_PRE}
+            <code className="font-mono bg-stone-100 px-1 rounded">{copy.STEP2_KEY}</code>
+            {copy.STEP2_DESC_POST}
           </p>
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-stone-200 space-y-2">
           <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-stone-800">
             <Database className="w-4 h-4 text-amber-700" />
-            <span>Step 3: Supabase Upsert by SKU</span>
+            <span>{copy.STEP3_TITLE}</span>
           </div>
           <p className="text-xs text-stone-600 leading-relaxed">
-            Auto-creates Categories &amp; Collections if new, upserts products by unique{' '}
-            <code className="font-mono bg-stone-100 px-1 rounded">sku</code>, and refreshes
-            the Sudha Sales website immediately.
+            {copy.STEP3_DESC_PRE}
+            <code className="font-mono bg-stone-100 px-1 rounded">{copy.STEP3_SKU}</code>
+            {copy.STEP3_DESC_POST}
           </p>
         </div>
       </div>
@@ -153,10 +161,10 @@ export default function AdminSyncPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-900">
-              Optional Manual <code className="font-mono">products.csv</code> Override
+              {copy.OVERRIDE_TITLE}
             </h2>
             <p className="text-xs text-stone-500 mt-0.5">
-              Leave blank to read <code className="font-mono text-stone-800">products.csv</code> directly from your live Google Drive folder, or paste/upload a CSV override below.
+              {copy.OVERRIDE_DESC}
             </p>
           </div>
 
@@ -166,14 +174,14 @@ export default function AdminSyncPage() {
               onClick={() => setCsvText(SAMPLE_GOOGLE_DRIVE_CSV)}
               className="px-3 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-100 text-xs font-semibold text-stone-700"
             >
-              Load Sample CSV
+              {copy.BTN_LOAD_SAMPLE}
             </button>
             <label className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-stone-300 bg-stone-50 hover:bg-stone-100 text-xs font-semibold text-stone-800 cursor-pointer">
               <FolderSync className="w-3.5 h-3.5" />
-              <span>Upload Local .CSV File</span>
+              <span>{copy.BTN_UPLOAD_CSV}</span>
               <input
                 type="file"
-                accept=".csv,text/csv"
+                accept={copy.INPUT_ACCEPT_CSV}
                 onChange={handleFileUpload}
                 className="hidden"
               />
@@ -185,17 +193,19 @@ export default function AdminSyncPage() {
           rows={6}
           value={csvText}
           onChange={(e) => setCsvText(e.target.value)}
-          placeholder="Leave empty to pull products.csv directly from your Google Drive folder (13nZuFJyo1u5BGV4PUDwvauEOFQ4YmLTB)..."
+          placeholder={copy.PLACEHOLDER_CSV}
           spellCheck={false}
           className="w-full p-4 rounded-xl bg-stone-950 text-emerald-300 placeholder:text-stone-500 font-mono text-xs leading-relaxed border border-stone-800 focus:outline-none"
         />
 
         <p className="text-[11px] text-stone-500">
-          Tip: Try editing a price, changing stock, or adding a new line like{' '}
+          {copy.CSV_TIP_PRE}
           <code className="font-mono text-stone-800">
-            SKU015,Festive Silk Kurta,Kurtis &amp; Tunics,New Collection,Pure silk kurta,1999,1599,20,M|L|XL,Maroon,ACTIVE
-          </code>{' '}
-          and click <strong>Run Sync Now</strong> to see it appear on the storefront!
+            {copy.CSV_TIP_CODE}
+          </code>
+          {copy.CSV_TIP_MID}
+          <strong>{copy.CSV_TIP_BTN}</strong>
+          {copy.CSV_TIP_POST}
         </p>
       </div>
 
@@ -216,22 +226,21 @@ export default function AdminSyncPage() {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-stone-950">
-                  Synchronization Complete ({report.syncedCount} of{' '}
-                  {report.totalRowsParsed} SKUs Upserted)
+                  {copy.REPORT_TITLE(report.syncedCount, report.totalRowsParsed)}
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Mode: <strong className="text-stone-800">{report.mode}</strong> •
-                  Completed at {new Date(report.completedAt).toLocaleTimeString()}
+                  {copy.REPORT_MODE_LABEL}<strong className="text-stone-800">{report.mode}</strong>
+                  {copy.REPORT_COMPLETED_LABEL}{new Date(report.completedAt).toLocaleTimeString()}
                 </p>
               </div>
             </div>
 
             <Link
-              href="/shop?collection=new-collection"
+              href={routes.SHOP_COLLECTION(copy.DEFAULT_COLLECTION_SLUG)}
               target="_blank"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-xs font-semibold text-stone-900"
             >
-              <span>View Storefront</span>
+              <span>{copy.BTN_VIEW_STOREFRONT}</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -242,13 +251,13 @@ export default function AdminSyncPage() {
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-stone-200 text-stone-500 uppercase tracking-wider text-[11px]">
-                    <th className="py-2.5 px-3">SKU</th>
-                    <th className="py-2.5 px-3">Product Name</th>
-                    <th className="py-2.5 px-3">Price / Sale</th>
-                    <th className="py-2.5 px-3">Stock &amp; Sizes</th>
-                    <th className="py-2.5 px-3">Mapped S3 Image Keys</th>
-                    <th className="py-2.5 px-3">Status</th>
-                    <th className="py-2.5 px-3 text-right">Verify</th>
+                    <th className="py-2.5 px-3">{copy.TH_SKU}</th>
+                    <th className="py-2.5 px-3">{copy.TH_NAME}</th>
+                    <th className="py-2.5 px-3">{copy.TH_PRICE}</th>
+                    <th className="py-2.5 px-3">{copy.TH_STOCK_SIZES}</th>
+                    <th className="py-2.5 px-3">{copy.TH_S3_KEYS}</th>
+                    <th className="py-2.5 px-3">{copy.TH_STATUS}</th>
+                    <th className="py-2.5 px-3 text-right">{copy.TH_VERIFY}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-200">
@@ -297,11 +306,11 @@ export default function AdminSyncPage() {
                       </td>
                       <td className="py-3 px-3 text-right">
                         <Link
-                          href={`/product/${item.sku}`}
+                          href={routes.PRODUCT_LIVE(item.sku)}
                           target="_blank"
                           className="text-stone-900 font-semibold hover:underline"
                         >
-                          Open Page ↗
+                          {copy.LINK_OPEN_PAGE}
                         </Link>
                       </td>
                     </tr>
@@ -315,7 +324,7 @@ export default function AdminSyncPage() {
           {report.rowErrors.length > 0 && (
             <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 space-y-2">
               <h4 className="text-xs font-bold uppercase tracking-wider text-rose-900">
-                CSV Validation Errors ({report.rowErrors.length})
+                {copy.CSV_ERRORS_TITLE(report.rowErrors.length)}
               </h4>
               <ul className="space-y-1 text-xs text-rose-800">
                 {report.rowErrors.map((err, idx) => (

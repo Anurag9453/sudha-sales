@@ -24,6 +24,7 @@ import {
 import { updateOrderStatusForAdmin } from '@/services/order.service';
 import type { OrderStatus, ProductStatus } from '@/types/domain';
 import type { UpsertProductInput } from '@/validation/product.schema';
+import { AppConstants } from '@/constants/app.constants';
 
 export interface ActionResponse {
   ok: boolean;
@@ -32,10 +33,13 @@ export interface ActionResponse {
   syncReport?: DriveSyncExecutionReport;
 }
 
+const copy = AppConstants.Admin.COPY.ACTIONS;
+const routes = AppConstants.Admin.ROUTES;
+
 async function assertAdminAuth() {
   const authed = await isAdminAuthenticated();
   if (!authed) {
-    throw new Error('Unauthorized: Please sign in to the Admin Portal first.');
+    throw new Error(copy.UNAUTHORIZED);
   }
 }
 
@@ -44,16 +48,16 @@ export async function loginAdminAction(passcode: string): Promise<ActionResponse
   if (!ok) {
     return {
       ok: false,
-      message: 'Invalid admin passcode. Please check ADMIN_PASSCODE in your environment.',
+      message: copy.INVALID_PASSCODE,
     };
   }
-  revalidatePath('/admin');
+  revalidatePath(routes.DASHBOARD);
   return { ok: true };
 }
 
 export async function logoutAdminAction(): Promise<void> {
   await clearAdminSession();
-  revalidatePath('/admin');
+  revalidatePath(routes.DASHBOARD);
 }
 
 export async function saveProductAction(
@@ -62,18 +66,18 @@ export async function saveProductAction(
   try {
     await assertAdminAuth();
     const saved = await upsertProductBySku(payload);
-    revalidatePath('/');
+    revalidatePath(routes.STOREFRONT);
     revalidatePath('/shop');
-    revalidatePath(`/product/${saved.sku}`);
-    revalidatePath('/admin');
-    revalidatePath(`/admin/products/${saved.sku}`);
+    revalidatePath(routes.PRODUCT_LIVE(saved.sku));
+    revalidatePath(routes.DASHBOARD);
+    revalidatePath(routes.PRODUCT_EDIT(saved.sku));
     return {
       ok: true,
       sku: saved.sku,
-      message: `Product ${saved.sku} saved successfully.`,
+      message: copy.PRODUCT_SAVED(saved.sku),
     };
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to save product';
+    const message = err instanceof Error ? err.message : copy.PRODUCT_SAVE_FAILED;
     return { ok: false, message };
   }
 }
@@ -85,17 +89,17 @@ export async function quickUpdateStockAction(
   try {
     await assertAdminAuth();
     const updated = await updateProductStockBySku({ sku, stock });
-    revalidatePath('/');
+    revalidatePath(routes.STOREFRONT);
     revalidatePath('/shop');
-    revalidatePath(`/product/${updated.sku}`);
-    revalidatePath('/admin');
+    revalidatePath(routes.PRODUCT_LIVE(updated.sku));
+    revalidatePath(routes.DASHBOARD);
     return {
       ok: true,
       sku: updated.sku,
-      message: `Stock for ${updated.sku} updated to ${updated.stock}.`,
+      message: copy.STOCK_UPDATED(updated.sku, updated.stock),
     };
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to update stock';
+    const message = err instanceof Error ? err.message : copy.STOCK_UPDATE_FAILED;
     return { ok: false, message };
   }
 }
@@ -107,17 +111,17 @@ export async function quickToggleStatusAction(
   try {
     await assertAdminAuth();
     const updated = await updateProductStatusBySku({ sku, status });
-    revalidatePath('/');
+    revalidatePath(routes.STOREFRONT);
     revalidatePath('/shop');
-    revalidatePath(`/product/${updated.sku}`);
-    revalidatePath('/admin');
+    revalidatePath(routes.PRODUCT_LIVE(updated.sku));
+    revalidatePath(routes.DASHBOARD);
     return {
       ok: true,
       sku: updated.sku,
-      message: `${updated.sku} is now ${updated.status}.`,
+      message: copy.STATUS_UPDATED(updated.sku, updated.status),
     };
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to update status';
+    const message = err instanceof Error ? err.message : copy.STATUS_UPDATE_FAILED;
     return { ok: false, message };
   }
 }
@@ -128,21 +132,21 @@ export async function triggerGoogleDriveSyncAction(
   try {
     await assertAdminAuth();
     const report = await runGoogleDriveToS3Sync({ customCsvText });
-    revalidatePath('/');
+    revalidatePath(routes.STOREFRONT);
     revalidatePath('/shop');
-    revalidatePath('/admin');
-    revalidatePath('/admin/sync');
+    revalidatePath(routes.DASHBOARD);
+    revalidatePath(routes.SYNC);
     for (const item of report.syncedProducts) {
-      revalidatePath(`/product/${item.sku}`);
+      revalidatePath(routes.PRODUCT_LIVE(item.sku));
     }
     return {
       ok: true,
-      message: `Synced ${report.syncedCount} products from CSV & Drive folders.`,
+      message: copy.SYNC_SUCCESS(report.syncedCount),
       syncReport: report,
     };
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : 'Failed to run Google Drive sync';
+      err instanceof Error ? err.message : copy.SYNC_FAILED;
     return { ok: false, message };
   }
 }
@@ -154,17 +158,15 @@ export async function updateAdminOrderStatusAction(
   try {
     await assertAdminAuth();
     await updateOrderStatusForAdmin({ orderNumber, status });
-    revalidatePath('/admin/orders');
-    revalidatePath('/account');
+    revalidatePath(routes.ORDERS);
+    revalidatePath(routes.ACCOUNT);
     return {
       ok: true,
-      message: `Order ${orderNumber} updated to ${status}.`,
+      message: copy.ORDER_UPDATED(orderNumber, status),
     };
   } catch (err) {
     const message =
-      err instanceof Error ? err.message : 'Failed to update order status';
+      err instanceof Error ? err.message : copy.ORDER_UPDATE_FAILED;
     return { ok: false, message };
   }
 }
-
-

@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Lock, ArrowRight, AlertCircle, KeyRound } from 'lucide-react';
 import { loginAdminAction } from '@/app/admin/actions';
 import { publicEnv } from '@/lib/env';
+import { AppConstants } from '@/constants/app.constants';
 
 export function AdminLoginGate() {
   const router = useRouter();
@@ -17,13 +18,15 @@ export function AdminLoginGate() {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const copy = AppConstants.Admin.COPY.LOGIN_GATE;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
       const res = await loginAdminAction(passcode);
       if (!res.ok) {
-        setError(res.message || 'Invalid passcode');
+        setError(res.message || copy.ERROR_DEFAULT);
         return;
       }
       router.refresh();
@@ -41,18 +44,17 @@ export function AdminLoginGate() {
             {publicEnv.storeName}
           </p>
           <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-stone-950">
-            Retailer Admin Portal
+            {copy.TITLE}
           </h1>
           <p className="text-xs text-stone-500 leading-relaxed">
-            Sign in to manage daily collections, SKUs, stock levels, and product
-            visibility.
+            {copy.SUBTITLE}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-stone-700 mb-1.5">
-              Admin Passcode
+              {copy.LABEL_PASSCODE}
             </label>
             <div className="relative">
               <KeyRound className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -61,12 +63,12 @@ export function AdminLoginGate() {
                 type="password"
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
-                placeholder="Enter admin passcode"
+                placeholder={copy.PLACEHOLDER_PASSCODE}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-300 text-sm focus:outline-none focus:border-stone-900"
               />
             </div>
             <p className="text-[11px] text-stone-400 mt-1.5">
-              Authorized store personnel only. Protected by <code className="font-mono">ADMIN_PASSCODE</code>.
+              {copy.HINT_PREFIX}<code className="font-mono">{copy.HINT_CODE}</code>.
             </p>
           </div>
 
@@ -82,17 +84,17 @@ export function AdminLoginGate() {
             disabled={isPending}
             className="w-full h-11 rounded-xl bg-stone-900 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-stone-800 disabled:opacity-50 transition-colors"
           >
-            <span>{isPending ? 'Verifying...' : 'Unlock Admin Dashboard'}</span>
+            <span>{isPending ? copy.BTN_VERIFYING : copy.BTN_UNLOCK}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
         <div className="pt-4 border-t border-stone-200 text-center">
           <Link
-            href="/"
+            href={AppConstants.Admin.ROUTES.STOREFRONT}
             className="text-xs font-semibold text-stone-600 hover:text-stone-950"
           >
-            ← Return to Customer Storefront
+            {copy.LINK_STOREFRONT}
           </Link>
         </div>
       </div>

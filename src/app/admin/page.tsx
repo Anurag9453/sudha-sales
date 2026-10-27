@@ -21,6 +21,7 @@ import {
   StatusQuickToggle,
   StockQuickControl,
 } from '@/components/admin/AdminProductRowControls';
+import { AppConstants } from '@/constants/app.constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,25 +42,28 @@ export default async function AdminDashboardPage({
   const inactiveCount = products.filter((p) => p.status !== 'ACTIVE').length;
   const lowStockCount = products.filter((p) => p.stock <= 5).length;
 
+  const copy = AppConstants.Admin.COPY.DASHBOARD;
+  const routes = AppConstants.Admin.ROUTES;
+
   return (
     <div className="space-y-8">
       {/* Header & Primary CTA */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-stone-950">
-            Product Catalog &amp; Warehouse Stock
+            {copy.TITLE}
           </h1>
           <p className="text-xs sm:text-sm text-stone-600 mt-1">
-            All products are synced from your Google Drive <code className="font-mono">products.csv</code> &amp; SKU folders. Manage stock counts or toggle visibility below.
+            {copy.SUBTITLE_PREFIX}<code className="font-mono">{copy.SUBTITLE_CSV}</code>{copy.SUBTITLE_SUFFIX}
           </p>
         </div>
 
         <Link
-          href="/admin/sync"
+          href={routes.SYNC}
           className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-stone-900 text-white text-xs sm:text-sm font-semibold hover:bg-stone-800 transition-colors shrink-0"
         >
           <FolderSync className="w-4 h-4 text-amber-300" />
-          <span>Sync from Google Drive CSV</span>
+          <span>{copy.BTN_SYNC}</span>
         </Link>
       </div>
 
@@ -67,7 +71,7 @@ export default async function AdminDashboardPage({
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-white border border-stone-200 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-stone-500">Active SKUs</p>
+            <p className="text-xs font-medium text-stone-500">{copy.KPI_ACTIVE}</p>
             <p className="text-2xl font-bold text-stone-950 mt-1">{activeCount}</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
@@ -77,7 +81,7 @@ export default async function AdminDashboardPage({
 
         <div className="p-5 rounded-2xl bg-white border border-stone-200 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-stone-500">Low / Out of Stock</p>
+            <p className="text-xs font-medium text-stone-500">{copy.KPI_LOW_STOCK}</p>
             <p className="text-2xl font-bold text-amber-800 mt-1">{lowStockCount}</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
@@ -87,7 +91,7 @@ export default async function AdminDashboardPage({
 
         <div className="p-5 rounded-2xl bg-white border border-stone-200 flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium text-stone-500">Hidden / Inactive</p>
+            <p className="text-xs font-medium text-stone-500">{copy.KPI_HIDDEN}</p>
             <p className="text-2xl font-bold text-stone-700 mt-1">{inactiveCount}</p>
           </div>
           <div className="w-10 h-10 rounded-xl bg-stone-100 text-stone-600 flex items-center justify-center">
@@ -96,16 +100,16 @@ export default async function AdminDashboardPage({
         </div>
 
         <Link
-          href="/admin/sync"
+          href={routes.SYNC}
           className="p-5 rounded-2xl bg-stone-900 hover:bg-stone-800 text-white flex items-center justify-between transition-colors"
         >
           <div>
-            <p className="text-xs font-medium text-stone-400">Sync Pipeline</p>
+            <p className="text-xs font-medium text-stone-400">{copy.KPI_SYNC_TITLE}</p>
             <p className="text-sm font-semibold text-amber-300 mt-1">
-              Run Google Drive + S3 Sync →
+              {copy.KPI_SYNC_HEADING}
             </p>
             <p className="text-[11px] text-stone-400 mt-0.5">
-              Drive CSV → S3 → Supabase
+              {copy.KPI_SYNC_DESC}
             </p>
           </div>
           <FolderSync className="w-5 h-5 text-amber-300 shrink-0" />
@@ -114,19 +118,19 @@ export default async function AdminDashboardPage({
 
       {/* Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-stone-200">
-        <form action="/admin" method="GET" className="w-full sm:max-w-md relative">
+        <form action={routes.DASHBOARD} method="GET" className="w-full sm:max-w-md relative">
           <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="search"
-            name="q"
+            name={copy.SEARCH_NAME}
             defaultValue={q}
-            placeholder="Filter by SKU (e.g. SKU001), name, or color..."
+            placeholder={copy.SEARCH_PLACEHOLDER}
             className="w-full pl-9 pr-4 py-2 rounded-xl border border-stone-300 text-xs sm:text-sm"
           />
         </form>
 
         <div className="text-xs text-stone-500">
-          Total <strong className="text-stone-900">{products.length}</strong> products
+          {copy.TOTAL_PREFIX}<strong className="text-stone-900">{products.length}</strong>{copy.TOTAL_SUFFIX}
         </div>
       </div>
 
@@ -136,13 +140,13 @@ export default async function AdminDashboardPage({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-stone-200 bg-stone-50 text-[11px] font-semibold uppercase tracking-wider text-stone-500">
-                <th className="py-3.5 px-4">Product &amp; SKU</th>
-                <th className="py-3.5 px-4">Category / Collection</th>
-                <th className="py-3.5 px-4">Price / Sale</th>
-                <th className="py-3.5 px-4">Sizes</th>
-                <th className="py-3.5 px-4">Quick Stock Update</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
+                <th className="py-3.5 px-4">{copy.TH_PRODUCT_SKU}</th>
+                <th className="py-3.5 px-4">{copy.TH_CATEGORY_COLLECTION}</th>
+                <th className="py-3.5 px-4">{copy.TH_PRICE_SALE}</th>
+                <th className="py-3.5 px-4">{copy.TH_SIZES}</th>
+                <th className="py-3.5 px-4">{copy.TH_QUICK_STOCK}</th>
+                <th className="py-3.5 px-4">{copy.TH_STATUS}</th>
+                <th className="py-3.5 px-4 text-right">{copy.TH_ACTIONS}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-200 text-sm">
@@ -171,13 +175,13 @@ export default async function AdminDashboardPage({
                             {product.sku}
                           </span>
                           <Link
-                            href={`/admin/products/${product.sku}`}
+                            href={routes.PRODUCT_EDIT(product.sku)}
                             className="block font-semibold text-stone-900 hover:underline mt-0.5 line-clamp-1"
                           >
                             {product.name}
                           </Link>
                           <span className="text-xs text-stone-500">
-                            {product.color} • {product.images.length} photos
+                            {product.color} • {product.images.length}{copy.PHOTOS_SUFFIX}
                           </span>
                         </div>
                       </div>
@@ -185,7 +189,7 @@ export default async function AdminDashboardPage({
 
                     <td className="py-3.5 px-4 text-xs">
                       <span className="font-medium text-stone-900 block">
-                        {product.category?.name ?? 'Uncategorized'}
+                        {product.category?.name ?? copy.UNCATEGORIZED}
                       </span>
                       {product.collection && (
                         <span className="text-amber-800 font-medium">
@@ -241,11 +245,11 @@ export default async function AdminDashboardPage({
 
                     <td className="py-3.5 px-4 text-right">
                       <Link
-                        href={`/admin/products/${product.sku}`}
+                        href={routes.PRODUCT_EDIT(product.sku)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-100 text-xs font-semibold text-stone-800"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
-                        <span>Details / Edit</span>
+                        <span>{copy.BTN_DETAILS_EDIT}</span>
                       </Link>
                     </td>
                   </tr>

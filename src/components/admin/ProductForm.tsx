@@ -23,6 +23,7 @@ import { saveProductAction } from '@/app/admin/actions';
 import { STANDARD_SIZES, type Category, type Collection, type Product } from '@/types/domain';
 import { buildStandardS3Key } from '@/services/storage.service';
 import { LuxurySpinner } from '@/components/ui/LuxurySpinner';
+import { AppConstants } from '@/constants/app.constants';
 
 interface ProductFormProps {
   mode: 'create' | 'edit';
@@ -39,6 +40,7 @@ export function ProductForm({
 }: ProductFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const formCopy = AppConstants.Admin.COPY.PRODUCT_FORM;
 
   const [sku, setSku] = useState(initialProduct?.sku ?? '');
   const [name, setName] = useState(initialProduct?.name ?? '');
@@ -58,10 +60,10 @@ export function ProductForm({
       : ''
   );
   const [stock, setStock] = useState<string>(
-    initialProduct ? String(initialProduct.stock) : '10'
+    initialProduct ? String(initialProduct.stock) : formCopy.DEFAULT_STOCK
   );
   const [selectedSizes, setSelectedSizes] = useState<string[]>(
-    initialProduct?.sizes ?? ['M', 'L', 'XL']
+    initialProduct?.sizes ?? [...formCopy.DEFAULT_SIZES]
   );
   const [color, setColor] = useState(initialProduct?.color ?? '');
   const [vendorCode, setVendorCode] = useState(initialProduct?.vendor_code ?? '');
@@ -80,10 +82,9 @@ export function ProductForm({
         }))
       : [
           {
-            image_url:
-              'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=85',
-            s3_key: 'SKU011/front.jpg',
-            alt_text: 'Front View',
+            image_url: formCopy.DEFAULT_IMAGE_URL,
+            s3_key: formCopy.DEFAULT_S3_KEY,
+            alt_text: formCopy.DEFAULT_ALT,
           },
         ]
   );
@@ -102,12 +103,16 @@ export function ProductForm({
   const handleAddImageRow = () => {
     const index = images.length;
     const defaultName =
-      index === 0 ? 'front.jpg' : index === 1 ? 'model.jpg' : `view-${index + 1}.jpg`;
+      index === 0
+        ? formCopy.FRONT_JPG
+        : index === 1
+          ? formCopy.MODEL_JPG
+          : `view-${index + 1}.jpg`;
     setImages((prev) => [
       ...prev,
       {
         image_url: '',
-        s3_key: buildStandardS3Key(sku || 'SKU000', defaultName),
+        s3_key: buildStandardS3Key(sku || formCopy.FALLBACK_SKU, defaultName),
         alt_text: `${name || 'Product'} - View ${index + 1}`,
       },
     ]);
@@ -140,7 +145,10 @@ export function ProductForm({
           image_url: img.image_url,
           s3_key:
             img.s3_key ||
-            buildStandardS3Key(sku || 'SKU000', i === 0 ? 'front.jpg' : `view-${i + 1}.jpg`),
+            buildStandardS3Key(
+              sku || formCopy.FALLBACK_SKU,
+              i === 0 ? formCopy.FRONT_JPG : `view-${i + 1}.jpg`
+            ),
           alt_text: img.alt_text || `${name} - View ${i + 1}`,
           is_primary: i === 0,
         })),
@@ -149,18 +157,18 @@ export function ProductForm({
       if (!response.ok) {
         setFeedback({
           type: 'error',
-          text: response.message || 'Validation failed. Please check your inputs.',
+          text: response.message || formCopy.VALIDATION_FAILED,
         });
         return;
       }
 
       setFeedback({
         type: 'success',
-        text: response.message || 'Product saved!',
+        text: response.message || formCopy.SAVED_SUCCESS,
       });
 
       if (mode === 'create' && response.sku) {
-        router.push(`/admin/products/${response.sku}`);
+        router.push(AppConstants.Admin.ROUTES.PRODUCT_EDIT(response.sku));
       } else {
         router.refresh();
       }
@@ -172,35 +180,35 @@ export function ProductForm({
       {isPending && (
         <LuxurySpinner
           fullScreenOverlay
-          title={`Saving ${sku || 'Product'}...`}
-          subtitle="Updating catalog and revalidating storefront pages"
+          title={formCopy.SPINNER_TITLE(sku)}
+          subtitle={formCopy.SPINNER_SUBTITLE}
         />
       )}
       {/* Top Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-stone-200">
         <div>
           <Link
-            href="/admin"
+            href={AppConstants.Admin.ROUTES.DASHBOARD}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-stone-950 mb-2"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Back to Product Catalog
+            {formCopy.BACK_LINK}
           </Link>
           <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-stone-950">
             {mode === 'create'
-              ? 'Add New Clothing Product'
-              : `Edit Product • ${initialProduct?.sku}`}
+              ? formCopy.TITLE_CREATE
+              : `${formCopy.TITLE_EDIT_PREFIX}${initialProduct?.sku}`}
           </h1>
         </div>
 
         <div className="flex items-center gap-3">
           {mode === 'edit' && initialProduct && (
             <Link
-              href={`/product/${initialProduct.sku}`}
+              href={AppConstants.Admin.ROUTES.PRODUCT_LIVE(initialProduct.sku)}
               target="_blank"
               className="px-4 py-2.5 rounded-xl border border-stone-300 bg-white text-xs font-semibold text-stone-800 hover:bg-stone-100"
             >
-              View Live Page ↗
+              {formCopy.BTN_LIVE_PAGE}
             </Link>
           )}
           <button
@@ -209,7 +217,7 @@ export function ProductForm({
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-stone-900 text-white text-xs sm:text-sm font-semibold hover:bg-stone-800 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            <span>{isPending ? 'Saving...' : 'Save Product'}</span>
+            <span>{isPending ? formCopy.BTN_SAVING : formCopy.BTN_SAVE}</span>
           </button>
         </div>
       </div>
@@ -237,13 +245,13 @@ export function ProductForm({
           {/* Core Identity Card */}
           <div className="p-6 rounded-2xl bg-white border border-stone-200 space-y-4">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-800">
-              1. SKU &amp; Product Details
+              {formCopy.SEC1_TITLE}
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  SKU (Unique ID) *
+                  {formCopy.LABEL_SKU}
                 </label>
                 <input
                   required
@@ -251,24 +259,24 @@ export function ProductForm({
                   value={sku}
                   disabled={mode === 'edit'}
                   onChange={(e) => setSku(e.target.value.toUpperCase())}
-                  placeholder="SKU011"
+                  placeholder={formCopy.PLACEHOLDER_SKU}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-sm uppercase bg-white disabled:bg-stone-100 disabled:text-stone-500"
                 />
                 <p className="text-[11px] text-stone-400 mt-1">
-                  Matches Drive folder &amp; CSV SKU
+                  {formCopy.HINT_SKU}
                 </p>
               </div>
 
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Product Name *
+                  {formCopy.LABEL_NAME}
                 </label>
                 <input
                   required
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Floral Cotton Kurti"
+                  placeholder={formCopy.PLACEHOLDER_NAME}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
                 />
               </div>
@@ -276,13 +284,13 @@ export function ProductForm({
 
             <div>
               <label className="block text-xs font-semibold text-stone-700 mb-1">
-                Description &amp; Fabric Notes
+                {formCopy.LABEL_DESC}
               </label>
               <textarea
                 rows={4}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe fabric weave, embroidery details, silhouette, and wash care..."
+                placeholder={formCopy.PLACEHOLDER_DESC}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
               />
             </div>
@@ -290,27 +298,27 @@ export function ProductForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Primary Color / Shade *
+                  {formCopy.LABEL_COLOR}
                 </label>
                 <input
                   required
                   type="text"
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
-                  placeholder="Indigo Blue"
+                  placeholder={formCopy.PLACEHOLDER_COLOR}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Warehouse / Vendor Code (Optional)
+                  {formCopy.LABEL_VENDOR}
                 </label>
                 <input
                   type="text"
                   value={vendorCode}
                   onChange={(e) => setVendorCode(e.target.value)}
-                  placeholder="VEND-JPR-01"
+                  placeholder={formCopy.PLACEHOLDER_VENDOR}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm font-mono"
                 />
               </div>
@@ -320,13 +328,13 @@ export function ProductForm({
           {/* Sizes & Inventory Card */}
           <div className="p-6 rounded-2xl bg-white border border-stone-200 space-y-4">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-800">
-              2. Pricing, Stock &amp; Sizes
+              {formCopy.SEC2_TITLE}
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  MRP / Regular Price (₹) *
+                  {formCopy.LABEL_PRICE}
                 </label>
                 <input
                   required
@@ -335,14 +343,14 @@ export function ProductForm({
                   step="0.01"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="1299"
+                  placeholder={formCopy.PLACEHOLDER_PRICE}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Sale Price (₹) (Optional)
+                  {formCopy.LABEL_SALE_PRICE}
                 </label>
                 <input
                   type="number"
@@ -350,14 +358,14 @@ export function ProductForm({
                   step="0.01"
                   value={salePrice}
                   onChange={(e) => setSalePrice(e.target.value)}
-                  placeholder="1199"
+                  placeholder={formCopy.PLACEHOLDER_SALE_PRICE}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Available Stock Quantity *
+                  {formCopy.LABEL_STOCK}
                 </label>
                 <input
                   required
@@ -366,7 +374,7 @@ export function ProductForm({
                   step="1"
                   value={stock}
                   onChange={(e) => setStock(e.target.value)}
-                  placeholder="10"
+                  placeholder={formCopy.PLACEHOLDER_STOCK}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"
                 />
               </div>
@@ -375,11 +383,11 @@ export function ProductForm({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-semibold text-stone-700">
-                  Available Sizes * (CSV equivalent:{' '}
+                  {formCopy.LABEL_SIZES_PRE}
                   <code className="font-mono bg-stone-100 px-1.5 py-0.5 rounded">
-                    {selectedSizes.join('|') || 'M|L|XL'}
+                    {selectedSizes.join('|') || formCopy.LABEL_SIZES_FALLBACK}
                   </code>
-                  )
+                  {formCopy.LABEL_SIZES_POST}
                 </label>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -409,11 +417,10 @@ export function ProductForm({
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-800">
-                  3. Product Images (S3 / CDN Ready)
+                  {formCopy.SEC3_TITLE}
                 </h2>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  First image is the primary cover (`front.jpg`). Add additional angles
-                  (`model.jpg`, `back.jpg`).
+                  {formCopy.SEC3_SUBTITLE}
                 </p>
               </div>
 
@@ -423,7 +430,7 @@ export function ProductForm({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-stone-300 text-xs font-semibold text-stone-800 hover:bg-stone-100"
               >
                 <Plus className="w-3.5 h-3.5" />
-                Add Image Angle
+                {formCopy.BTN_ADD_IMAGE}
               </button>
             </div>
 
@@ -448,7 +455,7 @@ export function ProductForm({
                   <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
                     <div className="sm:col-span-2">
                       <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                        {idx === 0 ? 'Primary Image URL (front.jpg) *' : `Image #${idx + 1} URL *`}
+                        {idx === 0 ? formCopy.LABEL_PRIMARY_IMG : formCopy.LABEL_IMG_N(idx + 1)}
                       </label>
                       <input
                         required
@@ -459,14 +466,14 @@ export function ProductForm({
                           next[idx] = { ...next[idx], image_url: e.target.value };
                           setImages(next);
                         }}
-                        placeholder="https://..."
+                        placeholder={formCopy.PLACEHOLDER_URL}
                         className="w-full px-3 py-2 rounded-lg border border-stone-300 bg-white text-xs"
                       />
                     </div>
 
                     <div>
                       <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                        Amazon S3 Object Key
+                        {formCopy.LABEL_S3_KEY}
                       </label>
                       <input
                         type="text"
@@ -484,7 +491,7 @@ export function ProductForm({
                     <div className="flex items-end gap-2">
                       <div className="flex-1">
                         <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                          Alt Text
+                          {formCopy.LABEL_ALT}
                         </label>
                         <input
                           type="text"
@@ -494,7 +501,7 @@ export function ProductForm({
                             next[idx] = { ...next[idx], alt_text: e.target.value };
                             setImages(next);
                           }}
-                          placeholder="Front view"
+                          placeholder={formCopy.PLACEHOLDER_ALT}
                           className="w-full px-3 py-2 rounded-lg border border-stone-300 bg-white text-xs"
                         />
                       </div>
@@ -503,7 +510,7 @@ export function ProductForm({
                         <button
                           type="button"
                           onClick={() => handleRemoveImageRow(idx)}
-                          aria-label="Remove image"
+                          aria-label={formCopy.ARIA_REMOVE_IMG}
                           className="p-2 rounded-lg text-stone-500 hover:text-rose-600 hover:bg-rose-50"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -521,12 +528,12 @@ export function ProductForm({
         <div className="lg:col-span-4 space-y-6">
           <div className="p-6 rounded-2xl bg-white border border-stone-200 space-y-4">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-800">
-              Publishing Status
+              {formCopy.SEC_PUBLISHING}
             </h2>
 
             <div>
               <label className="block text-xs font-semibold text-stone-700 mb-1">
-                Visibility Status
+                {formCopy.LABEL_VISIBILITY}
               </label>
               <select
                 value={status}
@@ -535,15 +542,15 @@ export function ProductForm({
                 }
                 className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm bg-white font-medium"
               >
-                <option value="ACTIVE">ACTIVE (Visible on Storefront)</option>
-                <option value="INACTIVE">INACTIVE (Hidden from Customers)</option>
-                <option value="DRAFT">DRAFT (Work in Progress)</option>
+                <option value="ACTIVE">{formCopy.OPT_ACTIVE}</option>
+                <option value="INACTIVE">{formCopy.OPT_INACTIVE}</option>
+                <option value="DRAFT">{formCopy.OPT_DRAFT}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-stone-700 mb-1">
-                Category *
+                {formCopy.LABEL_CATEGORY}
               </label>
               <select
                 required
@@ -561,14 +568,14 @@ export function ProductForm({
 
             <div>
               <label className="block text-xs font-semibold text-stone-700 mb-1">
-                Collection
+                {formCopy.LABEL_COLLECTION}
               </label>
               <select
                 value={collectionId}
                 onChange={(e) => setCollectionId(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm bg-white"
               >
-                <option value="">— None —</option>
+                <option value="">{formCopy.OPT_NONE}</option>
                 {collections.map((col) => (
                   <option key={col.id} value={col.id}>
                     {col.name}
@@ -582,15 +589,16 @@ export function ProductForm({
           <div className="p-5 rounded-2xl bg-stone-900 text-stone-200 space-y-3">
             <div className="flex items-center gap-2 text-amber-300 text-xs font-semibold uppercase tracking-wider">
               <FolderSync className="w-4 h-4" />
-              <span>Google Drive CSV Mapping</span>
+              <span>{formCopy.DRIVE_MAPPING_TITLE}</span>
             </div>
             <p className="text-xs text-stone-400 leading-relaxed">
-              This product maps 1:1 to your future{' '}
-              <code className="text-white">products.csv</code> row and{' '}
+              {formCopy.DRIVE_MAPPING_DESC_PRE}
+              <code className="text-white">{formCopy.DRIVE_MAPPING_CSV}</code>{' '}
+              {formCopy.DRIVE_MAPPING_DESC_MID}
               <code className="text-white">
-                Clothing Store/{sku || 'SKU001'}/
+                Clothing Store/{sku || 'SKU001'}
+                {formCopy.DRIVE_MAPPING_FOLDER_SUFFIX}
               </code>{' '}
-              image folder:
             </p>
             <div className="p-3 rounded-xl bg-stone-950 font-mono text-[11px] text-emerald-300 overflow-x-auto whitespace-nowrap">
               {sku || 'SKU001'},{name || 'Product Name'},

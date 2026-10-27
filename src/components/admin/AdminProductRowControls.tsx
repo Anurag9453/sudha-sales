@@ -12,6 +12,7 @@ import {
   quickUpdateStockAction,
 } from '@/app/admin/actions';
 import type { ProductStatus } from '@/types/domain';
+import { AppConstants } from '@/constants/app.constants';
 
 interface StockQuickControlProps {
   sku: string;
@@ -44,7 +45,7 @@ export function StockQuickControl({
         max={99999}
         value={stock}
         onChange={(e) => setStock(Math.max(0, Number(e.target.value)))}
-        aria-label={`Stock for ${sku}`}
+        aria-label={`${AppConstants.Admin.COPY.CONTROLS.STOCK_ARIA_PREFIX}${sku}`}
         className="w-20 px-2.5 py-1.5 rounded-lg border border-stone-300 text-xs font-semibold tabular-nums text-stone-900 bg-white focus:outline-none focus:border-stone-900"
       />
       <button
@@ -62,10 +63,10 @@ export function StockQuickControl({
         ) : saved ? (
           <>
             <Check className="w-3.5 h-3.5" />
-            Saved
+            {AppConstants.Admin.COPY.CONTROLS.SAVED}
           </>
         ) : (
-          'Update'
+          AppConstants.Admin.COPY.CONTROLS.UPDATE
         )}
       </button>
     </div>
@@ -95,8 +96,8 @@ export function StatusQuickToggle({ sku, status }: StatusQuickToggleProps) {
       onClick={handleToggle}
       title={
         isActive
-          ? 'Click to deactivate and hide from storefront'
-          : 'Click to activate and publish on storefront'
+          ? AppConstants.Admin.COPY.CONTROLS.TOOLTIP_DEACTIVATE
+          : AppConstants.Admin.COPY.CONTROLS.TOOLTIP_ACTIVATE
       }
       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors border ${
         isActive

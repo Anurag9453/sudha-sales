@@ -19,6 +19,7 @@ import { getAllOrdersForAdmin } from '@/services/order.service';
 import { isSupabaseConfigured, isRazorpayConfigured } from '@/lib/env';
 import { formatPrice } from '@/lib/format';
 import { AdminOrderStatusControl } from '@/components/admin/AdminOrderStatusControl';
+import { AppConstants } from '@/constants/app.constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,23 +28,25 @@ export default async function AdminOrdersPage() {
   const supabaseLive = isSupabaseConfigured();
   const razorpayLive = isRazorpayConfigured();
 
+  const copy = AppConstants.Admin.COPY.ORDERS;
+  const routes = AppConstants.Admin.ROUTES;
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-stone-200">
         <div>
           <Link
-            href="/admin"
+            href={routes.DASHBOARD}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-stone-950 mb-2"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Back to Product Catalog
+            {copy.BACK_LINK}
           </Link>
           <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-stone-950">
-            Customer Orders &amp; Razorpay Payments
+            {copy.TITLE}
           </h1>
           <p className="text-xs sm:text-sm text-stone-600 mt-1">
-            View incoming customer orders, verify Razorpay payment IDs, and update
-            delivery status.
+            {copy.SUBTITLE}
           </p>
         </div>
 
@@ -57,7 +60,7 @@ export default async function AdminOrdersPage() {
           >
             <Database className="w-3.5 h-3.5" />
             <span>
-              Supabase: {supabaseLive ? 'Connected (Live DB)' : 'Local Fallback Mode'}
+              {supabaseLive ? copy.SUPABASE_LIVE : copy.SUPABASE_FALLBACK}
             </span>
           </span>
 
@@ -70,7 +73,7 @@ export default async function AdminOrdersPage() {
           >
             <CreditCard className="w-3.5 h-3.5" />
             <span>
-              Razorpay: {razorpayLive ? 'Live Keys Active' : 'Simulated Test Mode'}
+              {razorpayLive ? copy.RAZORPAY_LIVE : copy.RAZORPAY_SIMULATED}
             </span>
           </span>
         </div>
@@ -80,11 +83,10 @@ export default async function AdminOrdersPage() {
         <div className="p-12 rounded-3xl bg-white border border-stone-200 text-center space-y-3">
           <ShoppingBag className="w-8 h-8 text-stone-400 mx-auto" />
           <h2 className="font-serif text-2xl font-semibold text-stone-900">
-            No Orders Placed Yet
+            {copy.EMPTY_TITLE}
           </h2>
           <p className="text-xs text-stone-500 max-w-md mx-auto leading-relaxed">
-            When a customer completes checkout via Razorpay on <code className="font-mono">/cart</code>,
-            their order, shipping address, and payment reference will appear here.
+            {copy.EMPTY_DESC_PREFIX}<code className="font-mono">{copy.EMPTY_DESC_CODE}</code>{copy.EMPTY_DESC_SUFFIX}
           </p>
         </div>
       ) : (
@@ -98,7 +100,7 @@ export default async function AdminOrdersPage() {
                 <div className="flex flex-wrap items-center gap-6 text-xs">
                   <div>
                     <span className="text-stone-400 uppercase block text-[10px] font-bold">
-                      Order Number
+                      {copy.LABEL_ORDER_NUMBER}
                     </span>
                     <span className="font-mono font-bold text-sm text-stone-950">
                       {order.order_number}
@@ -107,16 +109,16 @@ export default async function AdminOrdersPage() {
 
                   <div>
                     <span className="text-stone-400 uppercase block text-[10px] font-bold">
-                      Razorpay Reference
+                      {copy.LABEL_RAZORPAY_REF}
                     </span>
                     <span className="font-mono font-semibold text-emerald-800">
-                      {order.payment_reference || 'PAID'}
+                      {order.payment_reference || copy.PAID_DEFAULT}
                     </span>
                   </div>
 
                   <div>
                     <span className="text-stone-400 uppercase block text-[10px] font-bold">
-                      Total Paid
+                      {copy.LABEL_TOTAL_PAID}
                     </span>
                     <span className="font-bold text-sm text-stone-950">
                       {formatPrice(order.total_amount)}
@@ -125,7 +127,7 @@ export default async function AdminOrdersPage() {
 
                   <div>
                     <span className="text-stone-400 uppercase block text-[10px] font-bold">
-                      Customer &amp; WhatsApp
+                      {copy.LABEL_CUSTOMER_PHONE}
                     </span>
                     <span className="font-semibold text-stone-900">
                       {order.shipping_address.full_name} ({order.shipping_address.phone})
@@ -135,7 +137,7 @@ export default async function AdminOrdersPage() {
 
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium text-stone-500">
-                    Update Status:
+                    {copy.LABEL_UPDATE_STATUS}
                   </span>
                   <AdminOrderStatusControl
                     orderNumber={order.order_number}
@@ -147,7 +149,7 @@ export default async function AdminOrdersPage() {
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4 text-xs">
                 <div className="md:col-span-7 space-y-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
-                    Ordered Items
+                    {copy.LABEL_ORDERED_ITEMS}
                   </span>
                   {order.items?.map((item) => (
                     <div
@@ -174,7 +176,7 @@ export default async function AdminOrdersPage() {
 
                 <div className="md:col-span-5 p-3.5 rounded-2xl bg-stone-50 space-y-1">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
-                    Delivery Address
+                    {copy.LABEL_DELIVERY_ADDRESS}
                   </span>
                   <p className="font-semibold text-stone-900">
                     {order.shipping_address.full_name}
@@ -192,14 +194,14 @@ export default async function AdminOrdersPage() {
                   {order.delivered_at && (
                     <p className="text-emerald-700 font-semibold pt-1 flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Delivered on{' '}
-                      {new Date(order.delivered_at).toLocaleString('en-IN')}
+                      {copy.DELIVERED_PREFIX}
+                      {new Date(order.delivered_at).toLocaleString(copy.LOCALE_IN)}
                     </p>
                   )}
                   {!order.delivered_at && order.tracking_number && (
                     <p className="text-stone-500 pt-1 flex items-center gap-1">
                       <Truck className="w-3.5 h-3.5" />
-                      AWB: <code className="font-mono">{order.tracking_number}</code>
+                      {copy.AWB_PREFIX}<code className="font-mono">{order.tracking_number}</code>
                     </p>
                   )}
                 </div>
