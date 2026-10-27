@@ -271,28 +271,19 @@ function buildSampleDriveWorkspaceSnapshot(
 ): DriveWorkspaceSnapshot {
   const defaultPhotoPool = [
     {
-      front:
-        'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=85',
-      model:
-        'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=85',
-      back:
-        'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1000&q=85',
+      front: '/products/sku-001-navy-blue.jpg',
+      model: '/products/sku-002-royal-plum.jpg',
+      back: '/products/sku-003-midnight-black.jpg',
     },
     {
-      front:
-        'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=1000&q=85',
-      model:
-        'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=85',
-      back:
-        'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1000&q=85',
+      front: '/products/kb-7847-black-dhoti-set.jpg',
+      model: '/products/kb-8840-maroon-bandhani-anarkali.jpg',
+      back: '/products/kb-7690-sky-blue-shibori-set.jpg',
     },
     {
-      front:
-        'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=1000&q=85',
-      model:
-        'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1000&q=85',
-      back:
-        'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1000&q=85',
+      front: '/products/kb-9150-mustard-skirt-set.jpg',
+      model: '/products/kb-5991-yellow-festive-suit.jpg',
+      back: '/products/sku-004-emerald-green.jpg',
     },
   ];
 

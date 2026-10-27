@@ -20,7 +20,13 @@ export const skuSchema = z
 export const productStatusSchema = z.enum(['ACTIVE', 'INACTIVE', 'DRAFT']);
 
 export const productImageInputSchema = z.object({
-  image_url: z.string().trim().url(schemaErrors.IMG_URL_INVALID),
+  image_url: z
+    .string()
+    .trim()
+    .refine(
+      (val) => val.startsWith('/') || /^https?:\/\//i.test(val),
+      schemaErrors.IMG_URL_INVALID
+    ),
   s3_key: z.string().trim().optional().nullable(),
   alt_text: z.string().trim().max(255).optional().default(''),
   is_primary: z.boolean().optional().default(false),

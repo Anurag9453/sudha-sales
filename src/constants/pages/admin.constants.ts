@@ -230,9 +230,8 @@ export const AdminConstants = {
       SAVED_SUCCESS: 'Product saved!',
       DEFAULT_STOCK: '10',
       DEFAULT_SIZES: ['M', 'L', 'XL'] as const,
-      DEFAULT_IMAGE_URL:
-        'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=85',
-      DEFAULT_S3_KEY: 'SKU011/front.jpg',
+      DEFAULT_IMAGE_URL: '/products/sku-001-navy-blue.jpg',
+      DEFAULT_S3_KEY: 'products/SKU001.jpg',
       DEFAULT_ALT: 'Front View',
       FRONT_JPG: 'front.jpg',
       MODEL_JPG: 'model.jpg',

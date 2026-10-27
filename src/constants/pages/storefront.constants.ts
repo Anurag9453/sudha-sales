@@ -284,12 +284,10 @@ export const StorefrontConstants = {
         'Explore our newest handpicked Kurtis, tailored Co-ord Sets, and festive Chanderi ensembles. New collections arrive daily straight from our partner looms.',
       CTA_NEW_COLLECTION: 'Shop New Collection',
       CTA_ALL_STYLES: 'View All Styles',
-      IMAGE_1_SRC:
-        'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=85',
-      IMAGE_1_ALT: 'Handblock Mulmul Cotton Collection',
-      IMAGE_2_SRC:
-        'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=900&q=85',
-      IMAGE_2_ALT: 'Festive Chanderi Suit Collection',
+      IMAGE_1_SRC: '/products/sku-001-navy-blue.jpg',
+      IMAGE_1_ALT: 'Midnight Navy Handcrafted Bandhej Suit Material',
+      IMAGE_2_SRC: '/products/kb-8840-maroon-bandhani-anarkali.jpg',
+      IMAGE_2_ALT: 'Deep Crimson Bandhani Flared Anarkali Gown',
       IMAGE_SIZES: '(max-width: 1024px) 50vw, 25vw',
     },
 

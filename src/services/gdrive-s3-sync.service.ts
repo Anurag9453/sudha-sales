@@ -63,15 +63,15 @@ export interface DriveSyncExecutionReport {
 const FALLBACK_DRIVE_IMAGES = [
   {
     name: AppConstants.Assets.FRONT_IMAGE,
-    url: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=85',
+    url: '/products/sku-001-navy-blue.jpg',
   },
   {
     name: AppConstants.Assets.MODEL_IMAGE,
-    url: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=85',
+    url: '/products/sku-002-royal-plum.jpg',
   },
   {
     name: AppConstants.Assets.BACK_IMAGE,
-    url: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1000&q=85',
+    url: '/products/sku-003-midnight-black.jpg',
   },
 ];
 
@@ -99,8 +99,7 @@ async function resolveOrCreateCategoryByName(name: string): Promise<Category> {
           name: cleanName,
           slug: targetSlug,
           description: `${cleanName} collection`,
-          image_url:
-            'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=80',
+          image_url: '/products/sku-001-navy-blue.jpg',
           is_active: true,
         })
         .select('*')
@@ -133,8 +132,7 @@ async function resolveOrCreateCategoryByName(name: string): Promise<Category> {
     name: cleanName,
     slug: targetSlug,
     description: `${cleanName} collection`,
-    image_url:
-      'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=80',
+    image_url: '/products/sku-001-navy-blue.jpg',
     display_order: snapshot.categories.length + 1,
     is_active: true,
     created_at: now,

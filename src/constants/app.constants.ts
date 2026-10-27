@@ -150,10 +150,8 @@ export class AppConstants {
     FRONT_IMAGE: 'front.jpg',
     MODEL_IMAGE: 'model.jpg',
     BACK_IMAGE: 'back.jpg',
-    FALLBACK_PRODUCT_IMAGE:
-      'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80',
-    FALLBACK_CATEGORY_IMAGE:
-      'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=80',
+    FALLBACK_PRODUCT_IMAGE: '/products/sku-001-navy-blue.jpg',
+    FALLBACK_CATEGORY_IMAGE: '/products/sku-002-royal-plum.jpg',
   } as const;
 
   /**

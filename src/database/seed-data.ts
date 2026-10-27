@@ -12,8 +12,7 @@ export const SEED_CATEGORIES: Category[] = [
     name: 'Kurtis & Tunics',
     slug: 'kurtis',
     description: 'Breathable everyday cottons and artisanal block-printed silhouettes.',
-    image_url:
-      'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=80',
+    image_url: '/products/kb-7690-sky-blue-shibori-set.jpg',
     display_order: 1,
     is_active: true,
     created_at: '2026-10-15T10:00:00Z',
@@ -24,8 +23,7 @@ export const SEED_CATEGORIES: Category[] = [
     name: 'Co-ord Sets',
     slug: 'co-ord-sets',
     description: 'Effortless tailored two-piece sets designed for work to weekend.',
-    image_url:
-      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80',
+    image_url: '/products/kb-7847-black-dhoti-set.jpg',
     display_order: 2,
     is_active: true,
     created_at: '2026-10-15T10:00:00Z',
@@ -36,8 +34,7 @@ export const SEED_CATEGORIES: Category[] = [
     name: 'Festive Suit Sets',
     slug: 'suit-sets',
     description: 'Three-piece handcrafted kurta, trouser, and organza dupatta ensembles.',
-    image_url:
-      'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=900&q=80',
+    image_url: '/products/sku-002-royal-plum.jpg',
     display_order: 3,
     is_active: true,
     created_at: '2026-10-15T10:00:00Z',
@@ -48,8 +45,7 @@ export const SEED_CATEGORIES: Category[] = [
     name: 'Dresses & Midis',
     slug: 'dresses',
     description: 'Fluid resort and evening dresses crafted in linen and mulmul cotton.',
-    image_url:
-      'https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=900&q=80',
+    image_url: '/products/kb-8840-maroon-bandhani-anarkali.jpg',
     display_order: 4,
     is_active: true,
     created_at: '2026-10-15T10:00:00Z',
@@ -63,8 +59,7 @@ export const SEED_COLLECTIONS: Collection[] = [
     name: 'New Collection',
     slug: 'new-collection',
     description: 'Fresh daily warehouse arrivals—handpicked styles ready to ship.',
-    banner_url:
-      'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1600&q=80',
+    banner_url: '/products/sku-003-midnight-black.jpg',
     is_featured: true,
     is_active: true,
     created_at: '2026-10-15T10:00:00Z',
@@ -75,8 +70,7 @@ export const SEED_COLLECTIONS: Collection[] = [
     name: 'Festive Atelier',
     slug: 'festive-atelier',
     description: 'Rich Chanderi silks, zari embroidery, and celebratory silhouettes.',
-    banner_url:
-      'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=1600&q=80',
+    banner_url: '/products/kb-9150-mustard-skirt-set.jpg',
     is_featured: true,
     is_active: true,
     created_at: '2026-10-15T10:00:00Z',
@@ -87,8 +81,7 @@ export const SEED_COLLECTIONS: Collection[] = [
     name: 'Everyday Linen & Cotton',
     slug: 'everyday-essentials',
     description: 'Lightweight breathable staples crafted for Indian summers.',
-    banner_url:
-      'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1600&q=80',
+    banner_url: '/products/kb-7690-sky-blue-shibori-set.jpg',
     is_featured: false,
     is_active: true,
     created_at: '2026-10-15T10:00:00Z',
