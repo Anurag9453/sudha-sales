@@ -42,6 +42,7 @@ export async function upsertProductBySku(rawInput: UpsertProductInput): Promise<
           sale_price: input.sale_price,
           stock: input.stock,
           sizes: input.sizes,
+          size_stock: input.size_stock ?? {},
           color: input.color,
           vendor_code: input.vendor_code || null,
           status: input.status,
@@ -127,7 +128,10 @@ export async function upsertProductBySku(rawInput: UpsertProductInput): Promise<
     sale_price: input.sale_price,
     stock: input.stock,
     sizes: input.sizes,
-    size_stock: existingIndex >= 0 ? snapshot.products[existingIndex].size_stock : {},
+    size_stock:
+      input.size_stock && Object.keys(input.size_stock).length > 0
+        ? input.size_stock
+        : (existingIndex >= 0 ? snapshot.products[existingIndex].size_stock : {}),
     color: input.color,
     vendor_code: input.vendor_code || null,
     status: input.status,

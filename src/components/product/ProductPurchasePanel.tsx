@@ -32,21 +32,40 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   const { addItem } = useCart();
   const { isAuthenticated } = useCustomerAuth();
 
-  const [selectedSize, setSelectedSize] = useState<string>(
-    product.sizes[0] ?? 'FREE'
-  );
+  const getStockForSize = (s: string): number => {
+    if (product.size_stock && typeof product.size_stock[s] === 'number') {
+      return Math.min(product.stock, product.size_stock[s]);
+    }
+    return product.stock;
+  };
+
+  const initialSize = React.useMemo(() => {
+    if (!product.sizes || product.sizes.length === 0) return 'FREE';
+    const firstAvailable = product.sizes.find((s) => {
+      const q =
+        product.size_stock && typeof product.size_stock[s] === 'number'
+          ? Math.min(product.stock, product.size_stock[s])
+          : product.stock;
+      return q > 0;
+    });
+    return firstAvailable ?? product.sizes[0];
+  }, [product.sizes, product.size_stock, product.stock]);
+
+  const [selectedSize, setSelectedSize] = useState<string>(initialSize);
   const [quantity, setQuantity] = useState<number>(1);
   const [addedFeedback, setAddedFeedback] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const isOutOfStock = product.stock <= 0 || product.status !== 'ACTIVE';
-  const maxAllowedQty = Math.max(1, Math.min(product.stock, 10));
+  const isOverallOutOfStock = product.stock <= 0 || product.status !== 'ACTIVE';
+  const currentSizeStock = getStockForSize(selectedSize);
+  const isSelectedSizeOutOfStock = isOverallOutOfStock || currentSizeStock <= 0;
+  const maxAllowedQty = Math.max(1, Math.min(currentSizeStock, 10));
   const effectivePrice = getEffectivePrice(product.price, product.sale_price);
 
   const handleQuantityChange = (next: number) => {
     if (next < 1) return;
     if (next > maxAllowedQty) {
-      setErrorMessage(`Maximum available stock for this piece is ${product.stock}.`);
+      setErrorMessage(`Maximum available stock in size ${selectedSize} is ${currentSizeStock}.`);
       return;
     }
     setErrorMessage(null);
@@ -66,11 +85,11 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     unitPrice: effectivePrice,
     originalPrice: product.price,
     quantity,
-    maxStock: product.stock,
+    maxStock: currentSizeStock,
   });
 
   const handleAddToCart = () => {
-    if (isOutOfStock) return;
+    if (isSelectedSizeOutOfStock) return;
     if (!isAuthenticated) {
       router.push(`/login?next=/product/${product.sku}&reason=purchase`);
       return;
@@ -86,7 +105,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   };
 
   const handleBuyNow = () => {
-    if (isOutOfStock) return;
+    if (isSelectedSizeOutOfStock) return;
     if (!isAuthenticated) {
       router.push(`/login?next=/product/${product.sku}&reason=purchase`);
       return;
@@ -103,20 +122,25 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     <div className="space-y-6 pt-2">
       {/* Stock Status Indicator */}
       <div className="flex items-center gap-2 text-xs font-medium">
-        {isOutOfStock ? (
+        {isOverallOutOfStock ? (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
             <span className="w-2 h-2 rounded-full bg-rose-600" />
             Currently Out of Stock
           </span>
-        ) : product.stock <= 5 ? (
+        ) : isSelectedSizeOutOfStock ? (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+            <span className="w-2 h-2 rounded-full bg-rose-600" />
+            Size {selectedSize} is Out of Stock — please choose another size
+          </span>
+        ) : currentSizeStock <= 5 ? (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            Hurry! Only {product.stock} pieces left in warehouse
+            Hurry! Only {currentSizeStock} left in size {selectedSize}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
             <span className="w-2 h-2 rounded-full bg-emerald-600" />
-            In Stock ({product.stock} ready to dispatch)
+            In Stock ({currentSizeStock} ready to dispatch in size {selectedSize})
           </span>
         )}
       </div>
@@ -134,22 +158,46 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
         <div className="flex flex-wrap gap-2.5">
           {product.sizes.map((size) => {
             const isSelected = selectedSize === size;
+            const sizeQty = getStockForSize(size);
+            const isSizeSoldOut = isOverallOutOfStock || sizeQty <= 0;
+
             return (
               <button
                 key={size}
                 type="button"
-                disabled={isOutOfStock}
+                disabled={isSizeSoldOut}
                 onClick={() => {
+                  if (isSizeSoldOut) return;
                   setSelectedSize(size);
                   setErrorMessage(null);
+                  const nextMax = Math.max(1, Math.min(sizeQty, 10));
+                  if (quantity > nextMax) {
+                    setQuantity(nextMax);
+                  }
                 }}
-                className={`min-w-[3.25rem] h-11 px-4 rounded-xl text-sm font-semibold transition-all border ${
+                className={`relative min-w-[3.75rem] min-h-[2.85rem] px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all border flex flex-col items-center justify-center leading-tight ${
                   isSelected
-                    ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
+                    ? 'bg-stone-900 text-white border-stone-900 shadow-sm ring-2 ring-stone-900/10'
+                    : isSizeSoldOut
+                    ? 'bg-stone-100/80 text-stone-400 border-stone-200 cursor-not-allowed line-through'
                     : 'bg-white text-stone-800 border-stone-300 hover:border-stone-900'
-                } disabled:opacity-40 disabled:cursor-not-allowed`}
+                }`}
               >
-                {size}
+                <span>{size}</span>
+                {sizeQty > 0 && sizeQty <= 5 && (
+                  <span
+                    className={`text-[9.5px] font-medium leading-none tracking-tight ${
+                      isSelected ? 'text-amber-300' : 'text-amber-600'
+                    }`}
+                  >
+                    {sizeQty} left
+                  </span>
+                )}
+                {isSizeSoldOut && (
+                  <span className="text-[9px] font-normal leading-none text-stone-400 no-underline">
+                    Out
+                  </span>
+                )}
               </button>
             );
           })}
@@ -164,7 +212,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
         <div className="inline-flex items-center rounded-xl border border-stone-300 bg-white">
           <button
             type="button"
-            disabled={isOutOfStock || quantity <= 1}
+            disabled={isSelectedSizeOutOfStock || quantity <= 1}
             onClick={() => handleQuantityChange(quantity - 1)}
             aria-label="Decrease quantity"
             className="w-11 h-11 flex items-center justify-center text-stone-700 hover:bg-stone-100 rounded-l-xl disabled:opacity-40 transition-colors"
@@ -176,7 +224,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           </span>
           <button
             type="button"
-            disabled={isOutOfStock || quantity >= maxAllowedQty}
+            disabled={isSelectedSizeOutOfStock || quantity >= maxAllowedQty}
             onClick={() => handleQuantityChange(quantity + 1)}
             aria-label="Increase quantity"
             className="w-11 h-11 flex items-center justify-center text-stone-700 hover:bg-stone-100 rounded-r-xl disabled:opacity-40 transition-colors"
@@ -197,7 +245,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
         <button
           type="button"
-          disabled={isOutOfStock}
+          disabled={isSelectedSizeOutOfStock}
           onClick={handleAddToCart}
           className={`h-13 px-6 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all border ${
             addedFeedback
@@ -213,14 +261,14 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           ) : (
             <>
               <ShoppingBag className="w-4 h-4" />
-              {isOutOfStock ? 'Sold Out' : 'Add to Bag'}
+              {isSelectedSizeOutOfStock ? 'Sold Out' : 'Add to Bag'}
             </>
           )}
         </button>
 
         <button
           type="button"
-          disabled={isOutOfStock}
+          disabled={isSelectedSizeOutOfStock}
           onClick={handleBuyNow}
           className="h-13 px-6 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 bg-amber-600/15 text-amber-950 border border-amber-700/30 hover:bg-amber-600/25 active:scale-[0.99] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >

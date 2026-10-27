@@ -331,6 +331,7 @@ export async function runGoogleDriveToS3Sync(options?: {
         sale_price: row.salePrice,
         stock: row.stock,
         sizes: row.sizes,
+        size_stock: row.size_stock,
         color: row.color,
         vendor_code: 'GDRIVE-SYNC',
         status: row.status,

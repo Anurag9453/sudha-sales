@@ -50,6 +50,7 @@ export const upsertProductSchema = z
       .union([z.string(), z.array(z.string())])
       .transform((val) => parseSizesInput(val))
       .refine((arr) => arr.length > 0, 'Select or enter at least one size (e.g. S, M, L, XL)'),
+    size_stock: z.record(z.string(), z.number()).optional().default({}),
     color: z.string().trim().min(1, 'Color is required').max(64),
     vendor_code: z.string().trim().max(64).optional().nullable(),
     status: productStatusSchema.default('ACTIVE'),
@@ -75,6 +76,7 @@ export const toggleStatusSchema = z.object({
   status: productStatusSchema,
 });
 
-export type UpsertProductInput = z.infer<typeof upsertProductSchema>;
-export type UpdateStockInput = z.infer<typeof updateStockSchema>;
+export type UpsertProductInput = z.input<typeof upsertProductSchema>;
+export type UpsertProductOutput = z.output<typeof upsertProductSchema>;
+export type UpdateStockInput = z.input<typeof updateStockSchema>;
 export type ToggleStatusInput = z.infer<typeof toggleStatusSchema>;

@@ -151,15 +151,37 @@ export async function createPersistedOrder(
         for (const item of input.items) {
           const { data: prodRow } = await supabase
             .from('products')
-            .select('id, stock')
+            .select('id, stock, size_stock')
             .eq('sku', item.sku)
             .maybeSingle();
 
           if (prodRow) {
             const nextStock = Math.max(0, Number(prodRow.stock) - item.quantity);
+            const currentSizeStock =
+              (prodRow.size_stock as Record<string, unknown> | null) ?? {};
+            const updatedSizeStock: Record<string, unknown> = { ...currentSizeStock };
+
+            if (item.size) {
+              const targetSize = item.size.trim().toUpperCase();
+              const matchedKey =
+                Object.keys(updatedSizeStock).find(
+                  (k) => k.toUpperCase() === targetSize
+                ) ?? targetSize;
+              const currentSizeQty = Number(
+                updatedSizeStock[matchedKey] ?? prodRow.stock
+              );
+              updatedSizeStock[matchedKey] = Math.max(
+                0,
+                currentSizeQty - item.quantity
+              );
+            }
+
             await supabase
               .from('products')
-              .update({ stock: nextStock })
+              .update({
+                stock: nextStock,
+                size_stock: updatedSizeStock,
+              })
               .eq('id', prodRow.id);
           }
         }
@@ -207,6 +229,20 @@ export async function createPersistedOrder(
     );
     if (prod) {
       prod.stock = Math.max(0, prod.stock - item.quantity);
+      if (!prod.size_stock) {
+        prod.size_stock = {};
+      }
+      if (item.size) {
+        const targetSize = item.size.trim().toUpperCase();
+        const matchedKey =
+          Object.keys(prod.size_stock).find(
+            (k) => k.toUpperCase() === targetSize
+          ) ?? targetSize;
+        const currentSizeQty = Number(
+          prod.size_stock[matchedKey] ?? prod.stock + item.quantity
+        );
+        prod.size_stock[matchedKey] = Math.max(0, currentSizeQty - item.quantity);
+      }
       prod.updated_at = now;
     }
   }

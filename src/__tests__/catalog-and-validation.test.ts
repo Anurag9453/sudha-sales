@@ -12,6 +12,7 @@ import {
   getDiscountPercentage,
   getEffectivePrice,
   parseSizesInput,
+  parseSizesAndStock,
 } from '../lib/format';
 import {
   upsertProductSchema,
@@ -34,6 +35,19 @@ describe('Domain Formatting & Google Drive CSV Helpers', () => {
   it('parses pipe-separated sizes from CSV format (M|L|XL)', () => {
     const parsed = parseSizesInput('m|L|xl|M');
     assert.deepEqual(parsed, ['M', 'L', 'XL']);
+  });
+
+  it('parses variant-level stock counts (M:5|L:3|XL:2 or FREE SIZE:8)', () => {
+    const res = parseSizesAndStock('M:5|L:3|XL:2');
+    assert.deepEqual(res.sizes, ['M', 'L', 'XL']);
+    assert.deepEqual(res.size_stock, { M: 5, L: 3, XL: 2 });
+    assert.equal(res.totalStock, 10);
+    assert.equal(res.hasGranularStock, true);
+
+    const freeSizeRes = parseSizesAndStock('FREE SIZE:8');
+    assert.deepEqual(freeSizeRes.sizes, ['FREE SIZE']);
+    assert.deepEqual(freeSizeRes.size_stock, { 'FREE SIZE': 8 });
+    assert.equal(freeSizeRes.totalStock, 8);
   });
 
   it('computes effective price and discount percentage accurately', () => {
@@ -231,6 +245,72 @@ describe('Razorpay Payment Signature & Order Persistence', () => {
     assert.equal(order.payment_status, 'PAID');
     assert.equal(order.total_amount, 1298);
     assert.equal(order.items?.length, 1);
+  });
+
+  it('automatically deducts both variant-level size stock and aggregate product stock on purchase', async () => {
+    const { readLocalCatalog, writeLocalCatalog } = await import(
+      '../database/local-store'
+    );
+
+    // Prepare a test product in local catalog
+    const snapshot = await readLocalCatalog();
+    let testProd = snapshot.products.find((p) => p.sku === 'SKU001');
+    if (!testProd) {
+      testProd = { ...snapshot.products[0], sku: 'SKU001' };
+      snapshot.products.push(testProd);
+    }
+    testProd.stock = 10;
+    testProd.sizes = ['M', 'L'];
+    testProd.size_stock = { M: 4, L: 6 };
+    await writeLocalCatalog(snapshot);
+
+    // Place an order for 2 pieces of size M
+    await createPersistedOrder({
+      customerName: 'Aarav Sharma',
+      customerEmail: 'aarav@example.com',
+      customerPhone: '+91 98765 43210',
+      shippingAddress: {
+        full_name: 'Aarav Sharma',
+        phone: '+91 98765 43210',
+        address_line1: '12 Rose Villa',
+        city: 'Jaipur',
+        state: 'Rajasthan',
+        postal_code: '302001',
+        country: 'IN',
+      },
+      items: [
+        {
+          sku: 'SKU001',
+          productId: testProd.id,
+          name: testProd.name,
+          slug: testProd.slug,
+          imageUrl: 'https://images.unsplash.com/photo-1',
+          color: 'Blue',
+          size: 'M',
+          unitPrice: 1199,
+          originalPrice: 1299,
+          quantity: 2,
+          maxStock: 4,
+        },
+      ],
+      subtotalAmount: 2398,
+      discountAmount: 0,
+      shippingAmount: 0,
+      totalAmount: 2398,
+      paymentProvider: 'COD',
+      paymentReference: 'COD-TEST',
+      paymentStatus: 'COD',
+    });
+
+    const updatedSnapshot = await readLocalCatalog();
+    const updatedProd = updatedSnapshot.products.find((p) => p.sku === 'SKU001')!;
+
+    // Total stock should have reduced from 10 to 8
+    assert.equal(updatedProd.stock, 8);
+    // Size M should have reduced from 4 to 2
+    assert.equal(updatedProd.size_stock['M'], 2);
+    // Size L should have remained untouched at 6
+    assert.equal(updatedProd.size_stock['L'], 6);
   });
 });
 

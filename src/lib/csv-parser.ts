@@ -7,7 +7,7 @@
 // ============================================================================
 
 import { z } from 'zod';
-import { parseSizesInput } from './format';
+import { parseSizesInput, parseSizesAndStock } from './format';
 import { skuSchema, productStatusSchema } from '@/validation/product.schema';
 import type { ProductStatus } from '@/types/domain';
 
@@ -22,6 +22,7 @@ export interface ParsedCsvProductRow {
   salePrice: number | null;
   stock: number;
   sizes: string[];
+  size_stock: Record<string, number>;
   color: string;
   status: ProductStatus;
 }
@@ -197,6 +198,11 @@ export function parseProductsCsv(csvText: string): CsvParseResult {
     }
 
     const data = parsed.data;
+    const sizeStockInfo = parseSizesAndStock(rawCandidate.Size, data.Stock);
+    const resolvedStock = sizeStockInfo.hasGranularStock
+      ? sizeStockInfo.totalStock
+      : data.Stock;
+
     validRows.push({
       rowNumber,
       sku: data.SKU,
@@ -206,8 +212,9 @@ export function parseProductsCsv(csvText: string): CsvParseResult {
       description: data.Description,
       price: data.Price,
       salePrice: data.Sale_Price,
-      stock: data.Stock,
-      sizes: data.Size,
+      stock: resolvedStock,
+      sizes: sizeStockInfo.sizes.length > 0 ? sizeStockInfo.sizes : data.Size,
+      size_stock: sizeStockInfo.size_stock,
       color: data.Color,
       status: data.Status,
     });

@@ -29,6 +29,17 @@ function normalizeProductImages(images: ProductImage[] | undefined): ProductImag
     }));
 }
 
+function cleanSizeStockMap(raw: unknown): Record<string, number> {
+  if (!raw || typeof raw !== 'object') return {};
+  const clean: Record<string, number> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (k !== '__reviews' && typeof v === 'number') {
+      clean[k] = v;
+    }
+  }
+  return clean;
+}
+
 function normalizeSupabaseProduct(row: Record<string, unknown>): Product {
   const rawImages = (row.product_images ?? row.images ?? []) as ProductImage[];
   const reviewStats = extractReviewsFromProductRecord(
@@ -47,7 +58,7 @@ function normalizeSupabaseProduct(row: Record<string, unknown>): Product {
     sale_price: row.sale_price !== null && row.sale_price !== undefined ? Number(row.sale_price) : null,
     stock: Number(row.stock ?? 0),
     sizes: Array.isArray(row.sizes) ? row.sizes.map(String) : [],
-    size_stock: (row.size_stock as Record<string, number>) ?? {},
+    size_stock: cleanSizeStockMap(row.size_stock),
     color: String(row.color ?? ''),
     vendor_code: row.vendor_code ? String(row.vendor_code) : null,
     status: (row.status as Product['status']) ?? 'ACTIVE',
