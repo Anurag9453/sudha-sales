@@ -2,6 +2,7 @@ import React from 'react';
 import { StoreHeader } from '@/components/layout/StoreHeader';
 import { StoreFooter } from '@/components/layout/StoreFooter';
 import { WelcomeSplashScreen } from '@/components/layout/WelcomeSplashScreen';
+import { AppConstants } from '@/constants/app.constants';
 
 export default function StorefrontLayout({
   children,
@@ -9,10 +10,10 @@ export default function StorefrontLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen w-full max-w-[100vw] overflow-x-clip flex flex-col">
+    <div className={AppConstants.Storefront.LAYOUT.SHELL}>
       <WelcomeSplashScreen />
       <StoreHeader />
-      <main className="flex-1 w-full min-w-0">{children}</main>
+      <main className={AppConstants.Storefront.LAYOUT.MAIN}>{children}</main>
       <StoreFooter />
     </div>
   );

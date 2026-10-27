@@ -2,6 +2,7 @@
 // Home Page: src/app/(storefront)/page.tsx
 // Mobile-first fashion storefront highlighting the New Collection daily drops,
 // visual category navigation, and full featured collection.
+// Bound to AppConstants.Storefront.HOME and AppConstants.Product.ROUTES.
 // ============================================================================
 
 import React from 'react';
@@ -14,75 +15,113 @@ import {
   getProducts,
 } from '@/services/catalog.service';
 import { ProductCard } from '@/components/product/ProductCard';
+import { AppConstants } from '@/constants/app.constants';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const [categories, newCollectionProducts, allProducts] = await Promise.all([
     getCategories(),
-    getNewCollectionProducts(4),
+    getNewCollectionProducts(
+      AppConstants.Storefront.HOME.NEW_COLLECTION_LIMIT
+    ),
     getProducts(),
   ]);
 
-  const curatedProducts = allProducts.slice(0, 8);
+  const curatedProducts = allProducts.slice(
+    0,
+    AppConstants.Storefront.HOME.CURATED_PRODUCTS_LIMIT
+  );
 
   return (
-    <div className="space-y-14 sm:space-y-20">
+    <div className={AppConstants.Storefront.HOME.CLASSES.CONTAINER}>
       {/* Editorial Hero Banner */}
-      <section className="relative overflow-hidden bg-stone-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 lg:py-24 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          <div className="lg:col-span-6 space-y-6 z-10">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-xs border border-white/15 text-amber-200 text-xs font-medium tracking-wide">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Fresh Warehouse Drop • Ready to Ship Today</span>
+      <section
+        className={AppConstants.Storefront.HOME.CLASSES.HERO_SECTION}
+      >
+        <div className={AppConstants.Storefront.HOME.CLASSES.HERO_GRID}>
+          <div className={AppConstants.Storefront.HOME.CLASSES.HERO_LEFT}>
+            <div
+              className={AppConstants.Storefront.HOME.CLASSES.HERO_TAG}
+            >
+              <Sparkles
+                className={AppConstants.Storefront.HOME.CLASSES.TAG_ICON}
+              />
+              <span>{AppConstants.Storefront.HOME.HERO.TAG}</span>
             </div>
 
-            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.08]">
-              Effortless Silhouettes for Every Occasion.
+            <h1
+              className={AppConstants.Storefront.HOME.CLASSES.HERO_TITLE}
+            >
+              {AppConstants.Storefront.HOME.HERO.TITLE}
             </h1>
 
-            <p className="text-stone-300 text-sm sm:text-base leading-relaxed max-w-xl">
-              Explore our newest handpicked Kurtis, tailored Co-ord Sets, and festive
-              Chanderi ensembles. New collections arrive daily straight from our partner
-              looms.
+            <p className={AppConstants.Storefront.HOME.CLASSES.HERO_DESC}>
+              {AppConstants.Storefront.HOME.HERO.DESCRIPTION}
             </p>
 
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+            <div
+              className={AppConstants.Storefront.HOME.CLASSES.HERO_BUTTONS}
+            >
               <Link
-                href="/shop?collection=new-collection"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white text-stone-950 font-semibold text-sm hover:bg-stone-100 transition-colors"
+                href={AppConstants.Product.ROUTES.SHOP_COLLECTION(
+                  AppConstants.Storefront.DEFAULT_COLLECTION_SLUG
+                )}
+                className={
+                  AppConstants.Storefront.HOME.CLASSES.PRIMARY_BUTTON
+                }
               >
-                <span>Shop New Collection</span>
-                <ArrowRight className="w-4 h-4" />
+                <span>
+                  {AppConstants.Storefront.HOME.HERO.CTA_NEW_COLLECTION}
+                </span>
+                <ArrowRight
+                  className={AppConstants.Storefront.HOME.CLASSES.ARROW_ICON}
+                />
               </Link>
               <Link
-                href="/shop"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-white/10 text-white font-semibold text-sm border border-white/20 hover:bg-white/15 transition-colors"
+                href={AppConstants.Product.ROUTES.SHOP}
+                className={
+                  AppConstants.Storefront.HOME.CLASSES.SECONDARY_BUTTON
+                }
               >
-                <span>View All Styles</span>
+                <span>
+                  {AppConstants.Storefront.HOME.HERO.CTA_ALL_STYLES}
+                </span>
               </Link>
             </div>
           </div>
 
-          <div className="lg:col-span-6 grid grid-cols-2 gap-3 sm:gap-4">
-            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/10">
+          <div
+            className={
+              AppConstants.Storefront.HOME.CLASSES.HERO_IMAGES_GRID
+            }
+          >
+            <div
+              className={
+                AppConstants.Storefront.HOME.CLASSES.HERO_IMAGE_WRAPPER_1
+              }
+            >
               <Image
-                src="https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=85"
-                alt="Handblock Mulmul Cotton Collection"
+                src={AppConstants.Storefront.HOME.HERO.IMAGE_1_SRC}
+                alt={AppConstants.Storefront.HOME.HERO.IMAGE_1_ALT}
                 fill
                 priority
-                sizes="(max-width: 1024px) 50vw, 25vw"
-                className="object-cover object-top"
+                sizes={AppConstants.Storefront.HOME.HERO.IMAGE_SIZES}
+                className={AppConstants.Storefront.HOME.CLASSES.HERO_IMAGE}
               />
             </div>
-            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/10 mt-6 sm:mt-10">
+            <div
+              className={
+                AppConstants.Storefront.HOME.CLASSES.HERO_IMAGE_WRAPPER_2
+              }
+            >
               <Image
-                src="https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=900&q=85"
-                alt="Festive Chanderi Suit Collection"
+                src={AppConstants.Storefront.HOME.HERO.IMAGE_2_SRC}
+                alt={AppConstants.Storefront.HOME.HERO.IMAGE_2_ALT}
                 fill
                 priority
-                sizes="(max-width: 1024px) 50vw, 25vw"
-                className="object-cover object-top"
+                sizes={AppConstants.Storefront.HOME.HERO.IMAGE_SIZES}
+                className={AppConstants.Storefront.HOME.CLASSES.HERO_IMAGE}
               />
             </div>
           </div>
@@ -90,26 +129,40 @@ export default async function HomePage() {
       </section>
 
       {/* New Collection Section (Daily Arrivals) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+      <section className={AppConstants.Storefront.HOME.CLASSES.SECTION}>
+        <div
+          className={AppConstants.Storefront.HOME.CLASSES.SECTION_HEADER}
+        >
           <div>
-            <span className="text-xs font-semibold uppercase tracking-widest text-amber-800">
-              Just Arrived
+            <span
+              className={AppConstants.Storefront.HOME.CLASSES.TAG_AMBER}
+            >
+              {AppConstants.Storefront.HOME.NEW_COLLECTION.TAG}
             </span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-stone-950 mt-1">
-              New Collection — Daily Drop
+            <h2
+              className={AppConstants.Storefront.HOME.CLASSES.SECTION_TITLE}
+            >
+              {AppConstants.Storefront.HOME.NEW_COLLECTION.TITLE}
             </h2>
           </div>
           <Link
-            href="/shop?collection=new-collection"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-stone-900 hover:text-stone-600 transition-colors"
+            href={AppConstants.Product.ROUTES.SHOP_COLLECTION(
+              AppConstants.Storefront.DEFAULT_COLLECTION_SLUG
+            )}
+            className={AppConstants.Storefront.HOME.CLASSES.HEADER_LINK}
           >
-            <span>Explore all new arrivals</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>
+              {AppConstants.Storefront.HOME.NEW_COLLECTION.LINK}
+            </span>
+            <ArrowRight
+              className={AppConstants.Storefront.HOME.CLASSES.ARROW_ICON}
+            />
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+        <div
+          className={AppConstants.Storefront.HOME.CLASSES.PRODUCTS_GRID}
+        >
           {newCollectionProducts.map((product, index) => (
             <ProductCard
               key={product.id}
@@ -121,42 +174,64 @@ export default async function HomePage() {
       </section>
 
       {/* Shop by Category Grid */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className={AppConstants.Storefront.HOME.CLASSES.SECTION}>
         <div className="flex items-end justify-between mb-8">
           <div>
-            <span className="text-xs font-semibold uppercase tracking-widest text-stone-500">
-              Curated Wardrobes
+            <span
+              className={AppConstants.Storefront.HOME.CLASSES.TAG_MUTED}
+            >
+              {AppConstants.Storefront.HOME.CATEGORIES.TAG}
             </span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-stone-950 mt-1">
-              Shop by Category
+            <h2
+              className={AppConstants.Storefront.HOME.CLASSES.SECTION_TITLE}
+            >
+              {AppConstants.Storefront.HOME.CATEGORIES.TITLE}
             </h2>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className={AppConstants.Storefront.HOME.CLASSES.CAT_GRID}>
           {categories.map((cat) => (
             <Link
               key={cat.id}
-              href={`/shop?category=${cat.slug}`}
-              className="group relative aspect-[4/5] rounded-2xl overflow-hidden bg-stone-200 block"
+              href={AppConstants.Product.ROUTES.SHOP_CATEGORY(cat.slug)}
+              className={AppConstants.Storefront.HOME.CLASSES.CAT_CARD}
             >
               {cat.image_url && (
                 <Image
                   src={cat.image_url}
                   alt={cat.name}
                   fill
-                  sizes="(max-width: 640px) 50vw, 25vw"
-                  className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                  sizes={
+                    AppConstants.Storefront.HOME.CATEGORIES.IMAGE_SIZES
+                  }
+                  className={AppConstants.Storefront.HOME.CLASSES.CAT_IMAGE}
                 />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-stone-950/20 to-transparent" />
-              <div className="absolute bottom-4 inset-x-4 text-white">
-                <h3 className="font-serif text-lg sm:text-xl font-semibold">
+              <div
+                className={AppConstants.Storefront.HOME.CLASSES.CAT_OVERLAY}
+              />
+              <div
+                className={
+                  AppConstants.Storefront.HOME.CLASSES.CAT_TEXT_WRAP
+                }
+              >
+                <h3 className={AppConstants.Storefront.HOME.CLASSES.CAT_NAME}>
                   {cat.name}
                 </h3>
-                <p className="text-xs text-stone-200 mt-0.5 inline-flex items-center gap-1">
-                  <span>Explore styles</span>
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                <p
+                  className={
+                    AppConstants.Storefront.HOME.CLASSES.CAT_SUBTEXT
+                  }
+                >
+                  <span>
+                    {AppConstants.Storefront.HOME.CATEGORIES.EXPLORE_STYLES}
+                  </span>
+                  <ArrowRight
+                    className={
+                      AppConstants.Storefront.HOME.CLASSES.CAT_ARROW
+                    }
+                  />
                 </p>
               </div>
             </Link>
@@ -165,26 +240,45 @@ export default async function HomePage() {
       </section>
 
       {/* Featured Catalog Grid */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+      <section className={AppConstants.Storefront.HOME.CLASSES.SECTION}>
+        <div
+          className={AppConstants.Storefront.HOME.CLASSES.SECTION_HEADER}
+        >
           <div>
-            <span className="text-xs font-semibold uppercase tracking-widest text-stone-500">
-              Complete Edit
+            <span
+              className={AppConstants.Storefront.HOME.CLASSES.TAG_MUTED}
+            >
+              {AppConstants.Storefront.HOME.TRENDING.TAG}
             </span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-stone-950 mt-1">
-              Trending Styles This Week
+            <h2
+              className={AppConstants.Storefront.HOME.CLASSES.SECTION_TITLE}
+            >
+              {AppConstants.Storefront.HOME.TRENDING.TITLE}
             </h2>
           </div>
           <Link
-            href="/shop"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-stone-900 hover:text-stone-600 transition-colors"
+            href={AppConstants.Product.ROUTES.SHOP}
+            className={AppConstants.Storefront.HOME.CLASSES.HEADER_LINK}
           >
-            <span>View all {allProducts.length} products</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>
+              {AppConstants.Storefront.HOME.TRENDING.VIEW_ALL(
+                allProducts.length
+              )}
+            </span>
+            <ArrowRight
+              className={AppConstants.Storefront.HOME.CLASSES.ARROW_ICON}
+            />
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div
+          className={
+            AppConstants.Storefront.HOME.CLASSES.PRODUCTS_GRID.replace(
+              'grid-cols-2 md:grid-cols-4',
+              'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+            )
+          }
+        >
           {curatedProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
@@ -192,49 +286,76 @@ export default async function HomePage() {
       </section>
 
       {/* Value Proposition Strip */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-stone-100 border border-stone-200/80 p-6 sm:p-10 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="flex items-start gap-4">
-            <div className="w-11 h-11 rounded-2xl bg-stone-900 text-white flex items-center justify-center shrink-0">
-              <Truck className="w-5 h-5" />
+      <section className={AppConstants.Storefront.HOME.CLASSES.SECTION}>
+        <div className={AppConstants.Storefront.HOME.CLASSES.VALUE_GRID}>
+          <div className={AppConstants.Storefront.HOME.CLASSES.VALUE_ITEM}>
+            <div
+              className={
+                AppConstants.Storefront.HOME.CLASSES.VALUE_ICON_BOX
+              }
+            >
+              <Truck
+                className={AppConstants.Storefront.HOME.CLASSES.VALUE_ICON}
+              />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-stone-900">
-                Direct Warehouse Dispatch
+              <h3
+                className={
+                  AppConstants.Storefront.HOME.CLASSES.VALUE_TITLE
+                }
+              >
+                {AppConstants.Storefront.HOME.VALUE_PROPS[0].title}
               </h3>
-              <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-                Every SKU is stocked in our partner warehouses and dispatched within
-                24–48 hours with live tracking.
+              <p className={AppConstants.Storefront.HOME.CLASSES.VALUE_DESC}>
+                {AppConstants.Storefront.HOME.VALUE_PROPS[0].description}
               </p>
             </div>
           </div>
 
-          <div className="flex items-start gap-4">
-            <div className="w-11 h-11 rounded-2xl bg-stone-900 text-white flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-5 h-5" />
+          <div className={AppConstants.Storefront.HOME.CLASSES.VALUE_ITEM}>
+            <div
+              className={
+                AppConstants.Storefront.HOME.CLASSES.VALUE_ICON_BOX
+              }
+            >
+              <ShieldCheck
+                className={AppConstants.Storefront.HOME.CLASSES.VALUE_ICON}
+              />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-stone-900">
-                Authentic Fabrics &amp; True Sizing
+              <h3
+                className={
+                  AppConstants.Storefront.HOME.CLASSES.VALUE_TITLE
+                }
+              >
+                {AppConstants.Storefront.HOME.VALUE_PROPS[1].title}
               </h3>
-              <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-                100% pure mulmul cotton, breathable linen, and handloom Chanderi weaves
-                inspected before shipping.
+              <p className={AppConstants.Storefront.HOME.CLASSES.VALUE_DESC}>
+                {AppConstants.Storefront.HOME.VALUE_PROPS[1].description}
               </p>
             </div>
           </div>
 
-          <div className="flex items-start gap-4">
-            <div className="w-11 h-11 rounded-2xl bg-stone-900 text-white flex items-center justify-center shrink-0">
-              <RefreshCw className="w-5 h-5" />
+          <div className={AppConstants.Storefront.HOME.CLASSES.VALUE_ITEM}>
+            <div
+              className={
+                AppConstants.Storefront.HOME.CLASSES.VALUE_ICON_BOX
+              }
+            >
+              <RefreshCw
+                className={AppConstants.Storefront.HOME.CLASSES.VALUE_ICON}
+              />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-stone-900">
-                Hassle-Free Size Exchanges
+              <h3
+                className={
+                  AppConstants.Storefront.HOME.CLASSES.VALUE_TITLE
+                }
+              >
+                {AppConstants.Storefront.HOME.VALUE_PROPS[2].title}
               </h3>
-              <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-                Need a different size? Request a quick 7-day size exchange with doorstep
-                pickup support.
+              <p className={AppConstants.Storefront.HOME.CLASSES.VALUE_DESC}>
+                {AppConstants.Storefront.HOME.VALUE_PROPS[2].description}
               </p>
             </div>
           </div>

@@ -2,6 +2,7 @@
 // Shop / Product Listing Page: src/app/(storefront)/shop/page.tsx
 // Supports category filtering, collection filtering, size filtering, search,
 // and price sorting with mobile-friendly pill filters.
+// Bound to AppConstants.Storefront.SHOP, AppConstants.Inventory, and AppConstants.Sizes.
 // ============================================================================
 
 import React from 'react';
@@ -30,10 +31,13 @@ interface ShopPageProps {
 
 export default async function ShopPage({ searchParams }: ShopPageProps) {
   const params = await searchParams;
-  const activeCategorySlug = params.category || 'all';
-  const activeCollectionSlug = params.collection || 'all';
-  const activeSize = params.size || 'all';
-  const activeSort = params.sort || 'newest';
+  const activeCategorySlug =
+    params.category || AppConstants.Storefront.SHOP.FILTER_ALL;
+  const activeCollectionSlug =
+    params.collection || AppConstants.Storefront.SHOP.FILTER_ALL;
+  const activeSize = params.size || AppConstants.Storefront.SHOP.FILTER_ALL;
+  const activeSort =
+    params.sort || AppConstants.Storefront.SHOP.SORT_NEWEST;
   const searchQuery = params.q || '';
 
   const [categories, collections, allProducts] = await Promise.all([
@@ -57,14 +61,22 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
   function buildFilterUrl(overrides: Record<string, string | undefined>) {
     const merged: Record<string, string> = {};
-    if (activeCategorySlug !== 'all') merged.category = activeCategorySlug;
-    if (activeCollectionSlug !== 'all') merged.collection = activeCollectionSlug;
-    if (activeSize !== 'all') merged.size = activeSize;
-    if (activeSort !== 'newest') merged.sort = activeSort;
+    if (activeCategorySlug !== AppConstants.Storefront.SHOP.FILTER_ALL)
+      merged.category = activeCategorySlug;
+    if (activeCollectionSlug !== AppConstants.Storefront.SHOP.FILTER_ALL)
+      merged.collection = activeCollectionSlug;
+    if (activeSize !== AppConstants.Storefront.SHOP.FILTER_ALL)
+      merged.size = activeSize;
+    if (activeSort !== AppConstants.Storefront.SHOP.SORT_NEWEST)
+      merged.sort = activeSort;
     if (searchQuery) merged.q = searchQuery;
 
     for (const [k, v] of Object.entries(overrides)) {
-      if (!v || v === 'all' || (k === 'sort' && v === 'newest')) {
+      if (
+        !v ||
+        v === AppConstants.Storefront.SHOP.FILTER_ALL ||
+        (k === 'sort' && v === AppConstants.Storefront.SHOP.SORT_NEWEST)
+      ) {
         delete merged[k];
       } else {
         merged[k] = v;
@@ -76,82 +88,95 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   }
 
   const hasActiveFilters =
-    activeCategorySlug !== 'all' ||
-    activeCollectionSlug !== 'all' ||
-    activeSize !== 'all' ||
+    activeCategorySlug !== AppConstants.Storefront.SHOP.FILTER_ALL ||
+    activeCollectionSlug !== AppConstants.Storefront.SHOP.FILTER_ALL ||
+    activeSize !== AppConstants.Storefront.SHOP.FILTER_ALL ||
     Boolean(searchQuery);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div className={AppConstants.Storefront.SHOP.CLASSES.PAGE}>
       {/* Page Header */}
-      <div className="border-b border-stone-200 pb-6 mb-6">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className={AppConstants.Storefront.SHOP.CLASSES.HEADER}>
+        <div className={AppConstants.Storefront.SHOP.CLASSES.HEADER_TOP}>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-stone-500">
-              {activeCollection ? activeCollection.name : 'Complete Catalog'}
+            <p className={AppConstants.Storefront.SHOP.CLASSES.COLLECTION_TAG}>
+              {activeCollection
+                ? activeCollection.name
+                : AppConstants.Storefront.SHOP.COPY.COMPLETE_CATALOG}
             </p>
-            <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-stone-950 mt-1">
+            <h1 className={AppConstants.Storefront.SHOP.CLASSES.TITLE}>
               {activeCategory
                 ? activeCategory.name
                 : activeCollection
-                  ? activeCollection.name
-                  : 'All Clothing & Ensembles'}
+                ? activeCollection.name
+                : AppConstants.Storefront.SHOP.COPY.ALL_CLOTHING}
             </h1>
             {(activeCategory?.description || activeCollection?.description) && (
-              <p className="text-sm text-stone-600 mt-1.5 max-w-2xl">
+              <p className={AppConstants.Storefront.SHOP.CLASSES.DESCRIPTION}>
                 {activeCategory?.description ?? activeCollection?.description}
               </p>
             )}
           </div>
 
           {/* Search Input Form */}
-          <form action="/shop" method="GET" className="w-full md:w-72">
-            {activeCategorySlug !== 'all' && (
+          <form
+            action="/shop"
+            method="GET"
+            className={AppConstants.Storefront.SHOP.CLASSES.SEARCH_FORM}
+          >
+            {activeCategorySlug !== AppConstants.Storefront.SHOP.FILTER_ALL && (
               <input type="hidden" name="category" value={activeCategorySlug} />
             )}
-            {activeCollectionSlug !== 'all' && (
-              <input type="hidden" name="collection" value={activeCollectionSlug} />
+            {activeCollectionSlug !==
+              AppConstants.Storefront.SHOP.FILTER_ALL && (
+              <input
+                type="hidden"
+                name="collection"
+                value={activeCollectionSlug}
+              />
             )}
-            {activeSize !== 'all' && (
+            {activeSize !== AppConstants.Storefront.SHOP.FILTER_ALL && (
               <input type="hidden" name="size" value={activeSize} />
             )}
-            {activeSort !== 'newest' && (
+            {activeSort !== AppConstants.Storefront.SHOP.SORT_NEWEST && (
               <input type="hidden" name="sort" value={activeSort} />
             )}
             <div className="relative">
-              <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search
+                className={AppConstants.Storefront.SHOP.CLASSES.SEARCH_ICON}
+              />
               <input
                 type="search"
                 name="q"
                 defaultValue={searchQuery}
-                placeholder="Search by name, color, or SKU..."
-                className="w-full pl-9 pr-4 py-2.5 rounded-full bg-white border border-stone-300 text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-900"
+                placeholder={
+                  AppConstants.Storefront.SHOP.COPY.SEARCH_PLACEHOLDER
+                }
+                className={AppConstants.Storefront.SHOP.CLASSES.SEARCH_INPUT}
               />
             </div>
           </form>
         </div>
 
         {/* Mobile-first Horizontal Category Filter Pills */}
-        <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+        <div className={AppConstants.Storefront.SHOP.CLASSES.CAT_BAR}>
           <Link
-            href={buildFilterUrl({ category: 'all' })}
-            className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-              activeCategorySlug === 'all'
-                ? 'bg-stone-900 text-white'
-                : 'bg-white text-stone-700 border border-stone-300 hover:border-stone-900'
-            }`}
+            href={buildFilterUrl({
+              category: AppConstants.Storefront.SHOP.FILTER_ALL,
+            })}
+            className={AppConstants.Storefront.SHOP.CLASSES.CAT_PILL(
+              activeCategorySlug === AppConstants.Storefront.SHOP.FILTER_ALL
+            )}
           >
-            All Categories
+            {AppConstants.Storefront.SHOP.COPY.ALL_CATEGORIES}
           </Link>
           {categories.map((cat) => (
             <Link
               key={cat.id}
               href={buildFilterUrl({ category: cat.slug })}
-              className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={AppConstants.Storefront.SHOP.CLASSES.CAT_PILL(
                 activeCategorySlug === cat.slug
-                  ? 'bg-stone-900 text-white'
-                  : 'bg-white text-stone-700 border border-stone-300 hover:border-stone-900'
-              }`}
+              )}
             >
               {cat.name}
             </Link>
@@ -159,58 +184,62 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         </div>
 
         {/* Secondary Filter Bar: Collections, Sizes & Sort */}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-stone-200/70">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-stone-500 mr-1">
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              Collection:
+        <div className={AppConstants.Storefront.SHOP.CLASSES.SUB_BAR}>
+          <div className={AppConstants.Storefront.SHOP.CLASSES.SUB_LEFT}>
+            <span
+              className={AppConstants.Storefront.SHOP.CLASSES.FILTER_LABEL}
+            >
+              <SlidersHorizontal
+                className={AppConstants.Storefront.SHOP.CLASSES.SLIDERS_ICON}
+              />
+              {AppConstants.Storefront.SHOP.COPY.COLLECTION_LABEL}
             </span>
             <Link
-              href={buildFilterUrl({ collection: 'all' })}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
-                activeCollectionSlug === 'all'
-                  ? 'bg-stone-200 text-stone-900 font-semibold'
-                  : 'text-stone-600 hover:bg-stone-100'
-              }`}
+              href={buildFilterUrl({
+                collection: AppConstants.Storefront.SHOP.FILTER_ALL,
+              })}
+              className={AppConstants.Storefront.SHOP.CLASSES.COL_PILL(
+                activeCollectionSlug === AppConstants.Storefront.SHOP.FILTER_ALL
+              )}
             >
-              All
+              {AppConstants.Storefront.SHOP.COPY.ALL}
             </Link>
             {collections.map((col) => (
               <Link
                 key={col.id}
                 href={buildFilterUrl({ collection: col.slug })}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                className={AppConstants.Storefront.SHOP.CLASSES.COL_PILL_AMBER(
                   activeCollectionSlug === col.slug
-                    ? 'bg-amber-100 text-amber-950 font-semibold'
-                    : 'text-stone-600 hover:bg-stone-100'
-                }`}
+                )}
               >
                 {col.name}
               </Link>
             ))}
 
-            <span className="text-stone-300 mx-1 hidden sm:inline">|</span>
+            <span className={AppConstants.Storefront.SHOP.CLASSES.DIVIDER}>
+              |
+            </span>
 
-            <span className="text-xs font-medium text-stone-500 ml-1">Size:</span>
+            <span className="text-xs font-medium text-stone-500 ml-1">
+              {AppConstants.Storefront.SHOP.COPY.SIZE_LABEL}
+            </span>
             <Link
-              href={buildFilterUrl({ size: 'all' })}
-              className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                activeSize === 'all'
-                  ? 'bg-stone-200 text-stone-900 font-semibold'
-                  : 'text-stone-600 hover:bg-stone-100'
-              }`}
+              href={buildFilterUrl({
+                size: AppConstants.Storefront.SHOP.FILTER_ALL,
+              })}
+              className={AppConstants.Storefront.SHOP.CLASSES.SIZE_PILL_ANY(
+                activeSize === AppConstants.Storefront.SHOP.FILTER_ALL
+              )}
             >
-              Any
+              {AppConstants.Storefront.SHOP.COPY.ANY_SIZE}
             </Link>
             {STANDARD_SIZES.map((sz) => (
               <Link
                 key={sz}
                 href={buildFilterUrl({ size: sz })}
-                className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                className={AppConstants.Storefront.SHOP.CLASSES.SIZE_PILL(
                   activeSize === sz
-                    ? 'bg-stone-900 text-white font-semibold'
-                    : 'text-stone-600 hover:bg-stone-100'
-                }`}
+                )}
               >
                 {sz}
               </Link>
@@ -218,38 +247,40 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           </div>
 
           {/* Sort Switcher */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-stone-500">Sort:</span>
-            <div className="inline-flex rounded-xl border border-stone-300 bg-white p-0.5">
+          <div className={AppConstants.Storefront.SHOP.CLASSES.SORT_BAR}>
+            <span className="text-stone-500">
+              {AppConstants.Storefront.SHOP.COPY.SORT_LABEL}
+            </span>
+            <div className={AppConstants.Storefront.SHOP.CLASSES.SORT_BOX}>
               <Link
-                href={buildFilterUrl({ sort: 'newest' })}
-                className={`px-2.5 py-1 rounded-lg font-medium ${
-                  activeSort === 'newest'
-                    ? 'bg-stone-900 text-white'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
+                href={buildFilterUrl({
+                  sort: AppConstants.Storefront.SHOP.SORT_NEWEST,
+                })}
+                className={AppConstants.Storefront.SHOP.CLASSES.SORT_LINK(
+                  activeSort === AppConstants.Storefront.SHOP.SORT_NEWEST
+                )}
               >
-                Newest
+                {AppConstants.Storefront.SHOP.COPY.SORT_NEWEST}
               </Link>
               <Link
-                href={buildFilterUrl({ sort: 'price-asc' })}
-                className={`px-2.5 py-1 rounded-lg font-medium ${
-                  activeSort === 'price-asc'
-                    ? 'bg-stone-900 text-white'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
+                href={buildFilterUrl({
+                  sort: AppConstants.Storefront.SHOP.SORT_PRICE_ASC,
+                })}
+                className={AppConstants.Storefront.SHOP.CLASSES.SORT_LINK(
+                  activeSort === AppConstants.Storefront.SHOP.SORT_PRICE_ASC
+                )}
               >
-                Price: Low
+                {AppConstants.Storefront.SHOP.COPY.SORT_PRICE_LOW}
               </Link>
               <Link
-                href={buildFilterUrl({ sort: 'price-desc' })}
-                className={`px-2.5 py-1 rounded-lg font-medium ${
-                  activeSort === 'price-desc'
-                    ? 'bg-stone-900 text-white'
-                    : 'text-stone-600 hover:text-stone-900'
-                }`}
+                href={buildFilterUrl({
+                  sort: AppConstants.Storefront.SHOP.SORT_PRICE_DESC,
+                })}
+                className={AppConstants.Storefront.SHOP.CLASSES.SORT_LINK(
+                  activeSort === AppConstants.Storefront.SHOP.SORT_PRICE_DESC
+                )}
               >
-                Price: High
+                {AppConstants.Storefront.SHOP.COPY.SORT_PRICE_HIGH}
               </Link>
             </div>
           </div>
@@ -257,38 +288,40 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
       </div>
 
       {/* Results Count & Clear Filters */}
-      <div className="flex items-center justify-between mb-6 text-xs text-stone-600">
+      <div className={AppConstants.Storefront.SHOP.CLASSES.RESULTS_ROW}>
         <p>
-          Showing <strong className="text-stone-900">{totalCount}</strong>{' '}
-          {totalCount === 1 ? 'style' : 'styles'}
+          {AppConstants.Storefront.SHOP.COPY.SHOWING}
+          <strong className="text-stone-900">{totalCount}</strong>{' '}
+          {totalCount === 1
+            ? AppConstants.Storefront.SHOP.COPY.STYLE_SINGULAR
+            : AppConstants.Storefront.SHOP.COPY.STYLE_PLURAL}
         </p>
 
         {hasActiveFilters && (
           <Link
             href="/shop"
-            className="inline-flex items-center gap-1 text-stone-900 font-semibold hover:underline"
+            className={AppConstants.Storefront.SHOP.CLASSES.RESET_LINK}
           >
-            <X className="w-3.5 h-3.5" />
-            Reset all filters
+            <X className={AppConstants.Storefront.SHOP.CLASSES.RESET_ICON} />
+            {AppConstants.Storefront.SHOP.COPY.RESET_FILTERS}
           </Link>
         )}
       </div>
 
       {/* Product Grid */}
       {totalCount === 0 ? (
-        <div className="rounded-3xl bg-white border border-stone-200 p-12 text-center max-w-md mx-auto my-8 space-y-4">
-          <p className="font-serif text-2xl font-semibold text-stone-900">
-            No matching styles found
+        <div className={AppConstants.Storefront.SHOP.CLASSES.EMPTY_BOX}>
+          <p className={AppConstants.Storefront.SHOP.CLASSES.EMPTY_TITLE}>
+            {AppConstants.Storefront.SHOP.COPY.EMPTY_TITLE}
           </p>
-          <p className="text-xs text-stone-500 leading-relaxed">
-            Try clearing your category or size filter to browse our latest daily
-            arrivals.
+          <p className={AppConstants.Storefront.SHOP.CLASSES.EMPTY_DESC}>
+            {AppConstants.Storefront.SHOP.COPY.EMPTY_DESC}
           </p>
           <Link
             href="/shop"
-            className="inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-stone-900 text-white text-xs font-semibold"
+            className={AppConstants.Storefront.SHOP.CLASSES.VIEW_ALL_BTN}
           >
-            View All Products
+            {AppConstants.Storefront.SHOP.COPY.VIEW_ALL_PRODUCTS}
           </Link>
         </div>
       ) : (

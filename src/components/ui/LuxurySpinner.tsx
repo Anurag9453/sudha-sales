@@ -3,11 +3,13 @@
 // Glassmorphic fashion-brand loading overlay and inline spinner so the user
 // always gets immediate, high-craft visual feedback on page transitions and
 // button actions.
+// Bound to AppConstants.Storefront.SPINNER and AppConstants.Store.
 // ============================================================================
 
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 import { publicEnv } from '@/lib/env';
+import { AppConstants } from '@/constants/app.constants';
 
 interface SudhaSpinnerBadgeProps {
   size?: 'sm' | 'md' | 'lg';
@@ -18,42 +20,53 @@ export function SudhaSpinnerBadge({
   size = 'lg',
   theme = 'light',
 }: SudhaSpinnerBadgeProps) {
+  const isDark = theme === 'dark';
   const dimensions =
     size === 'sm'
-      ? 'w-7 h-7'
+      ? AppConstants.Storefront.SPINNER.DIMENSIONS.SM
       : size === 'md'
-        ? 'w-11 h-11'
-        : 'w-16 h-16';
+      ? AppConstants.Storefront.SPINNER.DIMENSIONS.MD
+      : AppConstants.Storefront.SPINNER.DIMENSIONS.LG;
   const iconDimensions =
     size === 'sm'
-      ? 'w-3 h-3'
+      ? AppConstants.Storefront.SPINNER.ICON_DIMENSIONS.SM
       : size === 'md'
-        ? 'w-4 h-4'
-        : 'w-5 h-5';
-  const innerInset = size === 'sm' ? 'inset-1' : 'inset-2';
-
-  const baseRingColor =
-    theme === 'dark' ? 'border-stone-700/80' : 'border-stone-200';
-  const primarySpinColor =
-    theme === 'dark'
-      ? 'border-t-amber-300 border-r-amber-500'
-      : 'border-t-stone-900 border-r-amber-700';
-  const secondarySpinColor =
-    theme === 'dark' ? 'border-b-amber-400' : 'border-b-amber-500';
-  const sparkleColor =
-    theme === 'dark' ? 'text-amber-300' : 'text-amber-700';
+      ? AppConstants.Storefront.SPINNER.ICON_DIMENSIONS.MD
+      : AppConstants.Storefront.SPINNER.ICON_DIMENSIONS.LG;
+  const innerInset =
+    size === 'sm'
+      ? AppConstants.Storefront.SPINNER.INSETS.SM
+      : AppConstants.Storefront.SPINNER.INSETS.DEFAULT;
 
   return (
-    <div className={`relative ${dimensions} shrink-0 flex items-center justify-center`}>
-      <div className={`absolute inset-0 rounded-full border-[2.5px] ${baseRingColor}`} />
+    <div
+      className={`${AppConstants.Storefront.SPINNER.CLASSES.BASE_BADGE} ${dimensions}`}
+    >
       <div
-        className={`absolute inset-0 rounded-full border-[2.5px] border-transparent ${primarySpinColor} animate-spin`}
+        className={AppConstants.Storefront.SPINNER.CLASSES.BASE_RING(isDark)}
       />
       <div
-        className={`absolute ${innerInset} rounded-full border-[2px] border-transparent ${secondarySpinColor} animate-spin`}
-        style={{ animationDirection: 'reverse', animationDuration: '1.4s' }}
+        className={AppConstants.Storefront.SPINNER.CLASSES.PRIMARY_SPIN(
+          isDark
+        )}
       />
-      <Sparkles className={`${iconDimensions} ${sparkleColor} animate-pulse`} />
+      <div
+        className={AppConstants.Storefront.SPINNER.CLASSES.SECONDARY_SPIN(
+          innerInset,
+          isDark
+        )}
+        style={{
+          animationDirection:
+            AppConstants.Storefront.SPINNER.ANIMATION_DIRECTION_REVERSE,
+          animationDuration:
+            AppConstants.Storefront.SPINNER.ANIMATION_DURATION_SECONDARY,
+        }}
+      />
+      <Sparkles
+        className={`${iconDimensions} ${AppConstants.Storefront.SPINNER.CLASSES.SPARKLE_ICON(
+          isDark
+        )}`}
+      />
     </div>
   );
 }
@@ -65,23 +78,25 @@ interface LuxurySpinnerProps {
 }
 
 export function LuxurySpinner({
-  title = 'Curating Collection...',
-  subtitle = 'Please wait a moment',
+  title = AppConstants.Storefront.SPINNER.DEFAULT_TITLE,
+  subtitle = AppConstants.Storefront.SPINNER.DEFAULT_SUBTITLE,
   fullScreenOverlay = false,
 }: LuxurySpinnerProps) {
   const content = (
-    <div className="flex flex-col items-center justify-center text-center p-8 rounded-3xl bg-white/85 backdrop-blur-xl border border-stone-200/90 shadow-2xl max-w-sm w-full mx-4 space-y-4">
+    <div className={AppConstants.Storefront.SPINNER.CLASSES.CONTENT_BOX}>
       {/* Dual-Ring Animated Luxury Spinner */}
       <SudhaSpinnerBadge size="lg" theme="light" />
 
       <div className="space-y-1">
-        <p className="font-serif text-xs uppercase tracking-[0.2em] text-amber-800 font-semibold whitespace-nowrap">
+        <p className={AppConstants.Storefront.SPINNER.CLASSES.BRAND_TITLE}>
           {publicEnv.storeName}
         </p>
-        <h3 className="font-serif text-xl font-semibold text-stone-950">
+        <h3 className={AppConstants.Storefront.SPINNER.CLASSES.TITLE}>
           {title}
         </h3>
-        <p className="text-xs text-stone-500 leading-relaxed">{subtitle}</p>
+        <p className={AppConstants.Storefront.SPINNER.CLASSES.SUBTITLE}>
+          {subtitle}
+        </p>
       </div>
     </div>
   );
@@ -89,9 +104,9 @@ export function LuxurySpinner({
   if (fullScreenOverlay) {
     return (
       <div
-        role="status"
-        aria-live="polite"
-        className="fixed inset-0 z-50 bg-stone-950/50 backdrop-blur-xs flex items-center justify-center p-4"
+        role={AppConstants.Storefront.SPINNER.ROLE_STATUS}
+        aria-live={AppConstants.Storefront.SPINNER.ARIA_LIVE}
+        className={AppConstants.Storefront.SPINNER.CLASSES.OVERLAY}
       >
         {content}
       </div>
@@ -100,9 +115,9 @@ export function LuxurySpinner({
 
   return (
     <div
-      role="status"
-      aria-live="polite"
-      className="min-h-[55vh] w-full flex items-center justify-center p-6"
+      role={AppConstants.Storefront.SPINNER.ROLE_STATUS}
+      aria-live={AppConstants.Storefront.SPINNER.ARIA_LIVE}
+      className={AppConstants.Storefront.SPINNER.CLASSES.INLINE}
     >
       {content}
     </div>

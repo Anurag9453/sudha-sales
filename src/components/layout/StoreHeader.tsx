@@ -5,6 +5,7 @@
 //   opens a Right-Side Account Drawer with Orders, Shopping Bag, Saved
 //   Addresses, and Logout.
 // - No Admin button in the customer header (Admins access `/admin` directly).
+// Bound to AppConstants.Storefront.HEADER, AppConstants.Shipping, and AppConstants.Account.
 // ============================================================================
 
 'use client';
@@ -32,22 +33,14 @@ import { formatPrice } from '@/lib/format';
 import { SudhaSpinnerBadge } from '@/components/ui/LuxurySpinner';
 import { AppConstants } from '@/constants/app.constants';
 
-const NAV_LINKS = [
-  { href: '/', label: 'Home' },
-  { href: '/shop?collection=new-collection', label: 'New Collection', badge: 'Daily Drop' },
-  { href: '/shop', label: 'All Styles' },
-  { href: '/shop?category=kurtis', label: 'Kurtis' },
-  { href: '/shop?category=co-ord-sets', label: 'Co-ord Sets' },
-  { href: '/shop?category=suit-sets', label: 'Suit Sets' },
-  { href: '/shop?category=dresses', label: 'Dresses' },
-];
-
-const MARQUEE_ITEMS = [
-  `${publicEnv.storeName} — Fresh Warehouse Collections Added Daily`,
-  `${publicEnv.storeName} — Free Express Shipping Above ${formatPrice(AppConstants.Shipping.FREE_SHIPPING_THRESHOLD)}`,
-  `${publicEnv.storeName} — Tap Any Photo to View Full Multi-Angle Gallery`,
-  `${publicEnv.storeName} — Direct Loom & Warehouse Prices`,
-];
+const MARQUEE_ITEMS = AppConstants.Storefront.HEADER.MARQUEE_TEMPLATES.map((tmpl, idx) =>
+  idx === 1
+    ? tmpl(
+        publicEnv.storeName,
+        formatPrice(AppConstants.Shipping.FREE_SHIPPING_THRESHOLD)
+      )
+    : tmpl(publicEnv.storeName, '')
+);
 
 export function StoreHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -64,26 +57,37 @@ export function StoreHeader() {
     signOutCustomer,
   } = useCustomerAuth();
 
-  const firstName = customer?.name.split(' ')[0] || customer?.name || '';
-  const initialLetter = firstName ? firstName.charAt(0).toUpperCase() : 'U';
+  const firstName =
+    customer?.name.split(AppConstants.Account.NAME_SPLIT_SEPARATOR)[0] ||
+    customer?.name ||
+    '';
+  const initialLetter = firstName
+    ? firstName.charAt(0).toUpperCase()
+    : AppConstants.Storefront.HEADER.COPY.FALLBACK_INITIAL;
 
   const handleLogoutFromDrawer = async () => {
     await signOutCustomer();
     setAccountDrawerOpen(false);
-    router.push('/');
+    router.push(AppConstants.Storefront.HEADER.NAV_LINKS[0].href);
   };
 
   return (
     <>
       {/* Moving Marquee Ticker Bar */}
-      <div className="w-full max-w-[100vw] bg-stone-900 text-stone-100 text-[11px] sm:text-xs tracking-wider py-2 overflow-hidden border-b border-stone-800">
-        <div className="animate-sudha-marquee">
+      <div className={AppConstants.Storefront.HEADER.CLASSES.MARQUEE_WRAPPER}>
+        <div className={AppConstants.Storefront.HEADER.CLASSES.MARQUEE_TRACK}>
           {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, idx) => (
             <span
               key={idx}
-              className="inline-flex items-center gap-2 px-6 sm:px-8 font-medium whitespace-nowrap"
+              className={
+                AppConstants.Storefront.HEADER.CLASSES.MARQUEE_ITEM
+              }
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+              <Sparkles
+                className={
+                  AppConstants.Storefront.HEADER.CLASSES.MARQUEE_ICON
+                }
+              />
               <span>{item}</span>
             </span>
           ))}
@@ -91,33 +95,37 @@ export function StoreHeader() {
       </div>
 
       {/* Main Sticky Header */}
-      <header className="sticky top-0 z-40 w-full max-w-[100vw] bg-white/95 backdrop-blur-md border-b border-stone-200/80">
-        <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-1.5 sm:gap-3">
+      <header className={AppConstants.Storefront.HEADER.CLASSES.HEADER}>
+        <div className={AppConstants.Storefront.HEADER.CLASSES.CONTAINER}>
           {/* Top-Left: Mobile Menu Button + Single-Line SUDHA SALES Logo with Spinner Emblem */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
+          <div className={AppConstants.Storefront.HEADER.CLASSES.LEFT_WRAPPER}>
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
-              aria-label="Open navigation menu"
-              className="lg:hidden p-1.5 -ml-1 rounded-lg text-stone-800 hover:bg-stone-100 active:bg-stone-200 transition-colors shrink-0"
+              aria-label={AppConstants.Storefront.HEADER.ARIA.OPEN_NAV}
+              className={AppConstants.Storefront.HEADER.CLASSES.MOBILE_TOGGLE}
             >
-              <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
+              <Menu
+                className={AppConstants.Storefront.HEADER.CLASSES.TOGGLE_ICON}
+              />
             </button>
 
             <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 sm:gap-2.5 shrink-0 whitespace-nowrap group"
+              href={AppConstants.Storefront.HEADER.NAV_LINKS[0].href}
+              className={AppConstants.Storefront.HEADER.CLASSES.BRAND_LINK}
             >
               <SudhaSpinnerBadge size="sm" theme="light" />
-              <span className="font-serif text-[15px] sm:text-xl xl:text-2xl tracking-[0.08em] sm:tracking-[0.14em] font-bold animate-sudha-brand whitespace-nowrap inline-block">
+              <span
+                className={AppConstants.Storefront.HEADER.CLASSES.BRAND_TEXT}
+              >
                 {publicEnv.storeName}
               </span>
             </Link>
           </div>
 
           {/* Center: Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-4 xl:gap-6 text-sm font-medium text-stone-700 shrink-0">
-            {NAV_LINKS.map((link) => {
+          <nav className={AppConstants.Storefront.HEADER.CLASSES.NAV}>
+            {AppConstants.Storefront.HEADER.NAV_LINKS.map((link) => {
               const isActive =
                 link.href === '/'
                   ? pathname === '/'
@@ -128,13 +136,17 @@ export function StoreHeader() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`relative py-1 transition-colors hover:text-stone-950 flex items-center gap-1.5 whitespace-nowrap ${
-                    isActive ? 'text-stone-950 font-semibold' : ''
-                  }`}
+                  className={AppConstants.Storefront.HEADER.CLASSES.NAV_LINK(
+                    isActive
+                  )}
                 >
                   <span>{link.label}</span>
-                  {link.badge && (
-                    <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-semibold whitespace-nowrap">
+                  {'badge' in link && link.badge && (
+                    <span
+                      className={
+                        AppConstants.Storefront.HEADER.CLASSES.NAV_BADGE
+                      }
+                    >
                       {link.badge}
                     </span>
                   )}
@@ -144,66 +156,95 @@ export function StoreHeader() {
           </nav>
 
           {/* Top-Right: Search, Shopping Bag, Greeting + Circular Drawer Trigger */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <div className={AppConstants.Storefront.HEADER.CLASSES.RIGHT_WRAPPER}>
             <Link
-              href="/shop"
-              aria-label="Browse and search catalog"
-              className="p-1.5 sm:p-2 rounded-full text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-colors"
+              href={AppConstants.Storefront.HEADER.NAV_LINKS[2].href}
+              aria-label={AppConstants.Storefront.HEADER.ARIA.SEARCH_CATALOG}
+              className={AppConstants.Storefront.HEADER.CLASSES.SEARCH_LINK}
             >
-              <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Search
+                className={AppConstants.Storefront.HEADER.CLASSES.SEARCH_ICON}
+              />
             </Link>
 
             <Link
-              href="/cart"
-              aria-label="Shopping bag"
-              className="relative inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-full bg-stone-100 text-stone-900 hover:bg-stone-200 border border-stone-200 transition-all"
+              href={AppConstants.Storefront.HEADER.DRAWER_OPTIONS.CART_HREF}
+              aria-label={AppConstants.Storefront.HEADER.ARIA.BAG}
+              className={AppConstants.Storefront.HEADER.CLASSES.BAG_LINK}
             >
-              <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="text-xs font-bold tabular-nums">
+              <ShoppingBag
+                className={AppConstants.Storefront.HEADER.CLASSES.BAG_ICON}
+              />
+              <span className={AppConstants.Storefront.HEADER.CLASSES.BAG_COUNT}>
                 {isHydrated ? totalQuantity : 0}
               </span>
             </Link>
 
             {isAuthHydrated && isAuthenticated && customer ? (
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div
+                className={AppConstants.Storefront.HEADER.CLASSES.AUTH_WRAPPER}
+              >
                 <button
                   type="button"
                   onClick={() => setAccountDrawerOpen(true)}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-300/80 text-stone-950 text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.NAMASTE_PILL
+                  }
                 >
-                  <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
-                  <span>Namaste {firstName}</span>
+                  <span
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.ONLINE_DOT
+                    }
+                  />
+                  <span>
+                    {AppConstants.Storefront.HEADER.COPY.GREETING_PREFIX}
+                    {firstName}
+                  </span>
                 </button>
 
                 {/* Top-Right Circular Profile Button that opens the Right-Side Drawer */}
                 <button
                   type="button"
                   onClick={() => setAccountDrawerOpen(true)}
-                  aria-label="Open customer account menu drawer"
-                  title={`Namaste ${firstName} — Click to open Orders, Bag & Account Drawer`}
-                  className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-stone-900 hover:bg-stone-800 text-amber-300 font-serif font-bold text-xs sm:text-sm flex items-center justify-center shadow-md ring-2 ring-amber-400/50 transition-transform active:scale-95 cursor-pointer shrink-0"
+                  aria-label={AppConstants.Storefront.HEADER.ARIA.ACCOUNT_MENU}
+                  title={`${AppConstants.Storefront.HEADER.COPY.GREETING_PREFIX}${firstName}`}
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.AVATAR_BUTTON
+                  }
                 >
                   <span>{initialLetter}</span>
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500 border-2 border-white" />
+                  <span
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.STATUS_BADGE
+                    }
+                  />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div
+                className={AppConstants.Storefront.HEADER.CLASSES.AUTH_WRAPPER}
+              >
                 <Link
-                  href="/login"
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-900 text-xs font-semibold transition-colors whitespace-nowrap"
+                  href={AppConstants.Account.ROUTES.LOGIN}
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.SIGN_IN_LINK
+                  }
                 >
-                  <span>Sign In</span>
+                  <span>{AppConstants.Storefront.HEADER.COPY.SIGN_IN}</span>
                 </Link>
 
                 {/* Top-Right Circular Menu Trigger even when signed out */}
                 <button
                   type="button"
                   onClick={() => setAccountDrawerOpen(true)}
-                  aria-label="Open customer menu drawer"
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-stone-900 hover:bg-stone-800 text-white flex items-center justify-center shadow-md ring-2 ring-stone-200 transition-transform active:scale-95 cursor-pointer shrink-0"
+                  aria-label={AppConstants.Storefront.HEADER.ARIA.MENU_DRAWER}
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.GUEST_AVATAR_BUTTON
+                  }
                 >
-                  <User className="w-4 h-4" />
+                  <User
+                    className={AppConstants.Storefront.HEADER.CLASSES.USER_ICON}
+                  />
                 </button>
               </div>
             )}
@@ -213,51 +254,73 @@ export function StoreHeader() {
 
       {/* Left Mobile Slide-Over Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
+        <div className={AppConstants.Storefront.HEADER.CLASSES.MOBILE_MENU_ROOT}>
           <div
-            className="fixed inset-0 bg-stone-950/50 backdrop-blur-xs"
+            className={AppConstants.Storefront.HEADER.CLASSES.DRAWER_BACKDROP}
             onClick={() => setMobileMenuOpen(false)}
           />
 
-          <div className="relative w-[84%] max-w-xs bg-white h-full shadow-2xl flex flex-col justify-between z-10 overflow-y-auto">
+          <div
+            className={AppConstants.Storefront.HEADER.CLASSES.MOBILE_PANEL}
+          >
             <div>
-              <div className="p-4 border-b border-stone-200 flex items-center justify-between gap-2">
-                <span className="font-serif text-lg tracking-[0.14em] font-bold animate-sudha-brand whitespace-nowrap">
+              <div
+                className={AppConstants.Storefront.HEADER.CLASSES.MOBILE_HEADER}
+              >
+                <span
+                  className={AppConstants.Storefront.HEADER.CLASSES.BRAND_TEXT}
+                >
                   {publicEnv.storeName}
                 </span>
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  aria-label="Close navigation menu"
-                  className="p-2 rounded-lg text-stone-600 hover:bg-stone-100"
+                  aria-label={AppConstants.Storefront.HEADER.ARIA.CLOSE_NAV}
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.MOBILE_CLOSE_BTN
+                  }
                 >
-                  <X className="w-5 h-5" />
+                  <X className={AppConstants.Storefront.HEADER.CLASSES.USER_ICON} />
                 </button>
               </div>
 
-              <div className="p-3 space-y-1">
-                {NAV_LINKS.map((link) => (
+              <div
+                className={AppConstants.Storefront.HEADER.CLASSES.MOBILE_LIST}
+              >
+                {AppConstants.Storefront.HEADER.NAV_LINKS.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-between px-3 py-3 rounded-xl text-stone-800 hover:bg-stone-100 font-medium text-sm transition-colors"
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.MOBILE_LINK
+                    }
                   >
                     <span className="flex items-center gap-2">
                       {link.label}
-                      {link.badge && (
-                        <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-semibold">
+                      {'badge' in link && link.badge && (
+                        <span
+                          className={
+                            AppConstants.Storefront.HEADER.CLASSES.NAV_BADGE
+                          }
+                        >
                           {link.badge}
                         </span>
                       )}
                     </span>
-                    <ChevronRight className="w-4 h-4 text-stone-400" />
+                    <ChevronRight
+                      className={
+                        AppConstants.Storefront.HEADER.CLASSES.CHEVRON_ICON
+                      }
+                    />
                   </Link>
                 ))}
               </div>
             </div>
 
-            <div className="p-4 border-t border-stone-200 bg-stone-50 space-y-2.5">
+            <div
+              className={AppConstants.Storefront.HEADER.CLASSES.MOBILE_FOOTER}
+            >
               {isAuthHydrated && isAuthenticated && customer ? (
                 <button
                   type="button"
@@ -265,71 +328,123 @@ export function StoreHeader() {
                     setMobileMenuOpen(false);
                     setAccountDrawerOpen(true);
                   }}
-                  className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50 text-stone-950 text-xs font-bold cursor-pointer"
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.MOBILE_ACCOUNT_BTN
+                  }
                 >
-                  <span>Namaste {firstName}</span>
-                  <ChevronRight className="w-4 h-4 text-stone-600" />
+                  <span>
+                    {AppConstants.Storefront.HEADER.COPY.GREETING_PREFIX}
+                    {firstName}
+                  </span>
+                  <ChevronRight
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.CHEVRON_ICON
+                    }
+                  />
                 </button>
               ) : (
                 <Link
-                  href="/login"
+                  href={AppConstants.Account.ROUTES.LOGIN}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl bg-stone-900 text-white text-xs font-semibold"
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.MOBILE_SIGNIN_LINK
+                  }
                 >
                   <span className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Sign In with Google
+                    <User
+                      className={
+                        AppConstants.Storefront.HEADER.CLASSES.USER_ICON
+                      }
+                    />
+                    {AppConstants.Storefront.HEADER.COPY.SIGN_IN_GOOGLE}
                   </span>
-                  <ChevronRight className="w-4 h-4 text-stone-300" />
+                  <ChevronRight
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.CHEVRON_ICON
+                    }
+                  />
                 </Link>
               )}
               <p className="text-[11px] text-stone-500 text-center">
-                Fresh styles curated daily • Pan-India Delivery
+                {AppConstants.Storefront.HEADER.COPY.FOOTER_TAGLINE}
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Right-Side Customer Account Drawer (Opened by clicking the Top-Right Circle) */}
+      {/* Right-Side Customer Account Drawer */}
       {accountDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
+        <div className={AppConstants.Storefront.HEADER.CLASSES.DRAWER_ROOT}>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-stone-950/55 backdrop-blur-xs"
+            className={AppConstants.Storefront.HEADER.CLASSES.DRAWER_BACKDROP}
             onClick={() => setAccountDrawerOpen(false)}
           />
 
           {/* Slide-Over Panel on the Right */}
-          <div className="relative w-[88%] max-w-sm bg-white h-full shadow-2xl flex flex-col justify-between z-10 overflow-y-auto">
+          <div
+            className={AppConstants.Storefront.HEADER.CLASSES.DRAWER_PANEL}
+          >
             <div>
               {/* Drawer Header */}
-              <div className="p-5 bg-stone-900 text-white flex items-center justify-between gap-3">
+              <div
+                className={AppConstants.Storefront.HEADER.CLASSES.DRAWER_HEADER}
+              >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-11 h-11 rounded-full bg-amber-400/20 border border-amber-300/50 text-amber-300 font-serif font-bold text-base flex items-center justify-center shrink-0">
+                  <div
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.DRAWER_USER_BADGE
+                    }
+                  >
                     {isAuthHydrated && isAuthenticated && customer ? (
                       <span>{initialLetter}</span>
                     ) : (
-                      <User className="w-5 h-5" />
+                      <User
+                        className={
+                          AppConstants.Storefront.HEADER.CLASSES.USER_ICON
+                        }
+                      />
                     )}
                   </div>
                   <div className="min-w-0">
                     {isAuthHydrated && isAuthenticated && customer ? (
                       <>
-                        <p className="font-serif text-lg font-semibold text-white truncate">
-                          Namaste {firstName}
+                        <p
+                          className={
+                            AppConstants.Storefront.HEADER.CLASSES
+                              .DRAWER_USER_NAME
+                          }
+                        >
+                          {AppConstants.Storefront.HEADER.COPY.GREETING_PREFIX}
+                          {firstName}
                         </p>
-                        <p className="text-xs text-stone-300 truncate">
+                        <p
+                          className={
+                            AppConstants.Storefront.HEADER.CLASSES
+                              .DRAWER_USER_EMAIL
+                          }
+                        >
                           {customer.email}
                         </p>
                       </>
                     ) : (
                       <>
-                        <p className="font-serif text-lg font-semibold text-white">
-                          Welcome Guest
+                        <p
+                          className={
+                            AppConstants.Storefront.HEADER.CLASSES
+                              .DRAWER_USER_NAME
+                          }
+                        >
+                          {AppConstants.Storefront.HEADER.COPY.WELCOME_GUEST}
                         </p>
-                        <p className="text-xs text-stone-300">
-                          Sign in to shop &amp; track orders
+                        <p
+                          className={
+                            AppConstants.Storefront.HEADER.CLASSES
+                              .DRAWER_USER_EMAIL
+                          }
+                        >
+                          {AppConstants.Storefront.HEADER.COPY.GUEST_SUBTITLE}
                         </p>
                       </>
                     )}
@@ -339,138 +454,312 @@ export function StoreHeader() {
                 <button
                   type="button"
                   onClick={() => setAccountDrawerOpen(false)}
-                  aria-label="Close customer drawer"
-                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer shrink-0"
+                  aria-label={AppConstants.Storefront.HEADER.ARIA.CLOSE_DRAWER}
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.DRAWER_CLOSE_BUTTON
+                  }
                 >
-                  <X className="w-4 h-4" />
+                  <X
+                    className={AppConstants.Storefront.HEADER.CLASSES.USER_ICON}
+                  />
                 </button>
               </div>
 
               {/* Drawer Menu Options */}
-              <div className="p-4 space-y-2">
-                <p className="px-2 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-widest text-stone-400">
-                  Your Account &amp; Shopping
+              <div
+                className={
+                  AppConstants.Storefront.HEADER.CLASSES.DRAWER_OPTIONS
+                }
+              >
+                <p
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.DRAWER_LABEL
+                  }
+                >
+                  {AppConstants.Storefront.HEADER.COPY.DRAWER_SECTION_TITLE}
                 </p>
 
                 {/* Option 1: Orders & Invoices */}
                 <Link
-                  href={isAuthenticated ? '/account?tab=orders' : '/login?next=/account'}
+                  href={
+                    isAuthenticated
+                      ? AppConstants.Storefront.HEADER.DRAWER_OPTIONS.ORDERS_HREF
+                      : AppConstants.Storefront.HEADER.DRAWER_OPTIONS
+                          .ORDERS_LOGIN_HREF
+                  }
                   onClick={() => setAccountDrawerOpen(false)}
-                  className="flex items-center justify-between p-3.5 rounded-2xl border border-stone-200 hover:border-stone-900 hover:bg-stone-50 transition-all group"
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.DRAWER_CARD
+                  }
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-stone-100 group-hover:bg-stone-900 group-hover:text-white text-stone-800 flex items-center justify-center transition-colors">
-                      <Package className="w-5 h-5" />
+                  <div
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.DRAWER_CARD_LEFT
+                    }
+                  >
+                    <div
+                      className={
+                        AppConstants.Storefront.HEADER.CLASSES.DRAWER_ICON_WRAP
+                      }
+                    >
+                      <Package
+                        className={
+                          AppConstants.Storefront.HEADER.CLASSES.DRAWER_CARD_ICON
+                        }
+                      />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-stone-950">
-                        My Orders &amp; Delivery Status
+                      <p
+                        className={
+                          AppConstants.Storefront.HEADER.CLASSES
+                            .DRAWER_CARD_TITLE
+                        }
+                      >
+                        {
+                          AppConstants.Storefront.HEADER.COPY
+                            .DRAWER_ORDERS_TITLE
+                        }
                       </p>
-                      <p className="text-xs text-stone-500">
+                      <p
+                        className={
+                          AppConstants.Storefront.HEADER.CLASSES
+                            .DRAWER_CARD_SUBTITLE
+                        }
+                      >
                         {isAuthenticated
-                          ? `${orders.length} past ${orders.length === 1 ? 'order' : 'orders'} & tracking`
-                          : 'Track dispatches & delivered dates'}
+                          ? AppConstants.Storefront.HEADER.COPY.DRAWER_ORDERS_SUBTITLE_AUTHENTICATED(
+                              orders.length
+                            )
+                          : AppConstants.Storefront.HEADER.COPY
+                              .DRAWER_ORDERS_SUBTITLE_GUEST}
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-stone-900" />
+                  <ChevronRight
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.CHEVRON_ICON
+                    }
+                  />
                 </Link>
 
                 {/* Option 2: Tax Invoices */}
                 <Link
-                  href={isAuthenticated ? '/account?tab=orders' : '/login?next=/account'}
+                  href={
+                    isAuthenticated
+                      ? AppConstants.Storefront.HEADER.DRAWER_OPTIONS.ORDERS_HREF
+                      : AppConstants.Storefront.HEADER.DRAWER_OPTIONS
+                          .ORDERS_LOGIN_HREF
+                  }
                   onClick={() => setAccountDrawerOpen(false)}
-                  className="flex items-center justify-between p-3.5 rounded-2xl border border-stone-200 hover:border-stone-900 hover:bg-stone-50 transition-all group"
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.DRAWER_CARD
+                  }
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-stone-100 group-hover:bg-stone-900 group-hover:text-white text-stone-800 flex items-center justify-center transition-colors">
-                      <FileText className="w-5 h-5" />
+                  <div
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.DRAWER_CARD_LEFT
+                    }
+                  >
+                    <div
+                      className={
+                        AppConstants.Storefront.HEADER.CLASSES.DRAWER_ICON_WRAP
+                      }
+                    >
+                      <FileText
+                        className={
+                          AppConstants.Storefront.HEADER.CLASSES.DRAWER_CARD_ICON
+                        }
+                      />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-stone-950">
-                        GST / Tax Invoices
+                      <p
+                        className={
+                          AppConstants.Storefront.HEADER.CLASSES
+                            .DRAWER_CARD_TITLE
+                        }
+                      >
+                        {
+                          AppConstants.Storefront.HEADER.COPY
+                            .DRAWER_INVOICES_TITLE
+                        }
                       </p>
-                      <p className="text-xs text-stone-500">
-                        View &amp; print order bills
+                      <p
+                        className={
+                          AppConstants.Storefront.HEADER.CLASSES
+                            .DRAWER_CARD_SUBTITLE
+                        }
+                      >
+                        {
+                          AppConstants.Storefront.HEADER.COPY
+                            .DRAWER_INVOICES_SUBTITLE
+                        }
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-stone-900" />
+                  <ChevronRight
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.CHEVRON_ICON
+                    }
+                  />
                 </Link>
 
                 {/* Option 3: Shopping Bag */}
                 <Link
-                  href="/cart"
+                  href={AppConstants.Storefront.HEADER.DRAWER_OPTIONS.CART_HREF}
                   onClick={() => setAccountDrawerOpen(false)}
-                  className="flex items-center justify-between p-3.5 rounded-2xl border border-stone-200 hover:border-stone-900 hover:bg-stone-50 transition-all group"
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.DRAWER_CARD
+                  }
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-100/80 group-hover:bg-stone-900 group-hover:text-white text-amber-950 flex items-center justify-center transition-colors">
-                      <ShoppingBag className="w-5 h-5" />
+                  <div
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.DRAWER_CARD_LEFT
+                    }
+                  >
+                    <div
+                      className={
+                        AppConstants.Storefront.HEADER.CLASSES
+                          .DRAWER_ICON_WRAP_AMBER
+                      }
+                    >
+                      <ShoppingBag
+                        className={
+                          AppConstants.Storefront.HEADER.CLASSES.DRAWER_CARD_ICON
+                        }
+                      />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-stone-950">
-                        Shopping Bag ({isHydrated ? totalQuantity : 0})
+                      <p
+                        className={
+                          AppConstants.Storefront.HEADER.CLASSES
+                            .DRAWER_CARD_TITLE
+                        }
+                      >
+                        {AppConstants.Storefront.HEADER.COPY.DRAWER_BAG_TITLE(
+                          isHydrated ? totalQuantity : 0
+                        )}
                       </p>
-                      <p className="text-xs text-stone-500">
+                      <p
+                        className={
+                          AppConstants.Storefront.HEADER.CLASSES
+                            .DRAWER_CARD_SUBTITLE
+                        }
+                      >
                         {isHydrated && totalQuantity > 0
-                          ? `Subtotal: ${formatPrice(subtotalAmount)} — Proceed to buy`
-                          : 'View items in your bag'}
+                          ? AppConstants.Storefront.HEADER.COPY.DRAWER_BAG_SUBTITLE_AUTHENTICATED(
+                              formatPrice(subtotalAmount)
+                            )
+                          : AppConstants.Storefront.HEADER.COPY
+                              .DRAWER_BAG_SUBTITLE_EMPTY}
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-stone-900" />
+                  <ChevronRight
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.CHEVRON_ICON
+                    }
+                  />
                 </Link>
 
                 {/* Option 4: Stored Addresses */}
                 <Link
                   href={
                     isAuthenticated
-                      ? '/account?tab=addresses'
-                      : '/login?next=/account?tab=addresses'
+                      ? AppConstants.Storefront.HEADER.DRAWER_OPTIONS
+                          .ADDRESSES_HREF
+                      : AppConstants.Storefront.HEADER.DRAWER_OPTIONS
+                          .ADDRESSES_LOGIN_HREF
                   }
                   onClick={() => setAccountDrawerOpen(false)}
-                  className="flex items-center justify-between p-3.5 rounded-2xl border border-stone-200 hover:border-stone-900 hover:bg-stone-50 transition-all group"
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.DRAWER_CARD
+                  }
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-stone-100 group-hover:bg-stone-900 group-hover:text-white text-stone-800 flex items-center justify-center transition-colors">
-                      <MapPin className="w-5 h-5" />
+                  <div
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.DRAWER_CARD_LEFT
+                    }
+                  >
+                    <div
+                      className={
+                        AppConstants.Storefront.HEADER.CLASSES.DRAWER_ICON_WRAP
+                      }
+                    >
+                      <MapPin
+                        className={
+                          AppConstants.Storefront.HEADER.CLASSES.DRAWER_CARD_ICON
+                        }
+                      />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-stone-950">
-                        Saved Addresses
+                      <p
+                        className={
+                          AppConstants.Storefront.HEADER.CLASSES
+                            .DRAWER_CARD_TITLE
+                        }
+                      >
+                        {
+                          AppConstants.Storefront.HEADER.COPY
+                            .DRAWER_ADDRESSES_TITLE
+                        }
                       </p>
-                      <p className="text-xs text-stone-500">
+                      <p
+                        className={
+                          AppConstants.Storefront.HEADER.CLASSES
+                            .DRAWER_CARD_SUBTITLE
+                        }
+                      >
                         {isAuthenticated
-                          ? `${addresses.length} saved delivery ${addresses.length === 1 ? 'address' : 'addresses'}`
-                          : 'Add or edit delivery addresses'}
+                          ? AppConstants.Storefront.HEADER.COPY.DRAWER_ADDRESSES_SUBTITLE_AUTHENTICATED(
+                              addresses.length
+                            )
+                          : AppConstants.Storefront.HEADER.COPY
+                              .DRAWER_ADDRESSES_SUBTITLE_GUEST}
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-stone-900" />
+                  <ChevronRight
+                    className={
+                      AppConstants.Storefront.HEADER.CLASSES.CHEVRON_ICON
+                    }
+                  />
                 </Link>
               </div>
             </div>
 
             {/* Drawer Footer: Logout or Sign In */}
-            <div className="p-4 border-t border-stone-200 bg-stone-50 space-y-2.5">
+            <div
+              className={AppConstants.Storefront.HEADER.CLASSES.DRAWER_FOOTER}
+            >
               {isAuthHydrated && isAuthenticated && customer ? (
                 <button
                   type="button"
                   onClick={handleLogoutFromDrawer}
-                  className="w-full h-11 px-4 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.LOGOUT_BUTTON
+                  }
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout ({firstName})</span>
+                  <LogOut
+                    className={AppConstants.Storefront.HEADER.CLASSES.USER_ICON}
+                  />
+                  <span>
+                    {AppConstants.Storefront.HEADER.COPY.LOGOUT(firstName)}
+                  </span>
                 </button>
               ) : (
                 <Link
-                  href="/login"
+                  href={AppConstants.Account.ROUTES.LOGIN}
                   onClick={() => setAccountDrawerOpen(false)}
-                  className="w-full h-11 px-4 rounded-2xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-colors"
+                  className={
+                    AppConstants.Storefront.HEADER.CLASSES.SIGN_IN_BUTTON
+                  }
                 >
-                  <User className="w-4 h-4" />
-                  <span>Sign In with Google</span>
+                  <User
+                    className={AppConstants.Storefront.HEADER.CLASSES.USER_ICON}
+                  />
+                  <span>
+                    {AppConstants.Storefront.HEADER.COPY.SIGN_IN_GOOGLE}
+                  </span>
                 </Link>
               )}
             </div>
