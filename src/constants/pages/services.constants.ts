@@ -30,6 +30,10 @@ export const ServicesConstants = {
       `https://s3.${region}.amazonaws.com/sudha-sales/${key}`,
     DEFAULT_S3_HOST_URL: (bucket: string, region: string, key: string) =>
       `https://${bucket}.s3.${region}.amazonaws.com/${key}`,
+    DRIVE_CDN_HOST: 'https://lh3.googleusercontent.com/d',
+    DRIVE_DIRECT_URL: (fileId: string, width = 1200) =>
+      `https://lh3.googleusercontent.com/d/${fileId}=w${width}`,
+    DEFAULT_PREVIEW_WIDTH: 1200,
   },
 
   ORDER: {

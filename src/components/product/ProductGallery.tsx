@@ -25,6 +25,7 @@ export function ProductGallery({
   discountBadge,
 }: ProductGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [failedIndices, setFailedIndices] = useState<Record<number, boolean>>({});
 
   if (images.length === 0) {
     return (
@@ -59,7 +60,11 @@ export function ProductGallery({
                 )}
               >
                 <Image
-                  src={img.image_url}
+                  src={
+                    failedIndices[idx]
+                      ? AppConstants.Assets.FALLBACK_PRODUCT_IMAGE
+                      : img.image_url
+                  }
                   alt={
                     img.alt_text ||
                     AppConstants.Product.GALLERY.COPY.VIEW_N(
@@ -69,6 +74,9 @@ export function ProductGallery({
                   }
                   fill
                   sizes={AppConstants.Product.GALLERY.THUMB_SIZES}
+                  onError={() =>
+                    setFailedIndices((prev) => ({ ...prev, [idx]: true }))
+                  }
                   className={AppConstants.Product.GALLERY.CLASSES.THUMB_IMAGE}
                 />
               </button>
@@ -84,12 +92,19 @@ export function ProductGallery({
           return (
             <Image
               key={img.id || idx}
-              src={img.image_url}
+              src={
+                failedIndices[idx]
+                  ? AppConstants.Assets.FALLBACK_PRODUCT_IMAGE
+                  : img.image_url
+              }
               alt={img.alt_text || productName}
               fill
               priority
               loading="eager"
               sizes={AppConstants.Product.GALLERY.HERO_SIZES}
+              onError={() =>
+                setFailedIndices((prev) => ({ ...prev, [idx]: true }))
+              }
               className={AppConstants.Product.GALLERY.CLASSES.HERO_IMAGE(
                 isActive
               )}

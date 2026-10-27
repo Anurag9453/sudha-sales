@@ -42,6 +42,9 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [isNavigating, startTransition] = useTransition();
+  const [primaryFailed, setPrimaryFailed] = useState(false);
+  const [secondaryFailed, setSecondaryFailed] = useState(false);
+  const [modalFailedIndices, setModalFailedIndices] = useState<Record<number, boolean>>({});
 
   const primaryImage = product.images[0];
   const secondaryImage = product.images[1];
@@ -112,24 +115,34 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           {primaryImage ? (
             <>
               <Image
-                src={primaryImage.image_url}
+                src={
+                  primaryFailed
+                    ? AppConstants.Assets.FALLBACK_PRODUCT_IMAGE
+                    : primaryImage.image_url
+                }
                 alt={primaryImage.alt_text || product.name}
                 fill
                 sizes={AppConstants.Product.CARD.SIZES_IMAGE}
                 priority={priority}
+                onError={() => setPrimaryFailed(true)}
                 className={AppConstants.Product.CARD.CLASSES.IMAGE_PRIMARY(
                   Boolean(secondaryImage)
                 )}
               />
               {secondaryImage && (
                 <Image
-                  src={secondaryImage.image_url}
+                  src={
+                    secondaryFailed
+                      ? AppConstants.Assets.FALLBACK_PRODUCT_IMAGE
+                      : secondaryImage.image_url
+                  }
                   alt={
                     secondaryImage.alt_text ||
                     AppConstants.Product.CARD.COPY.ALTERNATE_VIEW(product.name)
                   }
                   fill
                   sizes={AppConstants.Product.CARD.SIZES_IMAGE}
+                  onError={() => setSecondaryFailed(true)}
                   className={AppConstants.Product.CARD.CLASSES.IMAGE_SECONDARY}
                 />
               )}
@@ -335,7 +348,11 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               return (
                 <Image
                   key={img.id || idx}
-                  src={img.image_url}
+                  src={
+                    modalFailedIndices[idx]
+                      ? AppConstants.Assets.FALLBACK_PRODUCT_IMAGE
+                      : img.image_url
+                  }
                   alt={
                     img.alt_text ||
                     AppConstants.Product.GALLERY.COPY.VIEW_N(
@@ -347,6 +364,9 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
                   priority
                   loading="eager"
                   sizes={AppConstants.Product.CARD.MODAL_IMAGE_SIZES}
+                  onError={() =>
+                    setModalFailedIndices((prev) => ({ ...prev, [idx]: true }))
+                  }
                   className={AppConstants.Product.CARD.CLASSES.MODAL_IMAGE(
                     isActive
                   )}

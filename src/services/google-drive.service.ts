@@ -15,6 +15,7 @@
 // ============================================================================
 
 import crypto from 'crypto';
+import { AppConstants } from '@/constants/app.constants';
 
 export interface DriveImageFile {
   id: string;
@@ -236,7 +237,7 @@ export async function fetchGoogleDriveWorkspace(
         ...f,
         previewUrl:
           f.previewUrl ||
-          `https://drive.google.com/thumbnail?id=${encodeURIComponent(f.id)}&sz=w1200`,
+          AppConstants.Services.STORAGE.DRIVE_DIRECT_URL(encodeURIComponent(f.id)),
       }));
       skuFolders[skuKey] = {
         sku: skuKey,
