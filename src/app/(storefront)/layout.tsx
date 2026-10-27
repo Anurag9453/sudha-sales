@@ -1,6 +1,7 @@
 import React from 'react';
 import { StoreHeader } from '@/components/layout/StoreHeader';
 import { StoreFooter } from '@/components/layout/StoreFooter';
+import { WelcomeSplashScreen } from '@/components/layout/WelcomeSplashScreen';
 
 export default function StorefrontLayout({
   children,
@@ -9,6 +10,7 @@ export default function StorefrontLayout({
 }) {
   return (
     <div className="min-h-screen flex flex-col">
+      <WelcomeSplashScreen />
       <StoreHeader />
       <main className="flex-1">{children}</main>
       <StoreFooter />
