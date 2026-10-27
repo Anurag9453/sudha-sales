@@ -4,12 +4,15 @@
 // shipping carriers, payment providers, and default values across Sudha Sales.
 // ============================================================================
 
+const STORE_NAME = 'Sudha Sales';
+const WELCOME_TITLE_PREFIX = 'Welcome to';
+
 export class AppConstants {
   /**
    * Brand & Storefront Metadata
    */
   public static readonly Store = {
-    NAME: 'Sudha Sales',
+    NAME: STORE_NAME,
     TAGLINE: 'Heritage Handcrafts & Festive Ethnic Ensembles',
     LEGAL_NAME: 'Sudha Sales Retail Private Limited',
     DEFAULT_CURRENCY: 'INR',
@@ -17,6 +20,64 @@ export class AppConstants {
     DEFAULT_COUNTRY: 'IN',
     SUPPORT_PHONE: '+91 94530 00000',
     SUPPORT_EMAIL: 'support@sudhasales.com',
+  } as const;
+
+  /**
+   * Welcome Splash Screen: behavior, copy, accessibility attributes & styling.
+   * Page-scoped constants for src/components/layout/WelcomeSplashScreen.tsx
+   */
+  public static readonly WelcomeSplash = {
+    // Session storage behavior
+    SESSION_KEY: 'sudha_sales_welcome_splash_seen_v1',
+    SESSION_SEEN_VALUE: '1',
+
+    // Timing (milliseconds)
+    FADE_OUT_DELAY_MS: 1800,
+    REMOVE_DELAY_MS: 2450,
+    DISMISS_EARLY_DELAY_MS: 450,
+
+    // Copy
+    TITLE_PREFIX: WELCOME_TITLE_PREFIX,
+    SUBTITLE: 'Handpicked Bandhej, Sarees & Festive Collections',
+
+    // Accessibility
+    ARIA_ROLE: 'dialog',
+    ARIA_LABEL: `${WELCOME_TITLE_PREFIX} ${STORE_NAME}`,
+    ARIA_HIDDEN: true,
+
+    // Logo badge props
+    BADGE_SIZE: 'lg',
+    BADGE_THEME: 'dark',
+
+    // Class names
+    CLASSES: {
+      ROOT_BASE:
+        'fixed inset-0 z-[100] bg-stone-950 text-white flex flex-col items-center justify-center px-6 select-none cursor-pointer transition-all duration-700 ease-out',
+      ROOT_VISIBLE: 'opacity-100 scale-100',
+      ROOT_FADING: 'opacity-0 scale-105 pointer-events-none',
+      GLOW:
+        'absolute w-80 h-80 sm:w-96 sm:h-96 rounded-full bg-amber-500/15 blur-3xl pointer-events-none',
+      CONTENT:
+        'relative z-10 flex flex-col items-center text-center max-w-md space-y-6',
+      BRAND_WRAPPER: 'flex flex-col items-center gap-4',
+      LOGO_RING:
+        'p-4 rounded-full bg-white/5 border border-amber-300/25 shadow-[0_0_40px_rgba(245,158,11,0.2)]',
+      BRAND_MARK:
+        'font-serif text-xl sm:text-2xl tracking-[0.22em] font-bold animate-sudha-brand whitespace-nowrap',
+      DIVIDER: 'flex items-center gap-3 text-amber-300/80',
+      DIVIDER_LINE_LEFT:
+        'w-10 sm:w-14 h-px bg-gradient-to-r from-transparent to-amber-300/70',
+      DIVIDER_LINE_RIGHT:
+        'w-10 sm:w-14 h-px bg-gradient-to-l from-transparent to-amber-300/70',
+      DIVIDER_ICON: 'w-4 h-4 animate-pulse',
+      MESSAGE_WRAPPER: 'space-y-2',
+      TITLE:
+        'font-serif text-3xl sm:text-4xl font-semibold tracking-wide text-white',
+      SUBTITLE: 'text-xs sm:text-sm text-stone-300 tracking-wider uppercase',
+      PROGRESS_TRACK: 'w-40 h-1 rounded-full bg-stone-800 overflow-hidden mt-2',
+      PROGRESS_BAR:
+        'h-full w-full bg-gradient-to-r from-amber-500 via-amber-200 to-amber-500 animate-pulse origin-left',
+    },
   } as const;
 
   /**
