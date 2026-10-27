@@ -279,9 +279,9 @@ export const StorefrontConstants = {
 
     HERO: {
       TAG: 'Fresh Warehouse Drop • Ready to Ship Today',
-      TITLE: 'Effortless Silhouettes for Every Occasion.',
+      TITLE: 'Pure Heritage Weaves & Celebratory Festive Styles.',
       DESCRIPTION:
-        'Explore our newest handpicked Kurtis, tailored Co-ord Sets, and festive Chanderi ensembles. New collections arrive daily straight from our partner looms.',
+        'Explore our newest handpicked Bandhani suits, festive designer Anarkalis, tailored co-ord sets, and authentic unstitched dress materials. Curated directly for festive elegance and ready to ship.',
       CTA_NEW_COLLECTION: 'Shop New Collection',
       CTA_ALL_STYLES: 'View All Styles',
       IMAGE_1_SRC: '/products/sku-001-navy-blue.jpg',
