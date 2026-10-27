@@ -472,3 +472,25 @@ describe('Customer Reviews & Average Rating Calculation', () => {
     }
   });
 });
+
+describe('Central Application Constants Class', () => {
+  it('exposes well-defined store, shipping, and inventory constants without magic strings', async () => {
+    const { AppConstants } = await import('../constants/app.constants');
+
+    assert.equal(AppConstants.Store.NAME, 'Sudha Sales');
+    assert.equal(AppConstants.Store.DEFAULT_CURRENCY, 'INR');
+    assert.equal(AppConstants.Store.DEFAULT_COUNTRY, 'IN');
+
+    assert.equal(AppConstants.Shipping.FREE_SHIPPING_THRESHOLD, 1499);
+    assert.equal(AppConstants.Shipping.STANDARD_FEE, 99);
+    assert.equal(AppConstants.Shipping.DEFAULT_CARRIER, 'Delhivery Express');
+
+    assert.equal(AppConstants.Inventory.LOW_STOCK_THRESHOLD, 10);
+    assert.equal(AppConstants.Inventory.DEFAULT_PAGE_SIZE, 8);
+    assert.equal(AppConstants.Inventory.MAX_LINE_QUANTITY, 10);
+
+    assert.equal(AppConstants.OrderStatus.CONFIRMED, 'CONFIRMED');
+    assert.equal(AppConstants.PaymentStatus.PAID, 'PAID');
+    assert.equal(AppConstants.PaymentStatus.COD, 'COD');
+  });
+});

@@ -8,6 +8,7 @@
 import crypto from 'crypto';
 import { getSupabaseServerAdminClient } from '@/database/supabase-server';
 import { readLocalCatalog, writeLocalCatalog } from '@/database/local-store';
+import { AppConstants } from '@/constants/app.constants';
 import type {
   CartItem,
   Order,
@@ -245,7 +246,7 @@ export async function createPersistedOrder(
               city: input.shippingAddress.city,
               state: input.shippingAddress.state,
               postal_code: input.shippingAddress.postal_code,
-              country: 'IN',
+              country: AppConstants.Store.DEFAULT_COUNTRY,
             })
             .select('*')
             .single();
@@ -264,7 +265,7 @@ export async function createPersistedOrder(
           .insert({
             order_number: orderNumber,
             customer_id: customerId,
-            status: 'CONFIRMED',
+            status: AppConstants.OrderStatus.CONFIRMED,
             payment_status: input.paymentStatus,
             payment_provider: input.paymentProvider,
             payment_reference: input.paymentReference,
@@ -274,8 +275,11 @@ export async function createPersistedOrder(
             total_amount: input.totalAmount,
             shipping_address: input.shippingAddress,
             tracking_number: trackingNumber,
-            shipping_carrier: 'Delhivery Express',
-            notes: 'Order confirmed via Razorpay — preparing warehouse dispatch',
+            shipping_carrier: AppConstants.Shipping.DEFAULT_CARRIER,
+            notes:
+              input.paymentStatus === AppConstants.PaymentStatus.COD
+                ? AppConstants.Shipping.DEFAULT_NOTES_COD
+                : AppConstants.Shipping.DEFAULT_NOTES_ONLINE,
           })
           .select('*')
           .single();
@@ -412,7 +416,7 @@ export async function createPersistedOrder(
     id: orderId,
     order_number: orderNumber,
     customer_id: 'cust-local-1',
-    status: 'CONFIRMED',
+    status: AppConstants.OrderStatus.CONFIRMED,
     payment_status: input.paymentStatus,
     payment_provider: input.paymentProvider,
     payment_reference: input.paymentReference,
@@ -422,8 +426,11 @@ export async function createPersistedOrder(
     total_amount: input.totalAmount,
     shipping_address: input.shippingAddress,
     tracking_number: trackingNumber,
-    shipping_carrier: 'Delhivery Express',
-    notes: 'Order confirmed via Razorpay — preparing warehouse dispatch',
+    shipping_carrier: AppConstants.Shipping.DEFAULT_CARRIER,
+    notes:
+      input.paymentStatus === AppConstants.PaymentStatus.COD
+        ? AppConstants.Shipping.DEFAULT_NOTES_COD
+        : AppConstants.Shipping.DEFAULT_NOTES_ONLINE,
     created_at: now,
     updated_at: now,
     delivered_at: null,

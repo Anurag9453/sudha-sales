@@ -2,9 +2,11 @@
 // Formatting & Domain Helpers: src/lib/format.ts
 // ============================================================================
 
+import { AppConstants } from '@/constants/app.constants';
+
 const inrFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
-  currency: 'INR',
+  currency: AppConstants.Store.DEFAULT_CURRENCY,
   maximumFractionDigits: 0,
 });
 

@@ -34,6 +34,7 @@ import { useCustomerAuth } from '@/store/customer-auth-context';
 import { formatPrice } from '@/lib/format';
 import { publicEnv } from '@/lib/env';
 import { LuxurySpinner } from '@/components/ui/LuxurySpinner';
+import { AppConstants } from '@/constants/app.constants';
 import type { Order } from '@/types/domain';
 
 interface RazorpaySuccessResponse {
@@ -124,9 +125,11 @@ export default function CartPage() {
     postalCode: '',
   });
 
-  const freeShippingThreshold = 1499;
+  const freeShippingThreshold = AppConstants.Shipping.FREE_SHIPPING_THRESHOLD;
   const shippingAmount =
-    subtotalAmount === 0 || subtotalAmount >= freeShippingThreshold ? 0 : 99;
+    subtotalAmount === 0 || subtotalAmount >= freeShippingThreshold
+      ? 0
+      : AppConstants.Shipping.STANDARD_FEE;
   const finalTotal = subtotalAmount + shippingAmount;
 
   if (!isHydrated || !isAuthHydrated) {
@@ -293,7 +296,7 @@ export default function CartPage() {
               city: defaultAddr.city,
               state: defaultAddr.state,
               postal_code: defaultAddr.postal_code,
-              country: 'IN',
+              country: AppConstants.Store.DEFAULT_COUNTRY,
             },
             items,
             subtotalAmount,
@@ -383,7 +386,7 @@ export default function CartPage() {
               city: defaultAddr.city,
               state: defaultAddr.state,
               postal_code: defaultAddr.postal_code,
-              country: 'IN',
+              country: AppConstants.Store.DEFAULT_COUNTRY,
             },
             items,
             subtotalAmount,
@@ -575,7 +578,7 @@ export default function CartPage() {
                       {item.color && <span>• {item.color}</span>}
                     </div>
 
-                    {item.maxStock < 10 && item.maxStock > 0 && (
+                    {item.maxStock < AppConstants.Inventory.LOW_STOCK_THRESHOLD && item.maxStock > 0 && (
                       <p className="mt-1.5 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200/80 rounded-md px-2 py-0.5 inline-block">
                         Only {item.maxStock} left in stock for Size {item.size}
                       </p>

@@ -21,6 +21,7 @@ import {
 import { useCart } from '@/store/cart-context';
 import { useCustomerAuth } from '@/store/customer-auth-context';
 import { getEffectivePrice } from '@/lib/format';
+import { AppConstants } from '@/constants/app.constants';
 import type { Product } from '@/types/domain';
 
 interface ProductPurchasePanelProps {
@@ -40,7 +41,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
   };
 
   const initialSize = React.useMemo(() => {
-    if (!product.sizes || product.sizes.length === 0) return 'FREE';
+    if (!product.sizes || product.sizes.length === 0) return AppConstants.Sizes.FREE_SIZE;
     const firstAvailable = product.sizes.find((s) => {
       const q =
         product.size_stock && typeof product.size_stock[s] === 'number'
@@ -82,7 +83,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     slug: product.slug,
     imageUrl:
       product.images[0]?.image_url ??
-      'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80',
+      AppConstants.Assets.FALLBACK_PRODUCT_IMAGE,
     color: product.color,
     size: selectedSize,
     unitPrice: effectivePrice,
@@ -135,7 +136,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
             <span className="w-2 h-2 rounded-full bg-rose-600" />
             Size {selectedSize} is Out of Stock — please choose another size
           </span>
-        ) : currentSizeStock < 10 ? (
+        ) : currentSizeStock < AppConstants.Inventory.LOW_STOCK_THRESHOLD ? (
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-900 border border-amber-300 shadow-xs">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
             Only {currentSizeStock} available in Size {selectedSize} (Max {currentSizeStock} can be purchased)
@@ -194,7 +195,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
                   <span className="text-[9px] font-normal leading-none text-rose-500 no-underline">
                     Sold Out
                   </span>
-                ) : sizeQty < 10 ? (
+                ) : sizeQty < AppConstants.Inventory.LOW_STOCK_THRESHOLD ? (
                   <span
                     className={`text-[9.5px] font-semibold leading-none tracking-tight ${
                       isSelected ? 'text-amber-300' : 'text-amber-700'
@@ -223,7 +224,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           <label className="text-xs font-semibold uppercase tracking-wider text-stone-800">
             Quantity
           </label>
-          {currentSizeStock < 10 && currentSizeStock > 0 && (
+          {currentSizeStock < AppConstants.Inventory.LOW_STOCK_THRESHOLD && currentSizeStock > 0 && (
             <span className="text-xs font-medium text-amber-700">
               Stock limit: {currentSizeStock} max
             </span>
@@ -304,15 +305,15 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
       <div className="grid grid-cols-3 gap-3 pt-4 border-t border-stone-200 text-center">
         <div className="p-2.5 rounded-xl bg-stone-50 space-y-1">
           <Truck className="w-4 h-4 mx-auto text-stone-700" />
-          <p className="text-[11px] font-medium text-stone-700">24–48hr Dispatch</p>
+          <p className="text-[11px] font-medium text-stone-700">{AppConstants.Shipping.DISPATCH_TIMELINE}</p>
         </div>
         <div className="p-2.5 rounded-xl bg-stone-50 space-y-1">
           <RefreshCw className="w-4 h-4 mx-auto text-stone-700" />
-          <p className="text-[11px] font-medium text-stone-700">7-Day Size Exchange</p>
+          <p className="text-[11px] font-medium text-stone-700">{AppConstants.Shipping.EXCHANGE_POLICY}</p>
         </div>
         <div className="p-2.5 rounded-xl bg-stone-50 space-y-1">
           <ShieldCheck className="w-4 h-4 mx-auto text-stone-700" />
-          <p className="text-[11px] font-medium text-stone-700">Quality Checked</p>
+          <p className="text-[11px] font-medium text-stone-700">{AppConstants.Shipping.QUALITY_ASSURANCE}</p>
         </div>
       </div>
     </div>

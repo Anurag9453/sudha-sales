@@ -13,6 +13,7 @@ import {
   getProducts,
 } from '@/services/catalog.service';
 import { InfiniteProductGrid } from '@/components/product/InfiniteProductGrid';
+import { AppConstants } from '@/constants/app.constants';
 import { STANDARD_SIZES } from '@/types/domain';
 
 export const dynamic = 'force-dynamic';
@@ -47,7 +48,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     }),
   ]);
 
-  const BATCH_SIZE = 8;
+  const BATCH_SIZE = AppConstants.Inventory.DEFAULT_PAGE_SIZE;
   const initialBatch = allProducts.slice(0, BATCH_SIZE);
   const totalCount = allProducts.length;
 

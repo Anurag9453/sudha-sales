@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { createPersistedOrder } from '@/services/order.service';
+import { AppConstants } from '@/constants/app.constants';
 import type { CartItem, ShippingAddressSnapshot } from '@/types/domain';
 
 export async function POST(request: NextRequest) {
@@ -44,9 +45,9 @@ export async function POST(request: NextRequest) {
       discountAmount: Number(body.discountAmount),
       shippingAmount: Number(body.shippingAmount),
       totalAmount: Number(body.totalAmount),
-      paymentProvider: 'Cash on Delivery (Pay at Doorstep)',
+      paymentProvider: AppConstants.Payments.PROVIDER_LABEL_COD,
       paymentReference: codReference,
-      paymentStatus: 'PENDING',
+      paymentStatus: AppConstants.PaymentStatus.PENDING,
     });
 
     revalidatePath('/');

@@ -15,6 +15,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Loader2, ArrowUp, Sparkles } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
+import { AppConstants } from '@/constants/app.constants';
 import type { Product } from '@/types/domain';
 
 interface FilterParams {
@@ -55,7 +56,7 @@ export function InfiniteProductGrid({
   initialProducts,
   totalCount,
   filterParams,
-  batchSize = 8,
+  batchSize = AppConstants.Inventory.DEFAULT_PAGE_SIZE,
 }: InfiniteProductGridProps) {
   const cacheKey = buildCacheKey(filterParams);
 
@@ -188,8 +189,8 @@ export function InfiniteProductGrid({
       },
       {
         root: null,
-        // Trigger 350px before reaching the exact bottom for seamless feel
-        rootMargin: '350px',
+        // Trigger before reaching the exact bottom for seamless feel
+        rootMargin: AppConstants.Inventory.SCROLL_TRIGGER_MARGIN,
         threshold: 0,
       }
     );

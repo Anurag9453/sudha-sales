@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { verifyRazorpayPaymentSignature } from '@/services/razorpay.service';
 import { createPersistedOrder } from '@/services/order.service';
+import { AppConstants } from '@/constants/app.constants';
 import type { CartItem, ShippingAddressSnapshot } from '@/types/domain';
 
 export async function POST(request: NextRequest) {
@@ -64,9 +65,9 @@ export async function POST(request: NextRequest) {
       discountAmount: Number(body.discountAmount),
       shippingAmount: Number(body.shippingAmount),
       totalAmount: Number(body.totalAmount),
-      paymentProvider: 'Razorpay (UPI / Card / NetBanking)',
+      paymentProvider: AppConstants.Payments.PROVIDER_LABEL_RAZORPAY,
       paymentReference: body.razorpay_payment_id,
-      paymentStatus: 'PAID',
+      paymentStatus: AppConstants.PaymentStatus.PAID,
     });
 
     // Revalidate storefront & admin pages so updated stock and new order show up

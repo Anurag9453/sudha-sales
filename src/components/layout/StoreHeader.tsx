@@ -30,6 +30,7 @@ import { useCustomerAuth } from '@/store/customer-auth-context';
 import { publicEnv } from '@/lib/env';
 import { formatPrice } from '@/lib/format';
 import { SudhaSpinnerBadge } from '@/components/ui/LuxurySpinner';
+import { AppConstants } from '@/constants/app.constants';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
@@ -43,7 +44,7 @@ const NAV_LINKS = [
 
 const MARQUEE_ITEMS = [
   `${publicEnv.storeName} — Fresh Warehouse Collections Added Daily`,
-  `${publicEnv.storeName} — Free Express Shipping Above ₹1,499`,
+  `${publicEnv.storeName} — Free Express Shipping Above ${formatPrice(AppConstants.Shipping.FREE_SHIPPING_THRESHOLD)}`,
   `${publicEnv.storeName} — Tap Any Photo to View Full Multi-Angle Gallery`,
   `${publicEnv.storeName} — Direct Loom & Warehouse Prices`,
 ];

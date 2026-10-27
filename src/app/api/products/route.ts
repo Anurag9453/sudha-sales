@@ -6,12 +6,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getProductsPaginated } from '@/services/catalog.service';
+import { AppConstants } from '@/constants/app.constants';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '8', 10);
+    const limit = parseInt(
+      searchParams.get('limit') ||
+        String(AppConstants.Inventory.DEFAULT_PAGE_SIZE),
+      10
+    );
     const categorySlug = searchParams.get('category') || undefined;
     const collectionSlug = searchParams.get('collection') || undefined;
     const size = searchParams.get('size') || undefined;

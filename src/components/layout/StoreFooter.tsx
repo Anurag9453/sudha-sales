@@ -5,6 +5,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { publicEnv } from '@/lib/env';
+import { AppConstants } from '@/constants/app.constants';
 
 export function StoreFooter() {
   return (
@@ -21,8 +22,8 @@ export function StoreFooter() {
               artisan looms and partner warehouses with fresh collections dropping daily.
             </p>
             <div className="pt-1 text-xs text-stone-400 space-y-1">
-              <p>Dispatch within 24–48 hours across India</p>
-              <p>Easy 7-day size exchange • Secure online checkout</p>
+              <p>{AppConstants.Shipping.DISPATCH_TIMELINE} across India</p>
+              <p>{AppConstants.Shipping.EXCHANGE_POLICY} • Secure online checkout</p>
             </div>
           </div>
 

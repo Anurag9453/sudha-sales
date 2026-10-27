@@ -10,6 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { SudhaSpinnerBadge } from '@/components/ui/LuxurySpinner';
 import { publicEnv } from '@/lib/env';
+import { AppConstants } from '@/constants/app.constants';
 
 const SPLASH_SESSION_KEY = 'sudha_sales_welcome_splash_seen_v1';
 
@@ -91,7 +92,7 @@ export function WelcomeSplashScreen() {
         {/* Welcome Message */}
         <div className="space-y-2">
           <h1 className="font-serif text-3xl sm:text-4xl font-semibold tracking-wide text-white">
-            Welcome to Sudha Sales
+            Welcome to {AppConstants.Store.NAME}
           </h1>
           <p className="text-xs sm:text-sm text-stone-300 tracking-wider uppercase">
             Handpicked Bandhej, Sarees &amp; Festive Collections

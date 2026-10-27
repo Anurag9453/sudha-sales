@@ -10,6 +10,7 @@ import { readLocalCatalog } from '@/database/local-store';
 import { resolveProductImageUrl } from './storage.service';
 import { extractReviewsFromProductRecord } from './review.service';
 import { getEffectivePrice } from '@/lib/format';
+import { AppConstants } from '@/constants/app.constants';
 import type {
   CatalogFilterParams,
   Category,
@@ -236,7 +237,13 @@ export async function getProductsPaginated(
   filters: CatalogFilterParams = {}
 ): Promise<PaginatedProductsResult> {
   const page = Math.max(1, Number(filters.page || 1));
-  const limit = Math.max(1, Math.min(100, Number(filters.limit || 8)));
+  const limit = Math.max(
+    1,
+    Math.min(
+      AppConstants.Inventory.MAX_PAGE_SIZE,
+      Number(filters.limit || AppConstants.Inventory.DEFAULT_PAGE_SIZE)
+    )
+  );
 
   const allFiltered = await getProducts(filters);
   const total = allFiltered.length;

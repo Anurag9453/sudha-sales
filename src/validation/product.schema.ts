@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { parseSizesInput } from '@/lib/format';
+import { AppConstants } from '@/constants/app.constants';
 
 export const skuSchema = z
   .string()
@@ -45,7 +46,7 @@ export const upsertProductSchema = z
       .number()
       .int('Stock must be a whole number')
       .min(0, 'Stock cannot be negative')
-      .max(100000),
+      .max(AppConstants.Inventory.MAX_STOCK_LIMIT),
     sizes: z
       .union([z.string(), z.array(z.string())])
       .transform((val) => parseSizesInput(val))
@@ -68,7 +69,11 @@ export const upsertProductSchema = z
 
 export const updateStockSchema = z.object({
   sku: skuSchema,
-  stock: z.coerce.number().int().min(0, 'Stock cannot be negative').max(100000),
+  stock: z.coerce
+    .number()
+    .int()
+    .min(0, 'Stock cannot be negative')
+    .max(AppConstants.Inventory.MAX_STOCK_LIMIT),
 });
 
 export const toggleStatusSchema = z.object({

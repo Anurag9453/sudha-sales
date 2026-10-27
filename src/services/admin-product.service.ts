@@ -11,6 +11,7 @@ import { getSupabaseServerAdminClient } from '@/database/supabase-server';
 import { readLocalCatalog, writeLocalCatalog } from '@/database/local-store';
 import { buildStandardS3Key } from './storage.service';
 import { slugify } from '@/lib/format';
+import { AppConstants } from '@/constants/app.constants';
 import {
   toggleStatusSchema,
   updateStockSchema,
@@ -63,7 +64,10 @@ export async function upsertProductBySku(rawInput: UpsertProductInput): Promise<
         sku: input.sku,
         s3_key:
           img.s3_key ||
-          buildStandardS3Key(input.sku, idx === 0 ? 'front.jpg' : `view-${idx + 1}.jpg`),
+          buildStandardS3Key(
+            input.sku,
+            idx === 0 ? AppConstants.Assets.FRONT_IMAGE : `view-${idx + 1}.jpg`
+          ),
         image_url: img.image_url,
         alt_text: img.alt_text || `${input.name} - View ${idx + 1}`,
         display_order: idx,
@@ -103,7 +107,10 @@ export async function upsertProductBySku(rawInput: UpsertProductInput): Promise<
     sku: input.sku,
     s3_key:
       img.s3_key ||
-      buildStandardS3Key(input.sku, idx === 0 ? 'front.jpg' : `view-${idx + 1}.jpg`),
+      buildStandardS3Key(
+        input.sku,
+        idx === 0 ? AppConstants.Assets.FRONT_IMAGE : `view-${idx + 1}.jpg`
+      ),
     image_url: img.image_url,
     alt_text: img.alt_text || `${input.name} - View ${idx + 1}`,
     display_order: idx,
