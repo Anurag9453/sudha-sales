@@ -224,6 +224,35 @@ export function applyInMemoryCatalogFilters(
   return result;
 }
 
+export interface PaginatedProductsResult {
+  products: Product[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+export async function getProductsPaginated(
+  filters: CatalogFilterParams = {}
+): Promise<PaginatedProductsResult> {
+  const page = Math.max(1, Number(filters.page || 1));
+  const limit = Math.max(1, Math.min(100, Number(filters.limit || 8)));
+
+  const allFiltered = await getProducts(filters);
+  const total = allFiltered.length;
+  const offset = (page - 1) * limit;
+  const products = allFiltered.slice(offset, offset + limit);
+  const hasMore = offset + limit < total;
+
+  return {
+    products,
+    total,
+    page,
+    limit,
+    hasMore,
+  };
+}
+
 export async function getProductBySku(
   sku: string,
   options: { includeInactive?: boolean } = {}

@@ -211,6 +211,9 @@ export interface CatalogFilterParams {
   size?: string;
   sort?: 'newest' | 'price-asc' | 'price-desc';
   includeInactive?: boolean;
+  limit?: number;
+  offset?: number;
+  page?: number;
 }
 
 /**

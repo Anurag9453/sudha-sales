@@ -181,6 +181,21 @@ describe('Catalog Filtering Service', () => {
     assert.equal(result.length, 1);
     assert.equal(result[0].sku, 'SKU001');
   });
+
+  it('paginates products into batches for lazy loading', async () => {
+    const { getProductsPaginated } = await import('../services/catalog.service');
+    const page1 = await getProductsPaginated({ page: 1, limit: 2 });
+    assert.equal(page1.page, 1);
+    assert.equal(page1.limit, 2);
+    assert.equal(page1.products.length, 2);
+    assert.ok(page1.total >= 2);
+    assert.equal(page1.hasMore, true);
+
+    const page2 = await getProductsPaginated({ page: 2, limit: 2 });
+    assert.equal(page2.page, 2);
+    assert.equal(page2.limit, 2);
+    assert.notEqual(page1.products[0].sku, page2.products[0].sku);
+  });
 });
 
 describe('Razorpay Payment Signature & Order Persistence', () => {

@@ -1,0 +1,49 @@
+// ============================================================================
+// Paginated Products API: src/app/api/products/route.ts
+// Powers infinite scroll and lazy loading for large inventories with server-side
+// pagination, category/size/collection filtering, and full-text search.
+// ============================================================================
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getProductsPaginated } from '@/services/catalog.service';
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '8', 10);
+    const categorySlug = searchParams.get('category') || undefined;
+    const collectionSlug = searchParams.get('collection') || undefined;
+    const size = searchParams.get('size') || undefined;
+    const sort =
+      (searchParams.get('sort') as 'newest' | 'price-asc' | 'price-desc') ||
+      'newest';
+    const search = searchParams.get('q') || undefined;
+
+    const result = await getProductsPaginated({
+      page,
+      limit,
+      categorySlug,
+      collectionSlug,
+      size,
+      sort,
+      search,
+    });
+
+    return NextResponse.json(
+      {
+        ok: true,
+        ...result,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        },
+      }
+    );
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : 'Failed to fetch paginated products';
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  }
+}

@@ -12,7 +12,7 @@ import {
   getCollections,
   getProducts,
 } from '@/services/catalog.service';
-import { ProductCard } from '@/components/product/ProductCard';
+import { InfiniteProductGrid } from '@/components/product/InfiniteProductGrid';
 import { STANDARD_SIZES } from '@/types/domain';
 
 export const dynamic = 'force-dynamic';
@@ -35,7 +35,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const activeSort = params.sort || 'newest';
   const searchQuery = params.q || '';
 
-  const [categories, collections, products] = await Promise.all([
+  const [categories, collections, allProducts] = await Promise.all([
     getCategories(),
     getCollections(),
     getProducts({
@@ -46,6 +46,10 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
       search: searchQuery,
     }),
   ]);
+
+  const BATCH_SIZE = 8;
+  const initialBatch = allProducts.slice(0, BATCH_SIZE);
+  const totalCount = allProducts.length;
 
   const activeCategory = categories.find((c) => c.slug === activeCategorySlug);
   const activeCollection = collections.find((c) => c.slug === activeCollectionSlug);
@@ -254,8 +258,8 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
       {/* Results Count & Clear Filters */}
       <div className="flex items-center justify-between mb-6 text-xs text-stone-600">
         <p>
-          Showing <strong className="text-stone-900">{products.length}</strong>{' '}
-          {products.length === 1 ? 'style' : 'styles'}
+          Showing <strong className="text-stone-900">{totalCount}</strong>{' '}
+          {totalCount === 1 ? 'style' : 'styles'}
         </p>
 
         {hasActiveFilters && (
@@ -270,7 +274,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
       </div>
 
       {/* Product Grid */}
-      {products.length === 0 ? (
+      {totalCount === 0 ? (
         <div className="rounded-3xl bg-white border border-stone-200 p-12 text-center max-w-md mx-auto my-8 space-y-4">
           <p className="font-serif text-2xl font-semibold text-stone-900">
             No matching styles found
@@ -287,15 +291,18 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-          {products.map((product, index) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              priority={index < 4}
-            />
-          ))}
-        </div>
+        <InfiniteProductGrid
+          initialProducts={initialBatch}
+          totalCount={totalCount}
+          filterParams={{
+            category: activeCategorySlug,
+            collection: activeCollectionSlug,
+            size: activeSize,
+            sort: activeSort,
+            q: searchQuery,
+          }}
+          batchSize={BATCH_SIZE}
+        />
       )}
     </div>
   );
